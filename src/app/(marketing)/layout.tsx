@@ -12,7 +12,7 @@ export default function MarketingLayout({
         <div className="min-h-screen bg-[#050505] text-white overflow-x-hidden">
             {/* Navbar Minimalista */}
             <nav className="fixed top-0 left-0 w-full z-[100] px-8 py-6 flex items-center justify-between backdrop-blur-md bg-black/20 border-b border-white/5">
-                <Link href="/home" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <img src="/brand/logo.jpg" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-brand-mint/20" />
                     <span className="text-xl font-bold tracking-tighter">IAUTOMAE</span>
                 </Link>
@@ -30,7 +30,7 @@ export default function MarketingLayout({
             <footer className="bg-black py-20 px-8 border-t border-white/5">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
                     <div className="space-y-6">
-                        <Link href="/home" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                             <img src="/brand/logo.jpg" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-brand-mint/20" />
                             <span className="text-xl font-bold tracking-tighter text-white">IAUTOMAE</span>
                         </Link>

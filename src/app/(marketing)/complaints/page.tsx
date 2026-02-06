@@ -54,7 +54,7 @@ export default function ComplaintsPage() {
                         Tu {formData.complaint_type.toLowerCase()} ha sido registrada correctamente. Hemos enviado una copia del detalle a tu correo electrónico: <strong>{formData.email}</strong>.
                     </p>
                     <button
-                        onClick={() => window.location.href = '/home'}
+                        onClick={() => window.location.href = '/'}
                         className="w-full py-4 bg-brand-mint text-black font-black uppercase tracking-widest text-xs rounded-full hover:scale-105 active:scale-95 transition-all shadow-xl shadow-brand-mint/20"
                     >
                         Volver al inicio

@@ -74,7 +74,7 @@ export function Sidebar() {
     <div className="fixed left-4 top-4 bottom-4 w-20 bg-sidebar rounded-2xl shadow-2xl shadow-black/5 border border-slate-100 flex flex-col items-center py-8 z-[60] select-none transition-all duration-300">
       {/* Brand Logo - Swappable */}
       <div className="mb-10">
-        <Link href="/home" className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform hover:scale-105 overflow-hidden group/logo relative">
+        <Link href="/" className="relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity w-fit">
           <img
             src={logo}
             alt="Logo"

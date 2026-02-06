@@ -28,10 +28,8 @@ export default async function middleware(req: NextRequest) {
     }
 
     // 2. Lógica para el Dominio Principal (Marketing)
-    // Si entran a iautomae.com/ -> mostrar la landing interna
-    if (url.pathname === '/') {
-        return NextResponse.rewrite(new URL('/home', req.url));
-    }
+    // Las rutas ahora se manejan directamente en el sistema de archivos (src/app/(marketing)/page.tsx)
+    return NextResponse.next();
 
     // Rutas como /compressor, /privacy-policy, etc. ya existen en el grupo marketing
     return NextResponse.next();

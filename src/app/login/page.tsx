@@ -59,7 +59,7 @@ export default function LoginPage() {
             <div className="hidden md:flex md:w-1/2 bg-[#0a0a0a] p-12 flex-col justify-between relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-brand-mint/5 blur-[120px] pointer-events-none" />
 
-                <Link href="/home" className="relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity w-fit">
+                <Link href="/" className="relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity w-fit">
                     <img src="/brand/logo.jpg" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-brand-mint/20" />
                     <h1 className="text-white text-2xl font-bold tracking-tight">IAUTOMAE</h1>
                 </Link>
@@ -81,7 +81,7 @@ export default function LoginPage() {
             {/* Login Form Side */}
             <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-white">
                 <div className="w-full max-w-md space-y-10">
-                    <Link href="/home" className="md:hidden flex flex-col items-center mb-10 text-center hover:opacity-80 transition-opacity">
+                    <Link href="/" className="md:hidden flex flex-col items-center mb-10 text-center hover:opacity-80 transition-opacity">
                         <img src="/brand/logo.jpg" alt="Logo" className="w-14 h-14 rounded-xl object-cover shadow-lg shadow-brand-mint/20 mb-4" />
                         <h1 className="text-3xl font-bold text-gray-900">IAUTOMAE</h1>
                     </Link>
