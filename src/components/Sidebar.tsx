@@ -9,8 +9,7 @@ import {
   FileText,
   SquarePen,
   Settings,
-  LogOut,
-  Shield
+  LogOut
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -57,18 +56,6 @@ export function Sidebar() {
     return profile?.[item.permission as keyof typeof profile] === true;
   });
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setLogo(result);
-        localStorage.setItem('antigravity_brand_logo', result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   return (
     <div className="fixed left-4 top-4 bottom-4 w-20 bg-sidebar rounded-2xl shadow-2xl shadow-black/5 border border-slate-100 flex flex-col items-center py-8 z-[60] select-none transition-all duration-300">

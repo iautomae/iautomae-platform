@@ -16,7 +16,6 @@ export const NeuralNetworkBackground: React.FC = () => {
         let width: number;
         let height: number;
         let particles: Particle[] = [];
-        const particleCount = 100;
         const connectionDistance = 150;
         const mouse = { x: -100, y: -100, radius: 200 };
 

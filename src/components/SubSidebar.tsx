@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     Bot,
-    MessageSquare,
     Users,
     ChevronRight,
     FileSpreadsheet,
     History,
     FileCode,
+    BarChart4,
+    MessageSquare,
+    Settings,
     LayoutGrid,
     Settings2,
     Bell,

@@ -6,11 +6,14 @@ import {
     Save,
     BrainCircuit,
     BookOpen,
+    Trash2,
+    RefreshCw,
+    MessageSquare,
+    Play,
     Sparkles,
     Upload,
     FileText,
     X,
-    Plus,
     CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
@@ -123,7 +126,7 @@ export default function AgentConfigPage() {
                                         <Upload size={32} />
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-sm font-bold text-gray-900">Haz clic para subir archivos o arrastra y suelta</p>
+                                        <p className="text-slate-400 text-sm">Define el &quot;alma&quot; de tu agente. Su rol, tono y objetivos principales.</p>
                                         <p className="text-xs text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB por archivo)</p>
                                     </div>
                                     <input

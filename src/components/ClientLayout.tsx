@@ -12,7 +12,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-    const { isSubSidebarOpen, setSubSidebarOpen } = useUI();
+    const { activeCategory } = useUI();
     const { user } = useAuth();
 
     // ADJUSTED MARGIN: Floating sidebar (16px left + 80px width + 16px gap = 112px)

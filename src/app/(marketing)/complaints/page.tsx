@@ -7,10 +7,8 @@ import {
     Mail,
     Phone,
     Home,
-    AlertCircle,
     CheckCircle2,
     ArrowRight,
-    Search,
     FileText
 } from 'lucide-react';
 

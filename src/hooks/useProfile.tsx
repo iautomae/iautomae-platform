@@ -8,7 +8,7 @@ export type Company = {
     id: string;
     nombre: string;
     nicho: 'libreria' | 'restaurante' | 'general';
-    configuracion: any;
+    configuracion: Record<string, unknown>;
 };
 
 export type UserProfile = {

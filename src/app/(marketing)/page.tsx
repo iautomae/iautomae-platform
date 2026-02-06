@@ -3,14 +3,9 @@
 import React from 'react';
 import {
     Cpu,
-    Code2,
     BarChart4,
     Zap,
-    ArrowRight,
-    CheckCircle2,
-    Globe,
-    Database,
-    Layers
+    CheckCircle2
 } from 'lucide-react';
 import { NeuralNetworkBackground } from '@/components/NeuralNetworkBackground';
 

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useState, useMemo, useEffect } from 'react';
 import {
@@ -33,7 +34,6 @@ import {
     FileText,
     Package,
     AlertTriangle,
-    Mic,
     Headphones,
     Volume2,
     Play
@@ -58,7 +58,7 @@ interface Lead {
     status: LeadStatus;
     summary: string;
     conversation: { role: 'user' | 'assistant', text: string }[];
-    custom_data?: Record<string, any>;
+    custom_data?: Record<string, unknown>;
     score: number;
 }
 
@@ -852,7 +852,7 @@ export default function AgentsAndLeadsPage() {
                                     }
 
                                     return (
-                                        //@ts-ignore
+                                        // @ts-expect-error
                                         <button
                                             key={tab.id}
                                             onClick={() => {
@@ -1839,7 +1839,7 @@ export default function AgentsAndLeadsPage() {
                     ].map((item) => (
                         <button
                             key={item.id}
-                            //@ts-ignore
+                            // @ts-expect-error
                             onClick={() => { setFilter(item.id); setCurrentPage(1); }}
                             className={cn(
                                 "flex items-center justify-center gap-2 px-3 py-1 rounded-md text-[11px] font-bold transition-all flex-1 md:flex-none whitespace-nowrap",
@@ -2090,7 +2090,7 @@ export default function AgentsAndLeadsPage() {
                             <button onClick={() => setActiveSummary(null)} className="p-2 text-gray-400 hover:text-red-500 transition-all"><X size={20} /></button>
                         </div>
                         <div className="p-8 bg-white">
-                            <p className="text-gray-700 text-sm leading-relaxed italic font-medium">"{activeSummary.summary}"</p>
+                            <p className="text-gray-700 text-sm leading-relaxed italic font-medium">&quot;{activeSummary.summary}&quot;</p>
                         </div>
                         <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between px-6">
                             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none">Calificación del Lead</span>
