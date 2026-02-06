@@ -18,7 +18,6 @@ export type UserProfile = {
     has_leads_access: boolean;
     has_docs_access: boolean;
     has_forms_access: boolean;
-    has_compressor_access: boolean;
     primary_service: string | null;
     empresa_id: string | null;
     empresa?: Company | null;
@@ -53,7 +52,6 @@ export function useProfile() {
                         has_leads_access: false,
                         has_docs_access: false,
                         has_forms_access: false,
-                        has_compressor_access: false,
                         primary_service: null,
                         empresa_id: null,
                         empresa: null

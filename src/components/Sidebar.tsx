@@ -22,11 +22,10 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type MainCategory = 'dashboard' | 'leads' | 'documents' | 'forms' | 'settings' | 'compressor';
+type MainCategory = 'dashboard' | 'leads' | 'documents' | 'forms' | 'settings';
 
 const PRIMARY_MENU = [
   { id: 'dashboard' as MainCategory, icon: LayoutDashboard, label: 'Dashboard', href: '/', permission: null },
-  { id: 'compressor' as MainCategory, icon: Shield, label: 'Compresor', href: '/dashboard/compress', permission: 'has_compressor_access' },
   { id: 'leads' as MainCategory, icon: Users, label: 'Agentes', href: '/leads', permission: 'has_leads_access' },
   { id: 'documents' as MainCategory, icon: FileText, label: 'Documentos', href: '/documents', permission: 'has_docs_access' },
   { id: 'forms' as MainCategory, icon: SquarePen, label: 'Formularios', href: '/forms', permission: 'has_forms_access' },
@@ -99,8 +98,6 @@ export function Sidebar() {
                 if (item.id === 'leads') {
                   setSubSidebarOpen(false);
                   router.push('/leads');
-                } else if (item.id === 'compressor') {
-                  router.push('/dashboard/compress');
                 }
               }}
               className={cn(

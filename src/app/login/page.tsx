@@ -35,17 +35,12 @@ export default function LoginPage() {
         setLoading(true);
         setError(null);
 
-        // Track if user came from the compressor landing
-        const isFromCompressor = window.location.pathname.includes('/compress');
-
         const { error } = await supabase.auth.signUp({
             email,
             password,
             options: {
                 data: {
-                    signup_origin: isFromCompressor ? 'compressor' : 'general',
-                    has_compressor_access: isFromCompressor,
-                    is_trial: isFromCompressor
+                    signup_origin: 'general',
                 }
             }
         });

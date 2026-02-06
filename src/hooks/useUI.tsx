@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type MainCategory = 'dashboard' | 'leads' | 'documents' | 'forms' | 'settings' | 'compressor' | null;
+type MainCategory = 'dashboard' | 'leads' | 'documents' | 'forms' | 'settings' | null;
 
 type UIContextType = {
     isSidebarCollapsed: boolean; // Primary sidebar (icons only)
