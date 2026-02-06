@@ -4,15 +4,11 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-    Bot,
-    Users,
     ChevronRight,
     FileSpreadsheet,
     History,
     FileCode,
-    BarChart4,
     MessageSquare,
-    Settings,
     LayoutGrid,
     Settings2,
     Bell,

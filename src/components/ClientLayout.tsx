@@ -5,14 +5,12 @@ import { twMerge } from 'tailwind-merge';
 import { Sidebar } from "@/components/Sidebar";
 import { SubSidebar } from "@/components/SubSidebar";
 import { useAuth } from "@/hooks/useAuth";
-import { useUI } from "@/hooks/useUI";
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-    const { activeCategory } = useUI();
     const { user } = useAuth();
 
     // ADJUSTED MARGIN: Floating sidebar (16px left + 80px width + 16px gap = 112px)

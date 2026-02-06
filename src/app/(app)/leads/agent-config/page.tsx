@@ -6,10 +6,6 @@ import {
     Save,
     BrainCircuit,
     BookOpen,
-    Trash2,
-    RefreshCw,
-    MessageSquare,
-    Play,
     Sparkles,
     Upload,
     FileText,
@@ -191,7 +187,7 @@ export default function AgentConfigPage() {
                             </li>
                             <li>
                                 <span className="font-bold block text-gray-900 mb-1">Define un Objetivo</span>
-                                Ej: "Al final de la charla, siempre intenta pedir su WhatsApp o número de teléfono."
+                                Ej: &quot;Al final de la charla, siempre intenta pedir su WhatsApp o número de teléfono.&quot;
                             </li>
                         </ul>
                     </div>
