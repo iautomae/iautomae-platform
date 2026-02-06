@@ -10,7 +10,8 @@ import {
     Upload,
     FileText,
     X,
-    Plus
+    Plus,
+    CheckCircle2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -56,8 +57,8 @@ export default function AgentConfigPage() {
                 <button
                     onClick={() => setActiveTab('behavior')}
                     className={`px-8 py-4 text-sm font-bold border-b-2 transition-all duration-300 flex items-center gap-2 ${activeTab === 'behavior'
-                            ? 'border-brand-mint text-brand-mint'
-                            : 'border-transparent text-gray-400 hover:text-gray-600'
+                        ? 'border-brand-mint text-brand-mint'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
                         }`}
                 >
                     <BrainCircuit size={18} />
@@ -66,8 +67,8 @@ export default function AgentConfigPage() {
                 <button
                     onClick={() => setActiveTab('knowledge')}
                     className={`px-8 py-4 text-sm font-bold border-b-2 transition-all duration-300 flex items-center gap-2 ${activeTab === 'knowledge'
-                            ? 'border-brand-mint text-brand-mint'
-                            : 'border-transparent text-gray-400 hover:text-gray-600'
+                        ? 'border-brand-mint text-brand-mint'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
                         }`}
                 >
                     <BookOpen size={18} />
