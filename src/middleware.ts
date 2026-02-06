@@ -1,3 +1,4 @@
+// Forced redeploy to link custom domain correctly
 import { NextRequest, NextResponse } from 'next/server';
 
 export const config = {
@@ -18,16 +19,13 @@ export default async function middleware(req: NextRequest) {
     const hostname = req.headers.get('host') || '';
 
     // 1. Lógica para el Subdominio APP
-    if (hostname.includes('app.')) {
-        // Si entran a app.iautomae.com/ -> mostrar el dashboard interno
+    if (hostname.startsWith('app.')) {
         if (url.pathname === '/') {
             return NextResponse.rewrite(new URL('/dashboard', req.url));
         }
-        // Otras rutas de app como /leads se mantienen igual
         return NextResponse.next();
     }
 
-    // 2. Lógica para el Dominio Principal (Marketing)
-    // Next.js servirá automáticamente src/app/(marketing)/page.tsx para la ruta raíz.
+    // 2. Todo lo demás (Dominio Principal)
     return NextResponse.next();
 }
