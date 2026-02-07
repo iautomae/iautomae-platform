@@ -145,23 +145,11 @@ export default function LoginPage() {
                                 )}
                             </button>
 
-                            <div className="relative py-2">
-                                <div className="absolute inset-0 flex items-center">
-                                    <div className="w-full border-t border-gray-200"></div>
-                                </div>
-                                <div className="relative flex justify-center text-xs uppercase">
-                                    <span className="bg-white px-2 text-gray-400">¿No tienes cuenta?</span>
-                                </div>
+                            <div className="pt-4">
+                                <p className="text-center text-gray-500 text-xs">
+                                    ¿Problemas de acceso? Contacta con el administrador en <span className="text-brand-mint font-semibold">admin@iautomae.com</span>
+                                </p>
                             </div>
-
-                            <button
-                                type="button"
-                                onClick={handleSignUp}
-                                disabled={loading}
-                                className="w-full py-4 text-sm font-bold text-gray-900 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all"
-                            >
-                                CREAR UNA CUENTA GRATIS
-                            </button>
                         </div>
                     </form>
 
