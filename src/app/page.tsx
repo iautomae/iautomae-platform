@@ -11,24 +11,20 @@ import { NeuralNetworkBackground } from '@/components/NeuralNetworkBackground';
 
 export default function LandingPage() {
     return (
-        <div className="relative w-full">
+        <div className="relative w-full bg-[#050505] min-h-screen text-white selection:bg-brand-mint/30">
             {/* Navbar Minimalista */}
             <nav className="fixed top-0 left-0 w-full z-[100] px-8 py-6 flex items-center justify-between backdrop-blur-md bg-black/20 border-b border-white/5">
-                <div className="flex items-center gap-3">
+                <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <img src="/brand/logo.jpg" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-brand-mint/20" />
                     <span className="text-xl font-bold tracking-tighter text-white">IAUTOMAE</span>
-                </div>
+                </a>
                 <div className="hidden md:flex items-center gap-10">
+                    <a href="#nosotros" className="text-sm font-medium text-slate-400 hover:text-brand-mint transition-colors">Sobre Nosotros</a>
                     <a href="#que-hacemos" className="text-sm font-medium text-slate-400 hover:text-brand-mint transition-colors">Capacidades</a>
-                    <a href="#demo" className="text-sm font-medium text-slate-400 hover:text-brand-mint transition-colors">Demo Interactiva</a>
-                    <a href="#contacto" className="text-sm font-medium text-slate-400 hover:text-brand-mint transition-colors">Contacto</a>
                 </div>
                 <div className="flex items-center gap-4">
                     <a href="/login" className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-all backdrop-blur-sm">
                         Acceso Clientes
-                    </a>
-                    <a href="#contacto" className="px-6 py-2.5 rounded-full bg-brand-mint text-black text-sm font-bold hover:brightness-110 transition-all shadow-[0_0_20px_-5px_rgba(44,219,155,0.4)]">
-                        Agendar Consultoría
                     </a>
                 </div>
             </nav>
@@ -191,6 +187,49 @@ export default function LandingPage() {
                     ¿ESTÁS <br /> LISTO?
                 </h2>
             </section>
+            {/* Footer Minimalista */}
+            <footer className="bg-black py-20 px-8 border-t border-white/5 relative z-10">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                            <img src="/brand/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg object-cover grayscale opacity-50" />
+                            <span className="text-lg font-bold tracking-tighter text-white/50">IAUTOMAE</span>
+                        </div>
+                        <p className="text-xs text-slate-500 leading-relaxed max-w-xs">
+                            Infraestructura digital para la próxima generación de empresas.
+                            Automatización, Inteligencia Artificial y Escalabilidad sin límites.
+                        </p>
+                    </div>
+
+                    <div className="space-y-6">
+                        <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white mb-6">Compañía</h4>
+                        <ul className="space-y-3">
+                            <li><a href="#nosotros" className="text-sm text-slate-500 hover:text-brand-mint transition-colors">Sobre Nosotros</a></li>
+                            <li><a href="#que-hacemos" className="text-sm text-slate-500 hover:text-brand-mint transition-colors">Capacidades</a></li>
+                        </ul>
+                    </div>
+
+                    <div className="space-y-6">
+                        <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white mb-6">Legal</h4>
+                        <ul className="space-y-3">
+                            <li><a href="/legal/privacy" className="text-sm text-slate-500 hover:text-brand-mint transition-colors">Política de Privacidad</a></li>
+                            <li><a href="/legal/terms" className="text-sm text-slate-500 hover:text-brand-mint transition-colors">Términos y Condiciones</a></li>
+                            <li>
+                                <a href="/legal/libro-reclamaciones" className="flex items-center gap-2 text-sm text-slate-500 hover:text-brand-mint transition-colors group">
+                                    <span className="w-2 h-2 rounded-full bg-brand-mint/50 group-hover:bg-brand-mint transition-colors" />
+                                    Libro de Reclamaciones
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div className="space-y-6">
+                        <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-8">
+                            © 2026 Iautomae Systems
+                        </p>
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }
