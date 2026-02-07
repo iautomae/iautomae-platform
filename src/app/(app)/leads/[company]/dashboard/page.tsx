@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-Plus,
-    Bot,
+import { Plus, Bot } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
