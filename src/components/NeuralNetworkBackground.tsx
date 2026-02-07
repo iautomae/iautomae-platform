@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 
 export const NeuralNetworkBackground: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const mouseRef = useRef({ x: -1000, y: -1000 });
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -13,11 +14,10 @@ export const NeuralNetworkBackground: React.FC = () => {
         if (!ctx) return;
 
         let animationFrameId: number;
-        let width: number;
-        let height: number;
         let particles: Particle[] = [];
-        const connectionDistance = 150;
-        const mouse = { x: -100, y: -100, radius: 200 };
+        const particleCount = 70;
+        const connectionDistance = 140;
+        const mouseRadius = 150;
 
         class Particle {
             x: number;
@@ -25,19 +25,38 @@ export const NeuralNetworkBackground: React.FC = () => {
             vx: number;
             vy: number;
             size: number;
+            baseX: number;
+            baseY: number;
 
-            constructor() {
+            constructor(width: number, height: number) {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.5;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.size = Math.random() * 2 + 1;
+                this.baseX = this.x;
+                this.baseY = this.y;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.size = 2;
             }
 
-            update() {
+            update(width: number, height: number) {
+                // Regular movement
                 this.x += this.vx;
                 this.y += this.vy;
 
+                // Mouse interaction
+                const dx = mouseRef.current.x - this.x;
+                const dy = mouseRef.current.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < mouseRadius) {
+                    const force = (mouseRadius - distance) / mouseRadius;
+                    const moveX = (dx / distance) * force * 2;
+                    const moveY = (dy / distance) * force * 2;
+                    this.x -= moveX;
+                    this.y -= moveY;
+                }
+
+                // Boundary check
                 if (this.x < 0 || this.x > width) this.vx *= -1;
                 if (this.y < 0 || this.y > height) this.vy *= -1;
             }
@@ -52,76 +71,74 @@ export const NeuralNetworkBackground: React.FC = () => {
         }
 
         const resize = () => {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
+            if (!canvas) return;
+            const parent = canvas.parentElement;
+            if (parent) {
+                canvas.width = parent.offsetWidth;
+                canvas.height = parent.offsetHeight;
+            }
             init();
         };
 
         const init = () => {
             particles = [];
-            const count = Math.min(200, (width * height) / 8000); // Increased density
-            for (let i = 0; i < count; i++) {
-                particles.push(new Particle());
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(canvas.width, canvas.height));
+            }
+        };
+
+        const drawLines = () => {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < connectionDistance) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(44, 219, 155, ${(1 - distance / connectionDistance) * 0.6})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
             }
         };
 
         const animate = () => {
-            ctx.clearRect(0, 0, width, height);
-
-            particles.forEach((p, i) => {
-                p.update();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update(canvas.width, canvas.height);
                 p.draw();
-
-                for (let j = i + 1; j < particles.length; j++) {
-                    const p2 = particles[j];
-                    const dx = p.x - p2.x;
-                    const dy = p.y - p2.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < connectionDistance) {
-                        ctx.beginPath();
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        const alpha = (1 - dist / connectionDistance) * 1.2;
-                        ctx.strokeStyle = `rgba(44, 219, 155, ${alpha * 0.4})`;
-                        ctx.lineWidth = 0.8;
-                        ctx.stroke();
-                    }
-                }
-
-                // Mouse interaction
-                const dxMouse = p.x - mouse.x;
-                const dyMouse = p.y - mouse.y;
-                const distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
-                if (distMouse < mouse.radius) {
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(mouse.x, mouse.y);
-                    const alpha = (1 - distMouse / mouse.radius) * 1.5;
-                    ctx.strokeStyle = `rgba(44, 219, 155, ${alpha * 0.7})`;
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                }
             });
-
+            drawLines();
             animationFrameId = requestAnimationFrame(animate);
         };
 
         const handleMouseMove = (e: MouseEvent) => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
+            const rect = canvas.getBoundingClientRect();
+            mouseRef.current = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        };
+
+        const handleMouseLeave = () => {
+            mouseRef.current = { x: -1000, y: -1000 };
         };
 
         window.addEventListener('resize', resize);
         window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseleave', handleMouseLeave);
+
         resize();
         animate();
 
         return () => {
             window.removeEventListener('resize', resize);
             window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseleave', handleMouseLeave);
             cancelAnimationFrame(animationFrameId);
         };
     }, []);
@@ -129,7 +146,7 @@ export const NeuralNetworkBackground: React.FC = () => {
     return (
         <canvas
             ref={canvasRef}
-            className="fixed inset-0 pointer-events-none z-0 opacity-50"
+            className="absolute inset-0 w-full h-full pointer-events-none opacity-60"
         />
     );
 };

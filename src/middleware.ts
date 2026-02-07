@@ -4,9 +4,9 @@ export function middleware(req: NextRequest) {
     const url = req.nextUrl.clone();
     const host = req.headers.get('host') || '';
 
-    // 1. If we are on the main domain and try to access /login directly, 
-    // redirect to the app subdomain for a cleaner structure.
-    if (!host.startsWith('app.') && url.pathname === '/login') {
+    // 1. If we are on the main domain (production) and try to access /login directly, 
+    // redirect to the app subdomain. Do NOT redirect on localhost.
+    if (!host.startsWith('app.') && !host.includes('localhost') && url.pathname === '/login') {
         const appUrl = new URL('https://app.iautomae.com');
         return NextResponse.redirect(appUrl);
     }

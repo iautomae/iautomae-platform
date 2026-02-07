@@ -10,6 +10,7 @@ import {
     Loader2
 } from 'lucide-react';
 import Link from 'next/link';
+import { NeuralNetworkBackground } from '@/components/NeuralNetworkBackground';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -62,13 +63,14 @@ export default function LoginPage() {
         <div className="fixed inset-0 z-[100] bg-[#F9FAFB] flex flex-col md:flex-row">
             {/* Branding Side (Elegant Dark) */}
             <div className="hidden md:flex md:w-1/2 bg-[#050505] p-12 flex-col items-center justify-center relative overflow-hidden">
+                <NeuralNetworkBackground />
                 <div className="absolute top-0 left-0 w-full h-full bg-brand-mint/5 blur-[120px] pointer-events-none" />
 
                 <Link href="/" className="relative z-10 hover:opacity-90 transition-opacity">
                     <img
-                        src="/brand/logo_full.png"
+                        src="/brand/logo_transparent.png"
                         alt="IAUTOMAE AI SYSTEMS"
-                        className="w-full max-w-[400px] h-auto object-contain"
+                        className="w-full max-w-[520px] h-auto object-contain"
                     />
                 </Link>
 
