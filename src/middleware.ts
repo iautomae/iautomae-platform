@@ -4,11 +4,15 @@ export function middleware(req: NextRequest) {
     const url = req.nextUrl.clone();
     const host = req.headers.get('host') || '';
 
-    // Check if we are on app.iautomae.com or local
-    const isAppSubdomain = host.startsWith('app.') || (host.includes('localhost:3000') && url.pathname.startsWith('/app'));
+    // 1. If we are on the main domain and try to access /login directly, 
+    // redirect to the app subdomain for a cleaner structure.
+    if (!host.startsWith('app.') && url.pathname === '/login') {
+        const appUrl = new URL('https://app.iautomae.com');
+        return NextResponse.redirect(appUrl);
+    }
 
-    if (isAppSubdomain) {
-        // Rewrite root of app subdomain to /login (URL stays app.iautomae.com)
+    // 2. If we are on the app subdomain, handle the root rewrite
+    if (host.startsWith('app.') || (host.includes('localhost:3000') && url.pathname.startsWith('/app'))) {
         if (url.pathname === '/') {
             url.pathname = '/login';
             return NextResponse.rewrite(url);
