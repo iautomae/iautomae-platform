@@ -61,25 +61,19 @@ export default function LoginPage() {
     return (
         <div className="fixed inset-0 z-[100] bg-[#F9FAFB] flex flex-col md:flex-row">
             {/* Branding Side (Elegant Dark) */}
-            <div className="hidden md:flex md:w-1/2 bg-[#0a0a0a] p-12 flex-col justify-between relative overflow-hidden">
+            <div className="hidden md:flex md:w-1/2 bg-[#050505] p-12 flex-col items-center justify-center relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-full bg-brand-mint/5 blur-[120px] pointer-events-none" />
 
-                <Link href="/" className="relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity w-fit">
-                    <img src="/brand/logo.jpg" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-brand-mint/20" />
-                    <h1 className="text-white text-2xl font-bold tracking-tight">IAUTOMAE</h1>
+                <Link href="/" className="relative z-10 hover:opacity-90 transition-opacity">
+                    <img
+                        src="/brand/logo_full.png"
+                        alt="IAUTOMAE AI SYSTEMS"
+                        className="w-full max-w-[400px] h-auto object-contain"
+                    />
                 </Link>
 
-                <div className="relative z-10">
-                    <h2 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">
-                        La plataforma definitiva para escalar tus <span className="text-brand-mint">servicios SaaS</span>.
-                    </h2>
-                    <p className="text-white/50 text-lg max-w-md">
-                        Gestiona leads con IA, automatiza documentos y crea formularios inteligentes en un solo lugar.
-                    </p>
-                </div>
-
-                <div className="relative z-10 text-white/30 text-xs tracking-widest uppercase">
-                    © 2026 IAUTOMAE • Secure Platform
+                <div className="absolute bottom-12 left-12 z-10 text-white/20 text-[10px] tracking-[0.3em] uppercase">
+                    © 2026 IAUTOMAE • Intelligence Infrastructure
                 </div>
             </div>
 
@@ -87,8 +81,7 @@ export default function LoginPage() {
             <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-white">
                 <div className="w-full max-w-md space-y-10">
                     <Link href="/" className="md:hidden flex flex-col items-center mb-10 text-center hover:opacity-80 transition-opacity">
-                        <img src="/brand/logo.jpg" alt="Logo" className="w-14 h-14 rounded-xl object-cover shadow-lg shadow-brand-mint/20 mb-4" />
-                        <h1 className="text-3xl font-bold text-gray-900">IAUTOMAE</h1>
+                        <img src="/brand/logo_full.png" alt="Logo" className="w-48 h-auto object-contain mb-2" />
                     </Link>
 
                     <div className="space-y-4">
