@@ -12,6 +12,7 @@ export default function LegalLayout({
             <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-[#050505]/80 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/brand/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg object-cover shadow-lg shadow-brand-mint/20" />
                         <span className="text-white text-lg font-bold tracking-tight">IAUTOMAE</span>
                     </Link>

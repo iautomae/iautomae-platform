@@ -36,7 +36,7 @@ export default function TermsPage() {
                         <span className="text-brand-mint">03.</span> Responsabilidad en el Output de la IA
                     </h2>
                     <p>
-                        Nuestras soluciones utilizan modelos probabilísticos de Inteligencia Artificial para generar respuestas, documentos y flujos de trabajo. Si bien aplicamos filtros de calidad rigurosos, el cliente reconoce que el "output" de la IA puede contener imprecisiones. Es responsabilidad final del usuario profesional supervisar, validar y aprobar cualquier acción crítica o documento legal/financiero generado por el sistema antes de su ejecución o distribución a terceros.
+                        Nuestras soluciones utilizan modelos probabilísticos de Inteligencia Artificial para generar respuestas, documentos y flujos de trabajo. Si bien aplicamos filtros de calidad rigurosos, el cliente reconoce que el &quot;output&quot; de la IA puede contener imprecisiones. Es responsabilidad final del usuario profesional supervisar, validar y aprobar cualquier acción crítica o documento legal/financiero generado por el sistema antes de su ejecución o distribución a terceros.
                     </p>
                 </section>
 
