@@ -1,31 +1,23 @@
-// Forced redeploy to link custom domain correctly
 import { NextRequest, NextResponse } from 'next/server';
 
-export const config = {
-    matcher: [
-        /*
-         * Match all paths except:
-         * 1. /api routes
-         * 2. /_next (Next.js internals)
-         * 3. /_static (inside /public)
-         * 4. all root files inside /public (e.g. /favicon.ico)
-         */
-        '/((?!api/|_next/|_static/|_vercel|[\\w-]+\\.\\w+).*)',
-    ],
-};
+export function middleware(req: NextRequest) {
+    const url = req.nextUrl.clone();
+    const host = req.headers.get('host') || '';
 
-export default async function middleware(req: NextRequest) {
-    const url = req.nextUrl;
-    const hostname = req.headers.get('host') || '';
+    // Check if we are on app.iautomae.com or local
+    const isAppSubdomain = host.startsWith('app.') || host.includes('localhost:3000');
 
-    // 1. Lógica para el Subdominio APP
-    if (hostname.startsWith('app.')) {
+    if (isAppSubdomain) {
+        // Redirect root of app subdomain to login
         if (url.pathname === '/') {
-            return NextResponse.rewrite(new URL('/dashboard', req.url));
+            url.pathname = '/login';
+            return NextResponse.redirect(url);
         }
-        return NextResponse.next();
     }
 
-    // 2. Todo lo demás (Dominio Principal)
     return NextResponse.next();
 }
+
+export const config = {
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+};

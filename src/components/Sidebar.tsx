@@ -24,10 +24,7 @@ function cn(...inputs: ClassValue[]) {
 type MainCategory = 'dashboard' | 'leads' | 'documents' | 'forms' | 'settings';
 
 const PRIMARY_MENU = [
-  { id: 'dashboard' as MainCategory, icon: LayoutDashboard, label: 'Dashboard', href: '/', permission: null },
-  { id: 'leads' as MainCategory, icon: Users, label: 'Agentes', href: '/leads', permission: 'has_leads_access' },
-  { id: 'documents' as MainCategory, icon: FileText, label: 'Documentos', href: '/documents', permission: 'has_docs_access' },
-  { id: 'forms' as MainCategory, icon: SquarePen, label: 'Formularios', href: '/forms', permission: 'has_forms_access' },
+  { id: 'leads' as MainCategory, icon: Users, label: 'Agentes', href: '/leads', permission: null },
 ];
 
 export function Sidebar() {
