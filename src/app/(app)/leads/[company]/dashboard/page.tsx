@@ -1,43 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import {
-    Search,
-    UserPlus,
-    Download,
-    Mail,
-    Phone,
-    Calendar,
-    ChevronLeft,
-    ChevronRight,
-    TrendingUp,
-    UserCheck,
-    UserX,
-    MessageSquareText,
-    X,
-    Sparkles,
-    Trash2,
-    Copy,
-    Settings2,
-    LayoutDashboard,
-    MessageSquare,
-    Plus,
+Plus,
     Bot,
-    ChevronDown,
-    Activity,
-    Info,
-    Check,
-    Camera,
-    Upload,
-    BarChart3,
-    FileText,
-    Package,
-    AlertTriangle,
-    Headphones,
-    Volume2,
-    Play
-} from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -68,8 +34,6 @@ export default function DynamicLeadsDashboard() {
 
     // UI States
     const [view, setView] = useState<'GALLERY' | 'LEADS'>('GALLERY');
-    const [filter, setFilter] = useState<'TOTAL' | 'POTENCIAL' | 'NO POTENCIAL'>('TOTAL');
-    const [searchQuery, setSearchQuery] = useState('');
 
     return (
         <div className="max-w-[1200px] mx-auto py-10 animate-in fade-in duration-500">
