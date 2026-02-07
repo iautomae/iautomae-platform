@@ -12,6 +12,27 @@ import { NeuralNetworkBackground } from '@/components/NeuralNetworkBackground';
 export default function LandingPage() {
     return (
         <div className="relative w-full">
+            {/* Navbar Minimalista */}
+            <nav className="fixed top-0 left-0 w-full z-[100] px-8 py-6 flex items-center justify-between backdrop-blur-md bg-black/20 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                    <img src="/brand/logo.jpg" alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-brand-mint/20" />
+                    <span className="text-xl font-bold tracking-tighter text-white">IAUTOMAE</span>
+                </div>
+                <div className="hidden md:flex items-center gap-10">
+                    <a href="#que-hacemos" className="text-sm font-medium text-slate-400 hover:text-brand-mint transition-colors">Capacidades</a>
+                    <a href="#demo" className="text-sm font-medium text-slate-400 hover:text-brand-mint transition-colors">Demo Interactiva</a>
+                    <a href="#contacto" className="text-sm font-medium text-slate-400 hover:text-brand-mint transition-colors">Contacto</a>
+                </div>
+                <div className="flex items-center gap-4">
+                    <a href="/login" className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-white text-sm font-medium hover:bg-white/10 transition-all backdrop-blur-sm">
+                        Acceso Clientes
+                    </a>
+                    <a href="#contacto" className="px-6 py-2.5 rounded-full bg-brand-mint text-black text-sm font-bold hover:brightness-110 transition-all shadow-[0_0_20px_-5px_rgba(44,219,155,0.4)]">
+                        Agendar Consultoría
+                    </a>
+                </div>
+            </nav>
+
             <NeuralNetworkBackground />
 
             {/* Hero Section */}
