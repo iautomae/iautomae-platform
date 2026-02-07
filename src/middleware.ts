@@ -8,10 +8,10 @@ export function middleware(req: NextRequest) {
     const isAppSubdomain = host.startsWith('app.') || (host.includes('localhost:3000') && url.pathname.startsWith('/app'));
 
     if (isAppSubdomain) {
-        // Redirect root of app subdomain to login
+        // Rewrite root of app subdomain to /login (URL stays app.iautomae.com)
         if (url.pathname === '/') {
             url.pathname = '/login';
-            return NextResponse.redirect(url);
+            return NextResponse.rewrite(url);
         }
     }
 
