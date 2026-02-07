@@ -63,8 +63,12 @@ export default function LoginPage() {
         <div className="fixed inset-0 z-[100] bg-[#F9FAFB] flex flex-col md:flex-row">
             {/* Branding Side (Elegant Dark) */}
             <div className="hidden md:flex md:w-1/2 bg-[#050505] p-12 flex-col items-center justify-center relative overflow-hidden">
-                <NeuralNetworkBackground />
-                <div className="absolute top-0 left-0 w-full h-full bg-brand-mint/5 blur-[120px] pointer-events-none" />
+                <NeuralNetworkBackground
+                    particleCount={120}
+                    connectionDistance={130}
+                    mouseRadius={150}
+                />
+                <div className="absolute top-0 left-0 w-full h-full bg-white/2 blur-[120px] pointer-events-none" />
 
                 <Link href="/" className="relative z-10 hover:opacity-90 transition-opacity">
                     <img
@@ -108,10 +112,7 @@ export default function LoginPage() {
                         </div>
 
                         <div className="space-y-3">
-                            <div className="flex justify-between items-center ml-1">
-                                <label className="text-sm font-semibold text-gray-700">Contraseña</label>
-                                <button type="button" className="text-xs font-bold text-brand-mint hover:underline">¿Olvidaste tu contraseña?</button>
-                            </div>
+                            <label className="text-sm font-semibold text-gray-700 ml-1">Contraseña</label>
                             <div className="relative group">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-mint transition-colors" size={20} />
                                 <input
@@ -122,6 +123,9 @@ export default function LoginPage() {
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-mint/50 focus:border-brand-mint transition-all"
                                     required
                                 />
+                            </div>
+                            <div className="flex justify-end pr-1">
+                                <button type="button" className="text-xs font-bold text-gray-400 hover:text-brand-mint transition-colors">¿Olvidaste tu contraseña?</button>
                             </div>
                         </div>
 
@@ -153,8 +157,8 @@ export default function LoginPage() {
                         </div>
                     </form>
 
-                    <p className="text-center text-gray-400 text-xs">
-                        Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad.
+                    <p className="text-center text-gray-400 text-[10px] leading-relaxed">
+                        Al continuar, aceptas nuestros <Link href="/legal/terms" className="text-[#003327] font-bold hover:underline">Términos de Servicio</Link> y <Link href="/legal/privacy" className="text-[#003327] font-bold hover:underline">Política de Privacidad</Link>.
                     </p>
                 </div>
             </div>

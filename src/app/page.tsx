@@ -30,7 +30,11 @@ export default function LandingPage() {
                 </div>
             </nav>
 
-            <NeuralNetworkBackground />
+            <NeuralNetworkBackground
+                particleCount={750}
+                connectionDistance={155}
+                mouseRadius={220}
+            />
 
             {/* Hero Section */}
             <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-8 overflow-hidden">

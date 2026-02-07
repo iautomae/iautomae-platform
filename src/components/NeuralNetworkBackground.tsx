@@ -2,7 +2,17 @@
 
 import React, { useEffect, useRef } from 'react';
 
-export const NeuralNetworkBackground: React.FC = () => {
+interface NeuralNetworkBackgroundProps {
+    particleCount?: number;
+    connectionDistance?: number;
+    mouseRadius?: number;
+}
+
+export const NeuralNetworkBackground: React.FC<NeuralNetworkBackgroundProps> = ({
+    particleCount = 100,
+    connectionDistance = 140,
+    mouseRadius = 150
+}) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mouseRef = useRef({ x: -1000, y: -1000 });
 
@@ -15,9 +25,6 @@ export const NeuralNetworkBackground: React.FC = () => {
 
         let animationFrameId: number;
         let particles: Particle[] = [];
-        const particleCount = 70;
-        const connectionDistance = 140;
-        const mouseRadius = 150;
 
         class Particle {
             x: number;
@@ -74,8 +81,8 @@ export const NeuralNetworkBackground: React.FC = () => {
             if (!canvas) return;
             const parent = canvas.parentElement;
             if (parent) {
-                canvas.width = parent.offsetWidth;
-                canvas.height = parent.offsetHeight;
+                canvas.width = parent.clientWidth;
+                canvas.height = parent.scrollHeight || parent.clientHeight;
             }
             init();
         };
