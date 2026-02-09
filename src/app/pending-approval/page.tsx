@@ -3,11 +3,20 @@
 import React from 'react';
 import { Shield, Clock, LogOut, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function PendingApprovalPage() {
     const { signOut } = useAuth();
+    const { profile, loading } = useProfile();
     const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && profile?.has_leads_access) {
+            router.push('/leads');
+        }
+    }, [profile, loading, router]);
 
     const handleSignOut = async () => {
         await signOut();

@@ -49,10 +49,6 @@ export default function LoginPage() {
 
             if (profile?.has_leads_access) {
                 router.push('/leads');
-            } else if (profile?.has_docs_access) {
-                router.push('/docs');
-            } else if (profile?.has_forms_access) {
-                router.push('/forms');
             } else {
                 router.push('/pending-approval');
             }

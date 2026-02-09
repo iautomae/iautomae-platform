@@ -30,20 +30,6 @@ const SUB_MENU_CONFIG = {
             { label: 'Notificaciones', href: '/notifications', icon: Bell },
         ]
     },
-    documents: {
-        title: 'Documentos',
-        items: [
-            { label: 'Plantillas', href: '/documents/templates', icon: FileSpreadsheet },
-            { label: 'Historial', href: '/documents/history', icon: History },
-        ]
-    },
-    forms: {
-        title: 'Formularios',
-        items: [
-            { label: 'Mis Formularios', href: '/forms', icon: FileCode },
-            { label: 'Respuestas', href: '/forms/responses', icon: MessageSquare },
-        ]
-    },
     settings: {
         title: 'Ajustes',
         items: [

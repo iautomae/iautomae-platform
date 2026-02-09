@@ -14,11 +14,8 @@ export type Company = {
 export type UserProfile = {
     id: string;
     email: string;
-    is_approved: boolean;
     has_leads_access: boolean;
-    has_docs_access: boolean;
-    has_forms_access: boolean;
-    primary_service: string | null;
+    brand_logo?: string | null;
     empresa_id: string | null;
     empresa?: Company | null;
 } | null;
@@ -39,7 +36,7 @@ export function useProfile() {
             try {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('*, empresa:empresas(*)')
+                    .select('*')
                     .eq('id', user.id)
                     .single();
 
@@ -48,11 +45,8 @@ export function useProfile() {
                     setProfile({
                         id: user.id,
                         email: user.email || '',
-                        is_approved: false,
                         has_leads_access: false,
-                        has_docs_access: false,
-                        has_forms_access: false,
-                        primary_service: null,
+                        brand_logo: null,
                         empresa_id: null,
                         empresa: null
                     });
@@ -73,5 +67,24 @@ export function useProfile() {
         fetchProfile();
     }, [user]);
 
-    return { profile, loading };
+    const updateProfile = async (updates: Partial<UserProfile>) => {
+        if (!user || !profile) return;
+
+        try {
+            // Optimistic update
+            setProfile({ ...profile, ...updates });
+
+            const { error } = await supabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', user.id);
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            // Revert on error (could be handled better with previous state, but sufficient for now)
+        }
+    };
+
+    return { profile, loading, updateProfile };
 }

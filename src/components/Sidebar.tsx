@@ -7,7 +7,8 @@ import {
   LayoutDashboard,
   Users,
   Settings,
-  LogOut
+  LogOut,
+  Upload
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -19,7 +20,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-type MainCategory = 'dashboard' | 'leads' | 'documents' | 'forms' | 'settings';
+type MainCategory = 'dashboard' | 'leads' | 'settings';
 
 const PRIMARY_MENU = [
   { id: 'leads' as MainCategory, icon: Users, label: 'Agentes', href: '/leads', permission: 'has_leads_access' },
@@ -29,7 +30,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
   const { activeCategory, setActiveCategory, setSubSidebarOpen } = useUI();
 
   // USER: Change this URL to your default logo image path
@@ -37,9 +38,10 @@ export function Sidebar() {
   const [logo, setLogo] = useState(DEFAULT_LOGO_URL);
 
   useEffect(() => {
-    const savedLogo = localStorage.getItem('antigravity_brand_logo');
-    if (savedLogo) setLogo(savedLogo);
-  }, []);
+    if (profile?.brand_logo) {
+      setLogo(profile.brand_logo);
+    }
+  }, [profile]);
 
   const loading = authLoading || (user && profileLoading);
 
@@ -55,17 +57,38 @@ export function Sidebar() {
   return (
     <div className="fixed left-4 top-4 bottom-4 w-20 bg-sidebar rounded-2xl shadow-2xl shadow-black/5 border border-slate-100 flex flex-col items-center py-8 z-[60] select-none transition-all duration-300">
       {/* Brand Logo - Swappable */}
-      <div className="mb-10">
-        <Link href="/" className="relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity w-fit">
+      <div className="mb-10 relative group/logo-container">
+        <button
+          onClick={() => document.getElementById('logo-upload')?.click()}
+          className="relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity w-fit"
+        >
           <img
             src={logo}
             alt="Logo"
-            className="w-10 h-10 rounded-lg object-cover"
+            className="w-10 h-10 rounded-lg object-cover bg-white"
           />
-          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-            <LayoutDashboard size={12} className="text-white" />
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/logo-container:opacity-100 flex items-center justify-center transition-opacity rounded-lg backdrop-blur-[1px]">
+            <Upload size={14} className="text-white" />
           </div>
-        </Link>
+        </button>
+        <input
+          type="file"
+          id="logo-upload"
+          className="hidden"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64 = reader.result as string;
+                setLogo(base64); // Optimistic UI update
+                updateProfile({ brand_logo: base64 }); // Persist to DB
+              };
+              reader.readAsDataURL(file);
+            }
+          }}
+        />
       </div>
 
       {/* Primary Navigation */}

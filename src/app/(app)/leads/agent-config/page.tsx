@@ -10,13 +10,15 @@ import {
     Upload,
     FileText,
     X,
-    CheckCircle2
+    CheckCircle2,
+    Camera
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AgentConfigPage() {
     const [activeTab, setActiveTab] = useState<'behavior' | 'knowledge'>('behavior');
     const [files, setFiles] = useState<{ name: string, size: string }[]>([]);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -30,6 +32,17 @@ export default function AgentConfigPage() {
 
     const removeFile = (index: number) => {
         setFiles(files.filter((_, i) => i !== index));
+    };
+
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAvatarPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     return (
@@ -81,6 +94,34 @@ export default function AgentConfigPage() {
                 <div className="lg:col-span-2 space-y-8">
                     {activeTab === 'behavior' ? (
                         <div className="card-professional p-8 space-y-8 animate-in fade-in duration-500">
+
+                            {/* Avatar Section */}
+                            <div className="flex items-center gap-6 pb-6 border-b border-gray-100">
+                                <div className="relative group cursor-pointer">
+                                    <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden hover:border-brand-mint transition-colors">
+                                        {avatarPreview ? (
+                                            <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Camera size={32} className="text-gray-400 group-hover:text-brand-mint" />
+                                        )}
+                                    </div>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleAvatarUpload}
+                                        id="avatar-upload"
+                                    />
+                                    <label htmlFor="avatar-upload" className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+                                        <span className="text-white text-[10px] font-bold uppercase tracking-widest">Cambiar</span>
+                                    </label>
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-bold text-gray-900">Avatar del Agente</h3>
+                                    <p className="text-xs text-gray-500">Sube una imagen para humanizar tu IA.</p>
+                                </div>
+                            </div>
+
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-gray-900 flex items-center gap-2">

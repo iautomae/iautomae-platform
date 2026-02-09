@@ -22,32 +22,27 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            // Case 2: User exists but not approved
-            if (user && profile && !profile.is_approved && pathname !== '/pending-approval') {
-                router.push('/pending-approval');
-                return;
-            }
-
-            // Case 3: User is approved but tries to access a service they haven't paid for
-            if (user && profile && profile.is_approved) {
-                if (pathname.startsWith('/leads') && !profile.has_leads_access) {
-                    router.push('/');
-                    return;
+            // Simple Rule: If user has leads access, they are approved.
+            // Otherwise, they go to pending-approval.
+            if (user && profile) {
+                if (profile.has_leads_access) {
+                    // If they are specifically in pending-approval but ALREADY have access, move them out
+                    if (pathname === '/pending-approval') {
+                        router.push('/leads');
+                        return;
+                    }
+                    // Protection: If they try to go to pages they don't have access to (docs/forms skeletons)
+                    if (pathname.startsWith('/documents') || pathname.startsWith('/forms')) {
+                        router.push('/leads');
+                        return;
+                    }
+                } else {
+                    // No leads access -> Pending Approval
+                    if (pathname !== '/pending-approval') {
+                        router.push('/pending-approval');
+                        return;
+                    }
                 }
-                if (pathname.startsWith('/documents') && !profile.has_docs_access) {
-                    router.push('/');
-                    return;
-                }
-                if (pathname.startsWith('/forms') && !profile.has_forms_access) {
-                    router.push('/');
-                    return;
-                }
-            }
-
-            // Case 4: User is approved but tries to go to pending-approval
-            if (user && profile && profile.is_approved && pathname === '/pending-approval') {
-                router.push('/');
-                return;
             }
         }
     }, [user, profile, isLoading, router, pathname]);
@@ -65,7 +60,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     // Protection during redirection
     if (!user && pathname !== '/login') return null;
-    if (user && profile && !profile.is_approved && pathname !== '/pending-approval') return null;
+    if (user && profile && !profile.has_leads_access && pathname !== '/pending-approval') return null;
 
     return <>{children}</>;
 }

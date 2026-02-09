@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Plus, Bot } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -78,9 +79,9 @@ export default function DynamicLeadsDashboard() {
                             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-6">{agent.specialty}</p>
 
                             <div className="flex gap-2">
-                                <button className="flex-1 bg-gray-50 text-gray-600 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-mint/5 hover:text-brand-mint transition-all">
+                                <Link href="/leads/agent-config" className="flex-1 bg-gray-50 text-gray-600 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-mint/5 hover:text-brand-mint transition-all text-center flex items-center justify-center">
                                     Configurar
-                                </button>
+                                </Link>
                                 <button
                                     onClick={() => setView('LEADS')}
                                     className="flex-1 bg-brand-primary-darker text-white py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:brightness-110 transition-all"
