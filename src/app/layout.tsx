@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Antigravity | Multi-Service SaaS",
+  title: "IAutomae | Multi-Service SaaS",
   description: "Unified Dashboard for Leads, Documents and Forms",
 };
 

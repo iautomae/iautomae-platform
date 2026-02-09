@@ -77,7 +77,7 @@ export default function PendingApprovalPage() {
                 </div>
 
                 <p className="text-[10px] text-gray-300 font-medium">
-                    Powered by Antigravity OS • ID de Seguridad v2.0
+                    Powered by IAutomae Systems • ID de Seguridad v2.0
                 </p>
             </div>
         </div>
