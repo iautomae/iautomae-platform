@@ -22,7 +22,7 @@ function cn(...inputs: ClassValue[]) {
 type MainCategory = 'dashboard' | 'leads' | 'documents' | 'forms' | 'settings';
 
 const PRIMARY_MENU = [
-  { id: 'leads' as MainCategory, icon: Users, label: 'Agentes', href: '/leads', permission: null },
+  { id: 'leads' as MainCategory, icon: Users, label: 'Agentes', href: '/leads', permission: 'has_leads_access' },
 ];
 
 export function Sidebar() {

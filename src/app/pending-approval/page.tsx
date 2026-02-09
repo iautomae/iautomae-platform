@@ -59,19 +59,11 @@ export default function PendingApprovalPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 pt-4">
-                    <a
-                        href="https://wa.me/519XXXXXXXX" // Reemplazar con el número real de soporte
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full btn-primary py-4 text-xs font-bold shadow-lg shadow-brand-mint/20 flex items-center justify-center gap-2 text-[#003327]"
-                    >
-                        HABLAR CON SOPORTE
-                    </a>
                     <button
                         onClick={handleSignOut}
-                        className="w-full py-4 text-xs font-bold text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center gap-2"
+                        className="w-full btn-primary py-4 text-xs font-bold shadow-lg shadow-brand-mint/20 flex items-center justify-center gap-2 group"
                     >
-                        <LogOut size={16} />
+                        <LogOut size={16} className="group-hover:-translate-x-1 transition-transform" />
                         CERRAR SESIÓN
                     </button>
                 </div>
