@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { clsx, type ClassValue } from 'clsx';
@@ -65,6 +65,16 @@ export default function DynamicLeadsDashboard() {
     // Custom Modals State
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, name: string } | null>(null);
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
+    // Import Modal States
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importKey, setImportKey] = useState('');
+    const [importKeyError, setImportKeyError] = useState('');
+    const [importStep, setImportStep] = useState<'key' | 'select'>('key');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [importableAgents, setImportableAgents] = useState<any[]>([]);
+    const [selectedImports, setSelectedImports] = useState<Set<string>>(new Set());
+    const [isLoadingImports, setIsLoadingImports] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
 
     // Load Real Agents
     React.useEffect(() => {
@@ -146,6 +156,85 @@ export default function DynamicLeadsDashboard() {
         }
     };
 
+    const handleVerifyImportKey = async () => {
+        const correctKey = process.env.NEXT_PUBLIC_IMPORT_KEY || 'iautomae2025';
+        if (importKey !== correctKey) {
+            setImportKeyError('Clave incorrecta. Inténtalo de nuevo.');
+            return;
+        }
+        setImportKeyError('');
+        setIsLoadingImports(true);
+        setImportStep('select');
+
+        try {
+            const res = await fetch('/api/elevenlabs/agents');
+            const data = await res.json();
+            const elAgents = data.agents || data || [];
+
+            // Filter out agents already imported
+            const existingIds = new Set(agents.map(a => a.eleven_labs_agent_id).filter(Boolean));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const available = elAgents.filter((a: any) => !existingIds.has(a.agent_id));
+            setImportableAgents(available);
+        } catch (err) {
+            console.error('Error fetching ElevenLabs agents:', err);
+            setInfoModal({ isOpen: true, type: 'error', message: 'Error al conectar con ElevenLabs.' });
+            setIsImportModalOpen(false);
+        } finally {
+            setIsLoadingImports(false);
+        }
+    };
+
+    const toggleImportSelection = (agentId: string) => {
+        setSelectedImports(prev => {
+            const next = new Set(prev);
+            if (next.has(agentId)) next.delete(agentId);
+            else next.add(agentId);
+            return next;
+        });
+    };
+
+    const confirmImport = async () => {
+        if (!user?.id || selectedImports.size === 0) return;
+        setIsImporting(true);
+
+        try {
+            const toImport = importableAgents.filter(a => selectedImports.has(a.agent_id));
+            const newAgents: Agent[] = [];
+
+            for (const elAgent of toImport) {
+                const { data, error } = await supabase
+                    .from('agentes')
+                    .insert([{
+                        nombre: elAgent.name || 'Agente Importado',
+                        user_id: user.id,
+                        status: 'active',
+                        personalidad: 'Asesor de ventas / Asistente Comercial',
+                        eleven_labs_agent_id: elAgent.agent_id,
+                    }])
+                    .select()
+                    .single();
+
+                if (data && !error) {
+                    newAgents.push(data);
+                }
+            }
+
+            setAgents(prev => [...prev, ...newAgents]);
+            setIsImportModalOpen(false);
+            setImportStep('key');
+            setImportKey('');
+            setSelectedImports(new Set());
+            setImportableAgents([]);
+            setInfoModal({ isOpen: true, type: 'success', message: `¡${newAgents.length} agente(s) importado(s) exitosamente!` });
+        } catch (err) {
+            console.error('Import error:', err);
+            setInfoModal({ isOpen: true, type: 'error', message: 'Error al importar agentes.' });
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
     return (
         <div className="max-w-7xl mx-auto py-10 animate-in fade-in duration-500 px-6">
             {/* Header with Dynamic Company Name */}
@@ -185,6 +274,13 @@ export default function DynamicLeadsDashboard() {
                     <p className="text-gray-500 text-sm font-medium">Gestión de Agentes IA</p>
                 </div>
                 <div className="flex gap-3">
+                    <button
+                        onClick={() => { setIsImportModalOpen(true); setImportStep('key'); setImportKey(''); setImportKeyError(''); }}
+                        className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 hover:border-brand-primary hover:text-brand-primary"
+                    >
+                        <Download size={16} />
+                        Importar Agentes
+                    </button>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
                         className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
@@ -485,6 +581,140 @@ export default function DynamicLeadsDashboard() {
                         >
                             Entendido
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Agents Modal */}
+            {isImportModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-brand-mint/10 flex items-center justify-center text-brand-mint">
+                                    {importStep === 'key' ? <Lock size={20} /> : <Download size={20} />}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900">
+                                        {importStep === 'key' ? 'Verificar Acceso' : 'Seleccionar Agentes'}
+                                    </h3>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                        {importStep === 'key' ? 'Ingresa tu clave de importación' : `${importableAgents.length} agente(s) disponible(s)`}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setIsImportModalOpen(false); setImportStep('key'); setImportKey(''); }}
+                                className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-6">
+                            {importStep === 'key' ? (
+                                <>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Clave Secreta</label>
+                                        <input
+                                            type="password"
+                                            value={importKey}
+                                            onChange={(e) => { setImportKey(e.target.value); setImportKeyError(''); }}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleVerifyImportKey()}
+                                            placeholder="Ingresa tu clave de acceso"
+                                            autoFocus
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all"
+                                        />
+                                        {importKeyError && (
+                                            <p className="text-red-500 text-xs font-medium">{importKeyError}</p>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setIsImportModalOpen(false)}
+                                            className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            onClick={handleVerifyImportKey}
+                                            disabled={!importKey.trim()}
+                                            className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            <Lock size={14} />
+                                            Verificar
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {isLoadingImports ? (
+                                        <div className="flex flex-col items-center justify-center py-8 gap-3">
+                                            <RefreshCw size={24} className="animate-spin text-brand-mint" />
+                                            <p className="text-sm text-gray-400 font-medium">Cargando agentes de ElevenLabs...</p>
+                                        </div>
+                                    ) : importableAgents.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-8 gap-3">
+                                            <CheckCircle2 size={32} className="text-brand-mint" />
+                                            <p className="text-sm text-gray-500 font-medium">Todos los agentes ya están importados</p>
+                                            <button
+                                                onClick={() => setIsImportModalOpen(false)}
+                                                className="mt-4 px-8 py-3 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all"
+                                            >
+                                                Cerrar
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                {importableAgents.map((agent: any) => (
+                                                    <button
+                                                        key={agent.agent_id}
+                                                        onClick={() => toggleImportSelection(agent.agent_id)}
+                                                        className={cn(
+                                                            "w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left",
+                                                            selectedImports.has(agent.agent_id)
+                                                                ? "border-brand-mint bg-brand-mint/5"
+                                                                : "border-gray-100 hover:border-gray-200 bg-white"
+                                                        )}
+                                                    >
+                                                        <div className={cn(
+                                                            "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0",
+                                                            selectedImports.has(agent.agent_id)
+                                                                ? "border-brand-mint bg-brand-mint text-white"
+                                                                : "border-gray-200"
+                                                        )}>
+                                                            {selectedImports.has(agent.agent_id) && <Check size={14} />}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-bold text-gray-900 text-sm truncate">{agent.name || 'Sin nombre'}</p>
+                                                            <p className="text-[10px] text-gray-400 font-mono truncate">{agent.agent_id}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => { setIsImportModalOpen(false); setImportStep('key'); }}
+                                                    className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    onClick={confirmImport}
+                                                    disabled={isImporting || selectedImports.size === 0}
+                                                    className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                                >
+                                                    {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+                                                    Importar ({selectedImports.size})
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
