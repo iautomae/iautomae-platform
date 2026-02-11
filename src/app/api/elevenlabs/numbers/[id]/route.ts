@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
-    const id = params.id;
+    const { id } = await params;
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
 
     if (!apiKey) {
@@ -37,9 +37,9 @@ export async function DELETE(
 
 export async function PATCH(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
-    const id = params.id;
+    const { id } = await params;
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
 
     if (!apiKey) {
