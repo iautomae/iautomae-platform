@@ -67,7 +67,8 @@ export default function DynamicLeadsDashboard() {
             const { data, error } = await supabase
                 .from('agentes')
                 .select('*')
-                .eq('user_id', user!.id);
+                .eq('user_id', user!.id)
+                .order('created_at', { ascending: true });
             if (data && !error) setAgents(data);
             setIsLoading(false);
         }
