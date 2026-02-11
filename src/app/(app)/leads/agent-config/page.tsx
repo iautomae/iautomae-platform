@@ -393,6 +393,7 @@ export default function AgentConfigPage() {
                                 <div className="relative group cursor-pointer">
                                     <div className="w-24 h-24 rounded-2xl bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden hover:border-brand-primary transition-colors">
                                         {avatarPreview ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
                                             <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                                         ) : (
                                             <Camera size={28} className="text-gray-400 group-hover:text-brand-primary" />

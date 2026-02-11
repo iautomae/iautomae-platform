@@ -196,6 +196,7 @@ export default function DynamicLeadsDashboard() {
                             <div className="flex items-start justify-between mb-4">
                                 <div className="w-14 h-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary shadow-inner overflow-hidden">
                                     {agent.avatar_url ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={agent.avatar_url} alt={agent.nombre} className="w-full h-full object-cover" />
                                     ) : (
                                         <Bot size={28} />

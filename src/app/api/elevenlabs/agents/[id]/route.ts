@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function PATCH(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
-    const { id } = params;
+    const { id } = await params;
 
     if (!apiKey) {
         return NextResponse.json({ error: 'API Key not configured' }, { status: 500 });
@@ -37,10 +37,10 @@ export async function PATCH(
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
-    const { id } = params;
+    const { id } = await params;
 
     if (!apiKey) {
         return NextResponse.json({ error: 'API Key not configured' }, { status: 500 });
