@@ -13,18 +13,19 @@ function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-// --- Simplified Mock Data for UI-Only ---
-const MOCK_LEADS = Array.from({ length: 45 }).map((_, i) => ({ // Increased to 45 to test pagination
-    id: String(i + 1),
-    name: `Lead Usuario ${i + 1}`,
-    email: `usuario${i + 1}@ejemplo.com`,
-    phone: `+51 900 000 ${String(100 + i)}`,
-    date: '2024-02-06',
-    time: `${9 + (i % 8)}:${String(Math.floor(i * 1.5) % 60).padStart(2, '0')} ${i % 2 === 0 ? 'AM' : 'PM'}`,
-    status: i % 2 === 0 ? 'POTENCIAL' : 'NO_POTENCIAL',
-    summary: "Interesado en servicios generales. Perfil calificado visualmente.",
-    score: 85
-}));
+// --- Lead Interface for Real Data ---
+interface Lead {
+    id: string;
+    name: string;
+    phone: string;
+    date: string;
+    time: string;
+    status: 'POTENCIAL' | 'NO_POTENCIAL';
+    summary: string;
+    score: number;
+    transcript: any[];
+    created_at: string;
+}
 
 // Placeholder agent type for better type safety
 interface Agent {
@@ -66,9 +67,13 @@ export default function DynamicLeadsDashboard() {
 
 
 
+    // Lead Stats
+    const [realLeads, setRealLeads] = useState<Lead[]>([]);
+    const [isLoadingLeads, setIsLoadingLeads] = useState(false);
+
     // Side Panel State
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [selectedLead, setSelectedLead] = useState<any | null>(null);
+    const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
     const [panelTab, setPanelTab] = useState<'SUMMARY' | 'CHAT'>('SUMMARY');
 
 
@@ -79,7 +84,47 @@ export default function DynamicLeadsDashboard() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(15);
 
-    const filteredLeads = MOCK_LEADS.filter(lead => {
+    // Load Real Leads when moving to LEADS view
+    React.useEffect(() => {
+        if (view === 'LEADS' && user?.id) {
+            const fetchLeads = async () => {
+                setIsLoadingLeads(true);
+                // Get all agents for this user first
+                const { data: agentData } = await supabase.from('agentes').select('id').eq('user_id', user!.id);
+                const agentIds = agentData?.map(a => a.id) || [];
+
+                if (agentIds.length > 0) {
+                    const { data: leadData, error } = await supabase
+                        .from('leads')
+                        .select('*')
+                        .in('agent_id', agentIds)
+                        .order('created_at', { ascending: false });
+
+                    if (leadData && !error) {
+                        const formattedLeads = leadData.map((l: any) => {
+                            const dateObj = new Date(l.created_at);
+                            return {
+                                ...l,
+                                name: l.nombre || 'Lead Desconocido',
+                                date: dateObj.toLocaleDateString('es-ES'),
+                                time: dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                                status: l.status || 'POTENCIAL',
+                                summary: l.summary || 'Sin resumen',
+                                score: l.score || 0
+                            };
+                        });
+                        setRealLeads(formattedLeads);
+                    } else if (error) {
+                        console.error('Error fetching leads:', error);
+                    }
+                }
+                setIsLoadingLeads(false);
+            };
+            fetchLeads();
+        }
+    }, [view, user]);
+
+    const filteredLeads = realLeads.filter(lead => {
         if (filterStatus === 'ALL') return true;
         return lead.status === filterStatus;
     });
@@ -1057,34 +1102,35 @@ export default function DynamicLeadsDashboard() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col h-full">
-                                    {/* Mock Chat Content */}
+                                    {/* Real Transcript Content */}
                                     <div className="p-4 space-y-4 flex-1">
                                         <div className="flex flex-col items-center justify-center p-8 text-center space-y-2 opacity-50">
                                             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                                                 <Lock size={16} className="text-gray-400" />
                                             </div>
-                                            <p className="text-[10px] text-gray-400">Esta conversación está encriptada de extremo a extremo.</p>
+                                            <p className="text-[10px] text-gray-400">Esta conversación está protegida y guardada por ElevenLabs.</p>
                                         </div>
 
-                                        {/* Mock Messages */}
-                                        <div className="flex justify-end">
-                                            <div className="bg-[#d9fdd3] text-gray-900 px-3 py-2 rounded-lg rounded-tr-none text-xs max-w-[80%] shadow-sm">
-                                                <p>Hola, me gustaría recibir más información sobre sus servicios.</p>
-                                                <span className="text-[9px] text-gray-500 block text-right mt-1">10:42 AM</span>
+                                        {selectedLead.transcript && selectedLead.transcript.length > 0 ? (
+                                            selectedLead.transcript.map((msg: { role: string; message?: string; text?: string; time?: string }, idx: number) => (
+                                                <div key={idx} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
+                                                    <div className={cn(
+                                                        "px-3 py-2 rounded-lg text-xs max-w-[80%] shadow-sm",
+                                                        msg.role === 'user'
+                                                            ? "bg-brand-mint/20 text-gray-900 rounded-tr-none"
+                                                            : "bg-white border border-gray-100 text-gray-900 rounded-tl-none"
+                                                    )}>
+                                                        <p>{msg.message || msg.text}</p>
+                                                        {msg.time && <span className="text-[9px] text-gray-400 block text-right mt-1">{msg.time}</span>}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center p-12 text-center">
+                                                <MessageSquare size={32} className="text-gray-200 mb-2" />
+                                                <p className="text-xs text-gray-400">No hay transcripción disponible para esta llamada.</p>
                                             </div>
-                                        </div>
-                                        <div className="flex justify-start">
-                                            <div className="bg-white border border-gray-100 text-gray-900 px-3 py-2 rounded-lg rounded-tl-none text-xs max-w-[80%] shadow-sm">
-                                                <p>¡Hola! Claro que sí. Soy el asistente virtual de {company}. ¿En qué servicio estás interesado específicamente?</p>
-                                                <span className="text-[9px] text-gray-400 block text-right mt-1">10:42 AM</span>
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end">
-                                            <div className="bg-[#d9fdd3] text-gray-900 px-3 py-2 rounded-lg rounded-tr-none text-xs max-w-[80%] shadow-sm">
-                                                <p>Estoy buscando implementar un agente de IA para mi negocio.</p>
-                                                <span className="text-[9px] text-gray-500 block text-right mt-1">10:43 AM</span>
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
 
                                     {/* Mock Input (Read-only) */}
