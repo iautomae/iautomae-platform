@@ -94,6 +94,7 @@ export default function AgentConfigPage() {
     const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
     // Custom Modals State
     const [fileToDelete, setFileToDelete] = useState<number | null>(null);
+    const [showDeleteNumberModal, setShowDeleteNumberModal] = useState(false);
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
 
     // Load Data
@@ -196,14 +197,32 @@ export default function AgentConfigPage() {
         }
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
-        const newFiles = Array.from(e.target.files).map(f => ({
+        const rawFiles = Array.from(e.target.files);
+        const newFiles = rawFiles.map(f => ({
             name: f.name,
             size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + ' MB' : (f.size / 1024).toFixed(1) + ' KB'
         }));
         setFiles(prev => [...prev, ...newFiles]);
         setHasUnsavedChanges(true);
+
+        // Sync to ElevenLabs if we have an agent ID
+        if (elevenLabsAgentId) {
+            for (const file of rawFiles) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    await fetch(`/api/elevenlabs/agents/${elevenLabsAgentId}/knowledge`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                } catch (err) {
+                    console.error('Error uploading file to ElevenLabs:', err);
+                }
+            }
+        }
+
         // Reset input so the same file can be re-uploaded
         e.target.value = '';
     };
@@ -212,11 +231,49 @@ export default function AgentConfigPage() {
         setFileToDelete(index);
     };
 
-    const confirmRemoveFile = () => {
+    const confirmRemoveFile = async () => {
         if (fileToDelete === null) return;
+        const fileToRemove = files[fileToDelete];
         setFiles(files.filter((_, i) => i !== fileToDelete));
         setHasUnsavedChanges(true);
         setFileToDelete(null);
+
+        // Sync deletion to ElevenLabs - remove from KB via PATCH
+        if (elevenLabsAgentId && fileToRemove) {
+            try {
+                // We fetch current agent detail to find the KB doc ID
+                const detailRes = await fetch(`/api/elevenlabs/agents/${elevenLabsAgentId}`);
+                if (detailRes.ok) {
+                    const detail = await detailRes.json();
+                    const kb = detail.conversation_config?.agent?.prompt?.knowledge_base || [];
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const matchingDoc = kb.find((doc: any) => doc.name === fileToRemove.name || doc.file_name === fileToRemove.name);
+                    if (matchingDoc && matchingDoc.id) {
+                        // Remove the doc from KB by patching the agent with the doc removed
+                        const updatedKb = kb
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            .filter((doc: any) => doc.id !== matchingDoc.id)
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            .map((doc: any) => ({ type: 'file', id: doc.id }));
+                        await fetch(`/api/elevenlabs/agents/${elevenLabsAgentId}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                conversation_config: {
+                                    agent: {
+                                        prompt: {
+                                            knowledge_base: updatedKb
+                                        }
+                                    }
+                                }
+                            })
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Error removing file from ElevenLabs KB:', err);
+            }
+        }
     };
 
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -273,35 +330,29 @@ export default function AgentConfigPage() {
         }
     };
 
-    const handleDeleteNumber = async () => {
+    const handleDeleteNumber = () => {
+        setShowDeleteNumberModal(true);
+    };
+
+    const confirmDeleteNumber = async () => {
+        setShowDeleteNumberModal(false);
+
         if (!associatedPhoneId) {
             setAssociatedPhone(null);
             setHasUnsavedChanges(true);
             return;
         }
 
-        if (!confirm("¿Estás seguro de que quieres eliminar este número de WhatsApp? Se borrará de ElevenLabs y de esta configuración.")) {
-            return;
-        }
-
         setIsSaving(true);
         try {
-            const response = await fetch(`/api/elevenlabs/numbers/${associatedPhoneId}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Error al eliminar el número');
-            }
-
+            // Only unlink from our panel, don't delete from ElevenLabs
             setAssociatedPhone(null);
             setAssociatedPhoneId(null);
             setHasUnsavedChanges(true);
-            alert("Número eliminado correctamente. Recuerda guardar los cambios.");
+            setInfoModal({ isOpen: true, type: 'success', message: 'Número desvinculado correctamente. Recuerda guardar los cambios.' });
         } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error(error);
-            alert("Error: " + error.message);
+            setInfoModal({ isOpen: true, type: 'error', message: 'Error: ' + error.message });
         } finally {
             setIsSaving(false);
         }
@@ -882,6 +933,35 @@ export default function AgentConfigPage() {
                                 className="flex-1 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
                             >
                                 Sí, Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* WhatsApp Number Delete Confirmation Modal */}
+            {showDeleteNumberModal && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-8 text-center">
+                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <X size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">¿Desvincular Número?</h3>
+                        <p className="text-sm text-gray-500 mb-8">
+                            El número se desvinculará de este agente en tu panel. No se eliminará de ElevenLabs ni de Meta.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowDeleteNumberModal(false)}
+                                className="flex-1 py-3 bg-gray-50 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmDeleteNumber}
+                                className="flex-1 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+                            >
+                                Sí, Desvincular
                             </button>
                         </div>
                     </div>
