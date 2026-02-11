@@ -213,7 +213,7 @@ export default function DynamicLeadsDashboard() {
             const newAgents: Agent[] = [];
 
             // Fetch all phone numbers from ElevenLabs to match with agents
-            let phoneMap: Record<string, { phone_number: string; phone_number_id: string }> = {};
+            const phoneMap: Record<string, { phone_number: string; phone_number_id: string }> = {};
             try {
                 const phonesRes = await fetch('/api/elevenlabs/numbers');
                 if (phonesRes.ok) {
@@ -234,7 +234,7 @@ export default function DynamicLeadsDashboard() {
             for (const elAgent of toImport) {
                 // Fetch full agent details (prompt, knowledge base, etc.)
                 let agentPrompt = '';
-                let agentPersonality = 'Asesor de ventas / Asistente Comercial';
+                const agentPersonality = 'Asesor de ventas / Asistente Comercial';
                 let knowledgeFiles: { name: string; size: string }[] = [];
 
                 try {
