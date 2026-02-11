@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, Check } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, Check, ArrowLeft, MessageSquare, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { clsx, type ClassValue } from 'clsx';
@@ -14,13 +14,14 @@ function cn(...inputs: ClassValue[]) {
 }
 
 // --- Simplified Mock Data for UI-Only ---
-const MOCK_LEADS = Array.from({ length: 15 }).map((_, i) => ({
+const MOCK_LEADS = Array.from({ length: 45 }).map((_, i) => ({ // Increased to 45 to test pagination
     id: String(i + 1),
     name: `Lead Usuario ${i + 1}`,
     email: `usuario${i + 1}@ejemplo.com`,
     phone: `+51 900 000 ${String(100 + i)}`,
     date: '2024-02-06',
-    status: i % 2 === 0 ? 'POTENCIAL' : 'NO POTENCIAL',
+    time: `${9 + (i % 8)}:${String(Math.floor(i * 1.5) % 60).padStart(2, '0')} ${i % 2 === 0 ? 'AM' : 'PM'}`,
+    status: i % 2 === 0 ? 'POTENCIAL' : 'NO_POTENCIAL',
     summary: "Interesado en servicios generales. Perfil calificado visualmente.",
     score: 85
 }));
@@ -62,6 +63,32 @@ export default function DynamicLeadsDashboard() {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAgentStats, setSelectedAgentStats] = useState<Agent | null>(null);
+
+
+
+    // Side Panel State
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [selectedLead, setSelectedLead] = useState<any | null>(null);
+    const [panelTab, setPanelTab] = useState<'SUMMARY' | 'CHAT'>('SUMMARY');
+
+
+    // Filter State
+    const [filterStatus, setFilterStatus] = useState<'ALL' | 'POTENCIAL' | 'NO_POTENCIAL'>('ALL');
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(15);
+
+    const filteredLeads = MOCK_LEADS.filter(lead => {
+        if (filterStatus === 'ALL') return true;
+        return lead.status === filterStatus;
+    });
+
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const paginatedLeads = filteredLeads.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
+
     // Custom Modals State
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, name: string } | null>(null);
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
@@ -75,6 +102,8 @@ export default function DynamicLeadsDashboard() {
     const [selectedImports, setSelectedImports] = useState<Set<string>>(new Set());
     const [isLoadingImports, setIsLoadingImports] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+
+    // ... (Keep existing loadAgents useEffect and handlers)
 
     // Load Real Agents
     React.useEffect(() => {
@@ -294,130 +323,150 @@ export default function DynamicLeadsDashboard() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto py-10 animate-in fade-in duration-500 px-6">
+        <div className="w-full flex flex-col pt-6 pb-6 px-8 animate-in fade-in duration-500 overflow-hidden h-[calc(100vh-2rem)]">
             {/* Header with Dynamic Company Name */}
-            <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center justify-between mb-8 shrink-0">
                 <div className="space-y-1">
-                    <div className="flex items-center gap-3 group">
-                        {isEditingTitle ? (
-                            <input
-                                type="text"
-                                value={editableCompany}
-                                onChange={(e) => setEditableCompany(e.target.value)}
-                                onBlur={() => {
-                                    setIsEditingTitle(false);
-                                    localStorage.setItem(`panel_name_${company}`, editableCompany);
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
+                    <div className="flex items-center gap-3">
+                        {/* Back Button - Only show in LEADS view */}
+                        {view === 'LEADS' && (
+                            <button
+                                onClick={() => setView('GALLERY')}
+                                className="mr-2 p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-900 transition-colors"
+                            >
+                                <ArrowLeft size={20} />
+                            </button>
+                        )}
+
+                        <div className="flex items-center gap-3 group">
+                            {isEditingTitle ? (
+                                <input
+                                    type="text"
+                                    value={editableCompany}
+                                    onChange={(e) => setEditableCompany(e.target.value)}
+                                    onBlur={() => {
                                         setIsEditingTitle(false);
                                         localStorage.setItem(`panel_name_${company}`, editableCompany);
-                                    }
-                                }}
-                                autoFocus
-                                className="text-3xl font-bold text-gray-900 tracking-tight bg-gray-50 border-b border-brand-primary outline-none px-1"
-                            />
-                        ) : (
-                            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                                Panel de {editableCompany}
-                            </h1>
-                        )}
-                        <button
-                            onClick={() => setIsEditingTitle(!isEditingTitle)}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-brand-primary transition-all opacity-0 group-hover:opacity-100"
-                        >
-                            <Pencil size={18} />
-                        </button>
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setIsEditingTitle(false);
+                                            localStorage.setItem(`panel_name_${company}`, editableCompany);
+                                        }
+                                    }}
+                                    autoFocus
+                                    className="text-3xl font-bold text-gray-900 tracking-tight bg-gray-50 border-b border-brand-primary outline-none px-1"
+                                />
+                            ) : (
+                                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                                    Panel de {editableCompany}
+                                </h1>
+                            )}
+                            <button
+                                onClick={() => setIsEditingTitle(!isEditingTitle)}
+                                className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-brand-primary transition-all opacity-0 group-hover:opacity-100"
+                            >
+                                <Pencil size={18} />
+                            </button>
+                        </div>
                     </div>
-                    <p className="text-gray-500 text-sm font-medium">Gestión de Agentes IA</p>
+                    <p className="text-gray-500 text-sm font-medium ml-1">
+                        {view === 'GALLERY' ? "Gestión de Agentes de IA" : "Gestión de Leads"}
+                    </p>
                 </div>
                 <div className="flex gap-3">
-                    <button
-                        onClick={() => { setIsImportModalOpen(true); setImportStep('key'); setImportKey(''); setImportKeyError(''); }}
-                        className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 hover:border-brand-primary hover:text-brand-primary"
-                    >
-                        <Download size={16} />
-                        Importar Agentes
-                    </button>
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
-                    >
-                        <Plus size={16} />
-                        Crear Agente
-                    </button>
+                    {view === 'GALLERY' && (
+                        <>
+                            <button
+                                onClick={() => { setIsImportModalOpen(true); setImportStep('key'); setImportKey(''); setImportKeyError(''); }}
+                                className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 hover:border-brand-primary hover:text-brand-primary"
+                            >
+                                <Download size={16} />
+                                Importar Agentes
+                            </button>
+                            <button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
+                            >
+                                <Plus size={16} />
+                                Crear Agente
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
             {view === 'GALLERY' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {agents.map(agent => (
-                        <div key={agent.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all group relative overflow-visible">
+                        <div key={agent.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all group relative overflow-visible flex flex-col justify-between min-h-[220px]">
                             {/* Hover Delete Button */}
                             <button
                                 onClick={(e) => { e.preventDefault(); handleDeleteAgent(agent); }}
-                                className="absolute right-[-14px] top-1/2 -translate-y-1/2 w-9 h-9 bg-white border border-red-100 text-red-400 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:text-red-600 flex items-center justify-center z-10"
+                                className="absolute right-[-10px] top-1/2 -translate-y-1/2 w-8 h-8 bg-white border border-red-100 text-red-400 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:text-red-600 flex items-center justify-center z-10"
                                 title="Eliminar Agente"
                             >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                             </button>
 
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="w-14 h-14 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary shadow-inner overflow-hidden">
-                                    {agent.avatar_url ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={agent.avatar_url} alt={agent.nombre} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Bot size={28} />
-                                    )}
-                                </div>
-                                <div className="flex flex-col items-end gap-2 text-right">
-                                    {/* Switch Toggle */}
-                                    <div className="flex flex-col items-end gap-1.5">
-                                        <span className={cn(
-                                            "text-[9px] font-bold uppercase tracking-widest transition-colors",
-                                            agent.status === 'active' ? "text-brand-primary" : "text-gray-400"
-                                        )}>
-                                            {agent.status === 'active' ? "Activo" : "Desactivado"}
-                                        </span>
-                                        <div
-                                            onClick={() => toggleAgentStatus(agent)}
-                                            className={cn(
-                                                "w-9 h-5 rounded-full relative transition-all cursor-pointer shadow-inner",
-                                                agent.status === 'active' ? "bg-brand-primary/20" : "bg-gray-100 border border-gray-200"
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                "absolute top-0.5 w-3.5 h-3.5 rounded-full shadow-md transition-all duration-300",
-                                                agent.status === 'active' ? "right-0.5 bg-brand-primary" : "left-0.5 bg-gray-400"
-                                            )} />
-                                        </div>
+                            <div>
+                                <div className="flex items-start justify-between mb-3">
+                                    <div className="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary shadow-inner overflow-hidden">
+                                        {agent.avatar_url ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={agent.avatar_url} alt={agent.nombre} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Bot size={24} />
+                                        )}
                                     </div>
-                                    {/* Stats Icon */}
-                                    <button
-                                        onClick={(e) => { e.preventDefault(); setSelectedAgentStats(agent); }}
-                                        className="p-1.5 hover:bg-amber-50 text-gray-400 hover:text-amber-700 rounded-lg transition-colors border border-transparent hover:border-amber-200 flex items-center gap-1.5"
-                                    >
-                                        <BarChart2 size={14} className="text-amber-600" />
-                                        <span className="text-[9px] font-bold uppercase text-amber-700/70">Uso</span>
-                                    </button>
+                                    <div className="flex flex-col items-end gap-1 text-right">
+                                        {/* Switch Toggle */}
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className={cn(
+                                                "text-[8px] font-bold uppercase tracking-widest transition-colors",
+                                                agent.status === 'active' ? "text-brand-primary" : "text-gray-400"
+                                            )}>
+                                                {agent.status === 'active' ? "Activo" : "Desactivado"}
+                                            </span>
+                                            <div
+                                                onClick={() => toggleAgentStatus(agent)}
+                                                className={cn(
+                                                    "w-8 h-4 rounded-full relative transition-all cursor-pointer shadow-inner",
+                                                    agent.status === 'active' ? "bg-brand-primary/20" : "bg-gray-100 border border-gray-200"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "absolute top-0.5 w-3 h-3 rounded-full shadow-md transition-all duration-300",
+                                                    agent.status === 'active' ? "right-0.5 bg-brand-primary" : "left-0.5 bg-gray-400"
+                                                )} />
+                                            </div>
+                                        </div>
+                                        {/* Stats Icon */}
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); setSelectedAgentStats(agent); }}
+                                            className="p-1 hover:bg-amber-50 text-gray-400 hover:text-amber-700 rounded-lg transition-colors border border-transparent hover:border-amber-200 flex items-center gap-1"
+                                        >
+                                            <BarChart2 size={12} className="text-amber-600" />
+                                            <span className="text-[8px] font-bold uppercase text-amber-700/70">Uso</span>
+                                        </button>
+                                    </div>
                                 </div>
+
+                                <h3 className="text-lg font-bold text-gray-900 mb-0.5 leading-tight truncate" title={agent.nombre}>{agent.nombre || 'Agente sin nombre'}</h3>
+                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-4 truncate" title={agent.personalidad}>{agent.personalidad || 'Sin especialidad'}</p>
                             </div>
 
-                            <h3 className="text-xl font-bold text-gray-900 mb-1">{agent.nombre || 'Agente sin nombre'}</h3>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-6">{agent.personalidad || 'Sin especialidad'}</p>
-
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 mt-auto">
                                 <Link
                                     href={`/leads/agent-config?id=${agent.id}`}
-                                    className="flex-1 bg-gray-50 text-gray-700 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all text-center flex items-center justify-center gap-2 border border-gray-100 hover:border-brand-primary shadow-sm hover:shadow-md"
+                                    className="flex-1 bg-gray-50 text-gray-700 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all text-center flex items-center justify-center gap-1.5 border border-gray-100 hover:border-brand-primary shadow-sm hover:shadow-md"
                                 >
-                                    <Settings size={14} />
+                                    <Settings size={12} />
                                     Configurar
                                 </Link>
                                 <button
                                     onClick={() => setView('LEADS')}
-                                    className="flex-1 bg-brand-primary-darker text-white py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-md shadow-brand-primary-darker/10"
+                                    className="flex-1 bg-brand-primary-darker text-white py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-md shadow-brand-primary-darker/10"
                                 >
                                     Ver Leads
                                 </button>
@@ -434,348 +483,634 @@ export default function DynamicLeadsDashboard() {
                     {/* Add Agent Placeholder */}
                     <div
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center py-10 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group hover:border-brand-mint/50"
+                        className="border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center py-6 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group hover:border-brand-mint/50 min-h-[220px]"
                     >
-                        <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 group-hover:text-brand-mint group-hover:bg-brand-mint/5 transition-all mb-4">
-                            <Plus size={32} />
+                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 group-hover:text-brand-mint group-hover:bg-brand-mint/5 transition-all mb-3">
+                            <Plus size={24} />
                         </div>
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-mint">Nuevo Agente</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-mint">Nuevo Agente</span>
                     </div>
                 </div>
             ) : (
-                <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Nombre</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Email</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Estado</th>
-                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {MOCK_LEADS.map(lead => (
-                                    <tr key={lead.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-gray-900 text-sm">{lead.name}</td>
-                                        <td className="px-6 py-4 text-gray-500 text-xs">{lead.email}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={cn(
-                                                "px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
-                                                lead.status === 'POTENCIAL' ? "bg-brand-mint/10 text-brand-mint" : "bg-red-50 text-red-500"
-                                            )}>
-                                                {lead.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button className="text-brand-mint font-bold text-[10px] uppercase tracking-widest hover:underline">
-                                                Ver Chat
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-            {/* Statistics Modal */}
-            {selectedAgentStats && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-brand-mint/10 flex items-center justify-center text-brand-mint">
-                                    <Activity size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900">Estadísticas de Uso</h3>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{selectedAgentStats.nombre}</p>
-                                </div>
-                            </div>
+                <div className="flex flex-col h-full overflow-hidden">
+                    {/* Filter Buttons */}
+                    <div className="flex items-center justify-between mb-4 shrink-0">
+                        {/* Status Filters */}
+                        <div className="flex bg-gray-200/50 p-1 rounded-xl shadow-sm border border-gray-100/50">
                             <button
-                                onClick={() => setSelectedAgentStats(null)}
-                                className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                                onClick={() => { setFilterStatus('ALL'); setCurrentPage(1); }}
+                                className={cn(
+                                    "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                                    filterStatus === 'ALL' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                                )}
                             >
-                                <X size={20} />
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => { setFilterStatus('NO_POTENCIAL'); setCurrentPage(1); }}
+                                className={cn(
+                                    "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                                    filterStatus === 'NO_POTENCIAL' ? "bg-white text-red-700 shadow-sm" : "text-gray-500 hover:text-red-600"
+                                )}
+                            >
+                                No Potencial
+                            </button>
+                            <button
+                                onClick={() => { setFilterStatus('POTENCIAL'); setCurrentPage(1); }}
+                                className={cn(
+                                    "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                                    filterStatus === 'POTENCIAL' ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-emerald-600"
+                                )}
+                            >
+                                Potencial
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Hoy</p>
-                                    <p className="text-2xl font-black text-gray-900">452 <span className="text-[10px] font-bold text-gray-400">Tokens</span></p>
-                                </div>
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Este Mes</p>
-                                    <p className="text-2xl font-black text-gray-900">12.4k <span className="text-[10px] font-bold text-gray-400">Tokens</span></p>
-                                </div>
-                            </div>
+                        {/* Placeholder Buttons */}
+                        <div className="flex bg-gray-100/50 p-1 rounded-xl">
+                            {[1, 2, 3].map((num) => (
+                                <button
+                                    key={num}
+                                    className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white/50 transition-all"
+                                >
+                                    Botón {num}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
 
-                            <div className="space-y-3">
-                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Actividad Reciente</h4>
-                                <div className="space-y-2">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl text-xs">
-                                            <span className="text-gray-500 font-medium">0{i} Feb, 2024</span>
-                                            <span className="font-bold text-brand-mint">+120 tokens</span>
-                                        </div>
+                    <div className="flex-1 overflow-auto bg-white/80 backdrop-blur-sm rounded-3xl border border-gray-200 shadow-xl relative flex flex-col">
+                        <div className="flex-1 overflow-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-white sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-900 border-b border-gray-200 uppercase tracking-tight bg-gray-50/50 w-24">Fecha</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50">Nombre</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-32">Teléfono</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-16 text-center">Ver Chat</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50">Resumen Llamada</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 text-center">Calificación</th>
+                                        <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50">Acciones</th>
+                                    </tr >
+                                </thead >
+                                <tbody className="divide-y divide-gray-100">
+                                    {paginatedLeads.map((lead) => (
+                                        <tr
+                                            key={lead.id}
+                                            className="bg-white hover:bg-gray-100 transition-colors group"
+                                        >
+                                            <td className="px-4 py-1.5 border-b border-gray-100">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-medium text-gray-700">
+                                                        {new Date(lead.date).toLocaleDateString()}
+                                                    </span>
+                                                    <span className="text-[9px] text-gray-400">
+                                                        {/* @ts-ignore */}
+                                                        {lead.time}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-1.5 border-b border-l border-gray-100">
+                                                <span className="text-xs font-medium text-gray-700 block truncate max-w-[150px]" title={lead.name}>
+                                                    {lead.name}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-1.5 border-b border-l border-gray-100">
+                                                <span className="text-[10px] text-gray-500 font-medium">{lead.phone}</span>
+                                            </td>
+                                            <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
+                                                <button
+                                                    onClick={() => { setSelectedLead(lead); setPanelTab('CHAT'); }}
+                                                    className="p-1 hover:bg-green-50 text-gray-400 hover:text-green-600 rounded-md transition-colors group/chat"
+                                                    title="Ver Chat WhatsApp"
+                                                >
+                                                    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#25D366] group-hover/chat:scale-110 transition-transform">
+                                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-1.5 border-b border-l border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => { setSelectedLead(lead); setPanelTab('SUMMARY'); }}>
+                                                <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight max-w-[250px]" title="Ver resumen completo">
+                                                    {lead.summary}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
+                                                <span className={cn(
+                                                    "w-24 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide inline-flex justify-center",
+                                                    lead.status === 'POTENCIAL'
+                                                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                                        : "bg-red-100 text-red-700 border border-red-200"
+                                                )}>
+                                                    {lead.status === 'POTENCIAL' ? 'POTENCIAL' : 'NO POTENCIAL'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
+                                                <div className="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-md transition-colors" title="Eliminar">
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     ))}
-                                </div>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination Footer - Inside Container */}
+                        <div className="px-4 py-2 bg-gray-50/80 border-t border-gray-200 flex items-center justify-between shrink-0 backdrop-blur-md">
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                                    className="bg-white border border-gray-300 rounded-md text-[10px] font-bold text-gray-700 py-0.5 pl-2 pr-6 outline-none focus:border-brand-primary h-6 cursor-pointer hover:border-brand-primary transition-colors"
+                                >
+                                    <option value={15}>15 Filas</option>
+                                    <option value={50}>50 Filas</option>
+                                    <option value={100}>100 Filas</option>
+                                </select>
+                                <p className="text-[10px] text-gray-400 font-medium ml-2">
+                                    {Math.min(indexOfLastItem, filteredLeads.length)} de {filteredLeads.length}
+                                </p>
                             </div>
 
-                            <button
-                                onClick={() => setSelectedAgentStats(null)}
-                                className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10"
-                            >
-                                Cerrar Ventanilla
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setCurrentPage(1)}
+                                    disabled={currentPage === 1}
+                                    className="p-1 rounded-md hover:bg-white hover:shadow-sm text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
+                                >
+                                    <ChevronsLeft size={14} />
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-1 rounded-md hover:bg-white hover:shadow-sm text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
+                                >
+                                    <ChevronLeft size={14} />
+                                </button>
+
+                                <div className="px-2 text-[10px] font-bold text-gray-600">
+                                    {currentPage} / {totalPages}
+                                </div>
+
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-1 rounded-md hover:bg-white hover:shadow-sm text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
+                                >
+                                    <ChevronRight size={14} />
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(totalPages)}
+                                    disabled={currentPage === totalPages}
+                                    className="p-1 rounded-md hover:bg-white hover:shadow-sm text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
+                                >
+                                    <ChevronsRight size={14} />
+                                </button>
+                            </div>
+                        </div >
+                    </div >
+                </div >
+            )
+            }
+            {/* Statistics Modal */}
+            {
+                selectedAgentStats && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-brand-mint/10 flex items-center justify-center text-brand-mint">
+                                        <Activity size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900">Estadísticas de Uso</h3>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{selectedAgentStats.nombre}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedAgentStats(null)}
+                                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Hoy</p>
+                                        <p className="text-2xl font-black text-gray-900">452 <span className="text-[10px] font-bold text-gray-400">Tokens</span></p>
+                                    </div>
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Este Mes</p>
+                                        <p className="text-2xl font-black text-gray-900">12.4k <span className="text-[10px] font-bold text-gray-400">Tokens</span></p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Actividad Reciente</h4>
+                                    <div className="space-y-2">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl text-xs">
+                                                <span className="text-gray-500 font-medium">0{i} Feb, 2024</span>
+                                                <span className="font-bold text-brand-mint">+120 tokens</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setSelectedAgentStats(null)}
+                                    className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10"
+                                >
+                                    Cerrar Ventanilla
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
             {/* Quick Create Modal */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-brand-mint/10 flex items-center justify-center text-brand-mint">
-                                    <Plus size={20} />
+            {
+                isCreateModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-brand-mint/10 flex items-center justify-center text-brand-mint">
+                                        <Plus size={20} />
+                                    </div>
+                                    <h3 className="font-bold text-gray-900">Nuevo Agente</h3>
                                 </div>
-                                <h3 className="font-bold text-gray-900">Nuevo Agente</h3>
-                            </div>
-                            <button
-                                onClick={() => setIsCreateModalOpen(false)}
-                                className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-8 space-y-6">
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre del Agente</label>
-                                <input
-                                    type="text"
-                                    value={newAgentName}
-                                    onChange={(e) => setNewAgentName(e.target.value)}
-                                    placeholder="Ej: Sofia de Ventas"
-                                    autoFocus
-                                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono"
-                                />
-                            </div>
-
-                            <div className="flex gap-3">
                                 <button
                                     onClick={() => setIsCreateModalOpen(false)}
-                                    className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre del Agente</label>
+                                    <input
+                                        type="text"
+                                        value={newAgentName}
+                                        onChange={(e) => setNewAgentName(e.target.value)}
+                                        placeholder="Ej: Sofia de Ventas"
+                                        autoFocus
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setIsCreateModalOpen(false)}
+                                        className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={handleQuickCreate}
+                                        disabled={isCreating || !newAgentName.trim()}
+                                        className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {isCreating ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
+                                        Crear Agente
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Delete Confirmation Modal */}
+            {
+                deleteConfirmation && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-8 text-center">
+                            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Trash2 size={32} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">¿Eliminar Agente?</h3>
+                            <p className="text-sm text-gray-500 mb-8">
+                                Estás a punto de eliminar a <span className="font-bold text-gray-900">{deleteConfirmation.name}</span>. Esta acción no se puede deshacer.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDeleteConfirmation(null)}
+                                    className="flex-1 py-3 bg-gray-50 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
                                 >
                                     Cancelar
                                 </button>
                                 <button
-                                    onClick={handleQuickCreate}
-                                    disabled={isCreating || !newAgentName.trim()}
-                                    className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    onClick={confirmDelete}
+                                    className="flex-1 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
                                 >
-                                    {isCreating ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                                    Crear Agente
+                                    Sí, Eliminar
                                 </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* Delete Confirmation Modal */}
-            {deleteConfirmation && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-8 text-center">
-                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Trash2 size={32} />
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">¿Eliminar Agente?</h3>
-                        <p className="text-sm text-gray-500 mb-8">
-                            Estás a punto de eliminar a <span className="font-bold text-gray-900">{deleteConfirmation.name}</span>. Esta acción no se puede deshacer.
-                        </p>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setDeleteConfirmation(null)}
-                                className="flex-1 py-3 bg-gray-50 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={confirmDelete}
-                                className="flex-1 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
-                            >
-                                Sí, Eliminar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Info/Success/Error Modal */}
-            {infoModal.isOpen && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-8 text-center">
-                        <div className={cn(
-                            "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
-                            infoModal.type === 'success' ? "bg-brand-mint/10 text-brand-mint" : "bg-red-50 text-red-500"
-                        )}>
-                            {infoModal.type === 'success' ? <CheckCircle2 size={32} /> : <X size={32} />}
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                            {infoModal.type === 'success' ? '¡Éxito!' : 'Ups, algo pasó'}
-                        </h3>
-                        <p className="text-sm text-gray-500 mb-8 font-medium">
-                            {infoModal.message}
-                        </p>
-                        <button
-                            onClick={() => setInfoModal({ ...infoModal, isOpen: false })}
-                            className="w-full py-3 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-lg"
-                        >
-                            Entendido
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Import Agents Modal */}
-            {isImportModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-brand-mint/10 flex items-center justify-center text-brand-mint">
-                                    {importStep === 'key' ? <Lock size={20} /> : <Download size={20} />}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900">
-                                        {importStep === 'key' ? 'Verificar Acceso' : 'Seleccionar Agentes'}
-                                    </h3>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                                        {importStep === 'key' ? 'Ingresa tu clave de importación' : `${importableAgents.length} agente(s) disponible(s)`}
-                                    </p>
-                                </div>
+            {
+                infoModal.isOpen && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-8 text-center">
+                            <div className={cn(
+                                "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4",
+                                infoModal.type === 'success' ? "bg-brand-mint/10 text-brand-mint" : "bg-red-50 text-red-500"
+                            )}>
+                                {infoModal.type === 'success' ? <CheckCircle2 size={32} /> : <X size={32} />}
                             </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                {infoModal.type === 'success' ? '¡Éxito!' : 'Ups, algo pasó'}
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-8 font-medium">
+                                {infoModal.message}
+                            </p>
                             <button
-                                onClick={() => { setIsImportModalOpen(false); setImportStep('key'); setImportKey(''); }}
-                                className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                                onClick={() => setInfoModal({ ...infoModal, isOpen: false })}
+                                className="w-full py-3 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-lg"
                             >
-                                <X size={20} />
+                                Entendido
                             </button>
                         </div>
+                    </div>
+                )
+            }
 
-                        <div className="p-8 space-y-6">
-                            {importStep === 'key' ? (
-                                <>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Clave Secreta</label>
-                                        <input
-                                            type="password"
-                                            value={importKey}
-                                            onChange={(e) => { setImportKey(e.target.value); setImportKeyError(''); }}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleVerifyImportKey()}
-                                            placeholder="Ingresa tu clave de acceso"
-                                            autoFocus
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all"
-                                        />
-                                        {importKeyError && (
-                                            <p className="text-red-500 text-xs font-medium">{importKeyError}</p>
-                                        )}
+            {/* Import Agents Modal */}
+            {
+                isImportModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-brand-mint/10 flex items-center justify-center text-brand-mint">
+                                        {importStep === 'key' ? <Lock size={20} /> : <Download size={20} />}
                                     </div>
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={() => setIsImportModalOpen(false)}
-                                            className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button
-                                            onClick={handleVerifyImportKey}
-                                            disabled={!importKey.trim()}
-                                            className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
-                                        >
-                                            <Lock size={14} />
-                                            Verificar
-                                        </button>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900">
+                                            {importStep === 'key' ? 'Verificar Acceso' : 'Seleccionar Agentes'}
+                                        </h3>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                            {importStep === 'key' ? 'Ingresa tu clave de importación' : `${importableAgents.length} agente(s) disponible(s)`}
+                                        </p>
                                     </div>
-                                </>
-                            ) : (
-                                <>
-                                    {isLoadingImports ? (
-                                        <div className="flex flex-col items-center justify-center py-8 gap-3">
-                                            <RefreshCw size={24} className="animate-spin text-brand-mint" />
-                                            <p className="text-sm text-gray-400 font-medium">Cargando agentes de ElevenLabs...</p>
+                                </div>
+                                <button
+                                    onClick={() => { setIsImportModalOpen(false); setImportStep('key'); setImportKey(''); }}
+                                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                {importStep === 'key' ? (
+                                    <>
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Clave Secreta</label>
+                                            <input
+                                                type="password"
+                                                value={importKey}
+                                                onChange={(e) => { setImportKey(e.target.value); setImportKeyError(''); }}
+                                                onKeyDown={(e) => e.key === 'Enter' && handleVerifyImportKey()}
+                                                placeholder="Ingresa tu clave de acceso"
+                                                autoFocus
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all"
+                                            />
+                                            {importKeyError && (
+                                                <p className="text-red-500 text-xs font-medium">{importKeyError}</p>
+                                            )}
                                         </div>
-                                    ) : importableAgents.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-8 gap-3">
-                                            <CheckCircle2 size={32} className="text-brand-mint" />
-                                            <p className="text-sm text-gray-500 font-medium">Todos los agentes ya están importados</p>
+                                        <div className="flex gap-3">
                                             <button
                                                 onClick={() => setIsImportModalOpen(false)}
-                                                className="mt-4 px-8 py-3 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all"
+                                                className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
                                             >
-                                                Cerrar
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                onClick={handleVerifyImportKey}
+                                                disabled={!importKey.trim()}
+                                                className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                            >
+                                                <Lock size={14} />
+                                                Verificar
                                             </button>
                                         </div>
-                                    ) : (
-                                        <>
-                                            <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                {importableAgents.map((agent: any) => (
+                                    </>
+                                ) : (
+                                    <>
+                                        {isLoadingImports ? (
+                                            <div className="flex flex-col items-center justify-center py-8 gap-3">
+                                                <RefreshCw size={24} className="animate-spin text-brand-mint" />
+                                                <p className="text-sm text-gray-400 font-medium">Cargando agentes de ElevenLabs...</p>
+                                            </div>
+                                        ) : importableAgents.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-8 gap-3">
+                                                <CheckCircle2 size={32} className="text-brand-mint" />
+                                                <p className="text-sm text-gray-500 font-medium">Todos los agentes ya están importados</p>
+                                                <button
+                                                    onClick={() => setIsImportModalOpen(false)}
+                                                    className="mt-4 px-8 py-3 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all"
+                                                >
+                                                    Cerrar
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                                    {importableAgents.map((agent: any) => (
+                                                        <button
+                                                            key={agent.agent_id}
+                                                            onClick={() => toggleImportSelection(agent.agent_id)}
+                                                            className={cn(
+                                                                "w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left",
+                                                                selectedImports.has(agent.agent_id)
+                                                                    ? "border-brand-mint bg-brand-mint/5"
+                                                                    : "border-gray-100 hover:border-gray-200 bg-white"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0",
+                                                                selectedImports.has(agent.agent_id)
+                                                                    ? "border-brand-mint bg-brand-mint text-white"
+                                                                    : "border-gray-200"
+                                                            )}>
+                                                                {selectedImports.has(agent.agent_id) && <Check size={14} />}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-bold text-gray-900 text-sm truncate">{agent.name || 'Sin nombre'}</p>
+                                                                <p className="text-[10px] text-gray-400 font-mono truncate">{agent.agent_id}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <div className="flex gap-3">
                                                     <button
-                                                        key={agent.agent_id}
-                                                        onClick={() => toggleImportSelection(agent.agent_id)}
-                                                        className={cn(
-                                                            "w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left",
-                                                            selectedImports.has(agent.agent_id)
-                                                                ? "border-brand-mint bg-brand-mint/5"
-                                                                : "border-gray-100 hover:border-gray-200 bg-white"
-                                                        )}
+                                                        onClick={() => { setIsImportModalOpen(false); setImportStep('key'); }}
+                                                        className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
                                                     >
-                                                        <div className={cn(
-                                                            "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0",
-                                                            selectedImports.has(agent.agent_id)
-                                                                ? "border-brand-mint bg-brand-mint text-white"
-                                                                : "border-gray-200"
-                                                        )}>
-                                                            {selectedImports.has(agent.agent_id) && <Check size={14} />}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-bold text-gray-900 text-sm truncate">{agent.name || 'Sin nombre'}</p>
-                                                            <p className="text-[10px] text-gray-400 font-mono truncate">{agent.agent_id}</p>
-                                                        </div>
+                                                        Cancelar
                                                     </button>
-                                                ))}
-                                            </div>
-                                            <div className="flex gap-3">
-                                                <button
-                                                    onClick={() => { setIsImportModalOpen(false); setImportStep('key'); }}
-                                                    className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
-                                                >
-                                                    Cancelar
-                                                </button>
-                                                <button
-                                                    onClick={confirmImport}
-                                                    disabled={isImporting || selectedImports.size === 0}
-                                                    className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
-                                                >
-                                                    {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
-                                                    Importar ({selectedImports.size})
-                                                </button>
-                                            </div>
-                                        </>
+                                                    <button
+                                                        onClick={confirmImport}
+                                                        disabled={isImporting || selectedImports.size === 0}
+                                                        className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                                    >
+                                                        {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+                                                        Importar ({selectedImports.size})
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            {/* Unified Side Panel */}
+            {selectedLead && (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/20 backdrop-blur-[1px] transition-opacity"
+                        onClick={() => setSelectedLead(null)}
+                    />
+
+                    {/* Panel */}
+                    <div className="relative w-full max-w-md bg-white h-full shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col border-l border-gray-100">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100 bg-gray-50/50 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
+                                        {panelTab === 'SUMMARY' ? <MessageSquare size={18} /> : <MessageSquare size={18} />}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 text-sm">{selectedLead.name}</h3>
+                                        <p className="text-[10px] text-gray-500">{selectedLead.phone}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedLead(null)}
+                                    className="p-2 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Qualification Badge */}
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Calificación</span>
+                                <span className={cn(
+                                    "w-24 py-1 rounded-md text-[9px] font-bold uppercase tracking-wide inline-flex justify-center",
+                                    selectedLead.status === 'POTENCIAL'
+                                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                        : "bg-red-100 text-red-700 border border-red-200"
+                                )}>
+                                    {selectedLead.status === 'POTENCIAL' ? 'POTENCIAL' : 'NO POTENCIAL'}
+                                </span>
+                            </div>
+
+                            {/* Tabs */}
+                            <div className="flex bg-gray-200/50 p-1 rounded-xl">
+                                <button
+                                    onClick={() => setPanelTab('SUMMARY')}
+                                    className={cn(
+                                        "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                                        panelTab === 'SUMMARY' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
                                     )}
-                                </>
+                                >
+                                    Resumen
+                                </button>
+                                <button
+                                    onClick={() => setPanelTab('CHAT')}
+                                    className={cn(
+                                        "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                                        panelTab === 'CHAT' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                                    )}
+                                >
+                                    Chat
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto bg-white relative">
+                            {panelTab === 'SUMMARY' ? (
+                                <div className="p-6">
+                                    <div className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-medium">
+                                        {selectedLead.summary}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col h-full">
+                                    {/* Mock Chat Content */}
+                                    <div className="p-4 space-y-4 flex-1">
+                                        <div className="flex flex-col items-center justify-center p-8 text-center space-y-2 opacity-50">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                <Lock size={16} className="text-gray-400" />
+                                            </div>
+                                            <p className="text-[10px] text-gray-400">Esta conversación está encriptada de extremo a extremo.</p>
+                                        </div>
+
+                                        {/* Mock Messages */}
+                                        <div className="flex justify-end">
+                                            <div className="bg-[#d9fdd3] text-gray-900 px-3 py-2 rounded-lg rounded-tr-none text-xs max-w-[80%] shadow-sm">
+                                                <p>Hola, me gustaría recibir más información sobre sus servicios.</p>
+                                                <span className="text-[9px] text-gray-500 block text-right mt-1">10:42 AM</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-start">
+                                            <div className="bg-white border border-gray-100 text-gray-900 px-3 py-2 rounded-lg rounded-tl-none text-xs max-w-[80%] shadow-sm">
+                                                <p>¡Hola! Claro que sí. Soy el asistente virtual de {company}. ¿En qué servicio estás interesado específicamente?</p>
+                                                <span className="text-[9px] text-gray-400 block text-right mt-1">10:42 AM</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <div className="bg-[#d9fdd3] text-gray-900 px-3 py-2 rounded-lg rounded-tr-none text-xs max-w-[80%] shadow-sm">
+                                                <p>Estoy buscando implementar un agente de IA para mi negocio.</p>
+                                                <span className="text-[9px] text-gray-500 block text-right mt-1">10:43 AM</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Mock Input (Read-only) */}
+                                    <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center gap-2">
+                                        <input
+                                            disabled
+                                            placeholder="Solo lectura..."
+                                            className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs opacity-60"
+                                        />
+                                    </div>
+                                </div>
                             )}
+                        </div>
+
+                        <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+                            <button
+                                onClick={() => setSelectedLead(null)}
+                                className="w-full py-3 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
+                            >
+                                Cerrar Panel
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </div >
     );
 }

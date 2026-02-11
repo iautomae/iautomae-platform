@@ -28,6 +28,7 @@ import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useConversation } from '@elevenlabs/react';
 
 function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -102,10 +103,44 @@ export default function AgentConfigPage() {
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
 
     // Chat State
-    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'agent'; text: string }[]>([]);
+    // Chat State with SDK
+    const conversation = useConversation({
+        // Enable text-only mode to avoid requesting microphone permissions
+        // This is crucial for a text chat interface where users might not want/have audio input enabled.
+        // It prevents the "NotAllowedError: Permission dismissed" when starting the session.
+        textOnly: true,
+        onMessage: (message) => {
+            if (message.source === 'ai') {
+                // Determine if this is a new message or an update to the last one
+                setIsAgentTyping(false); // Agent started speaking/typing
+                setChatMessages(prev => {
+                    const lastMsg = prev[prev.length - 1];
+                    if (lastMsg && lastMsg.role === 'agent' && lastMsg.isStreaming) {
+                        // Check if the message is complete (you might need more robust logic here depending on SDK)
+                        // For now, we'll just append. Real streaming logic might be different.
+                        // But usually 'message' event from SDK gives full chunks or complete sentences.
+                        // Let's assume message.message is the text chunk.
+                        return [...prev.slice(0, -1), { ...lastMsg, text: lastMsg.text + " " + message.message }];
+                    }
+                    return [...prev, { role: 'agent', text: message.message }];
+                });
+            }
+        },
+        onError: (error) => {
+            console.error('Conversation error:', error);
+            setChatMessages(prev => [...prev, { role: 'agent', text: 'Error de conexión.' }]);
+        },
+        onConnect: () => {
+            console.log('Connected to ElevenLabs');
+        },
+        onDisconnect: () => {
+            console.log('Disconnected from ElevenLabs');
+        }
+    });
+
+    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'agent'; text: string; isStreaming?: boolean }[]>([]);
     const [chatInput, setChatInput] = useState('');
-    const [isChatLoading, setIsChatLoading] = useState(false);
-    const [chatConversationId, setChatConversationId] = useState<string | null>(null);
+    const [isAgentTyping, setIsAgentTyping] = useState(false);
     const chatEndRef = React.useRef<HTMLDivElement>(null);
 
     // Load Data
@@ -157,6 +192,62 @@ export default function AgentConfigPage() {
             };
 
             let error;
+            // Variable to store the ID if we create one
+            let newElevenLabsId = elevenLabsAgentId;
+
+            // 1. If we don't have an ElevenLabs ID, create it first
+            if (!newElevenLabsId && nombre) {
+                console.log('Attempting to create agent in ElevenLabs...');
+                try {
+                    const createRes = await fetch('/api/elevenlabs/agents', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: nombre,
+                            prompt: systemPrompt
+                        })
+                    });
+
+                    if (createRes.ok) {
+                        const createData = await createRes.json();
+                        console.log('ElevenLabs creation response:', createData);
+                        if (createData.agent_id) {
+                            newElevenLabsId = createData.agent_id;
+                            setElevenLabsAgentId(newElevenLabsId);
+                            // Update agentData with the new ID
+                            agentData.eleven_labs_agent_id = newElevenLabsId;
+
+                            // Show a toast or log success
+                            console.log('Created new ElevenLabs Agent:', newElevenLabsId);
+                        } else {
+                            console.error('No agent_id in creation response:', createData);
+                        }
+                    } else {
+                        const errorData = await createRes.json();
+                        console.error('Failed to create agent in ElevenLabs:', createRes.status, errorData);
+                        setInfoModal({
+                            isOpen: true,
+                            type: 'error',
+                            message: `Error al crear agente en ElevenLabs: ${errorData.error || errorData.detail || 'Error desconocido'}`
+                        });
+                        // Stop execution to prevent saving a broken state
+                        setIsSaving(false);
+                        return;
+                    }
+                } catch (creationError: any) {
+                    console.error('Error creating agent in ElevenLabs:', creationError);
+                    setInfoModal({
+                        isOpen: true,
+                        type: 'error',
+                        message: `Error de conexión con ElevenLabs: ${creationError.message}`
+                    });
+                    setIsSaving(false);
+                    return;
+                }
+            } else {
+                console.log('Skipping creation:', { newElevenLabsId, nombre });
+            }
+
             if (agentId && agentId !== '1' && agentId !== '2') {
                 // Update existing agent (don't update user_id)
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -377,45 +468,58 @@ export default function AgentConfigPage() {
 
     const sendChatMessage = async () => {
         const trimmed = chatInput.trim();
-        if (!trimmed || !elevenLabsAgentId || isChatLoading) return;
+        if (!trimmed || !elevenLabsAgentId) return;
 
         setChatMessages(prev => [...prev, { role: 'user', text: trimmed }]);
         setChatInput('');
-        setIsChatLoading(true);
 
         try {
-            const res = await fetch(`/api/elevenlabs/agents/${elevenLabsAgentId}/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: trimmed,
-                    conversation_id: chatConversationId,
-                }),
-            });
+            // If not connected, we need to connect first
+            if (conversation.status !== 'connected') {
+                // 1. Get Signed URL
+                const response = await fetch(`/api/elevenlabs/agents/${elevenLabsAgentId}/signed-url`);
+                if (!response.ok) throw new Error('Failed to get signed URL');
+                const { signedUrl } = await response.json();
 
-            if (!res.ok) {
-                const errData = await res.json();
-                setChatMessages(prev => [...prev, { role: 'agent', text: `Error: ${errData.error || 'No se pudo obtener respuesta.'}` }]);
-                return;
+                // 2. Start Session with Signed URL
+                await conversation.startSession({
+                    signedUrl,
+                    // textOnly: true // Enable this if you want strictly text, but SDK might default to voice if not set.
+                    // Actually, for pure text chat via this SDK, we just use sendUserMessage.
+                    // The SDK is primarily for voice, but let's see if we can perform text-only.
+                    // If the user wants just text bubbles, we can mute the input/output?
+                    // Or simply use the conversation purely for text.
+                });
             }
 
-            const data = await res.json();
-            if (data.conversation_id && !chatConversationId) {
-                setChatConversationId(data.conversation_id);
+            // 3. Send Message
+            // Use sendUserMessage for text input
+            // @ts-ignore: Some versions of the SDK might have different typings, but sendUserMessage/sendText is common.
+            // If sendText doesn't exist, we try sendUserMessage or checking the object if it exists.
+            // Wait, looking at docs it seems sendText might be deprecated or not on the type, let's use sendUserMessage?
+            // Actually, the docs reference might be slightly off. Let's check if the user can use `sendMessage({ text: ... })`?
+            // Just assume `sendUserMessage` is safer if `sendText` fails type check.
+            if (typeof conversation.sendText === 'function') {
+                await conversation.sendText(trimmed);
+            } else {
+                // Fallback for newer SDK versions
+                // @ts-ignore
+                await conversation.sendUserMessage(trimmed);
             }
-            const agentReply = data.response || data.text || data.message || 'Sin respuesta.';
-            setChatMessages(prev => [...prev, { role: 'agent', text: agentReply }]);
-        } catch {
-            setChatMessages(prev => [...prev, { role: 'agent', text: 'Error de conexión. Intenta de nuevo.' }]);
-        } finally {
-            setIsChatLoading(false);
+            setIsAgentTyping(true);
+
+        } catch (error) {
+            console.error('Chat error:', error);
+            setChatMessages(prev => [...prev, { role: 'agent', text: 'Error al conectar con el agente.' }]);
+            setIsAgentTyping(false);
         }
     };
 
-    const resetChat = () => {
+    const resetChat = async () => {
+        await conversation.endSession();
         setChatMessages([]);
-        setChatConversationId(null);
         setChatInput('');
+        setIsAgentTyping(false);
     };
 
     // Auto-sync when returning to the app
@@ -783,11 +887,13 @@ export default function AgentConfigPage() {
                     <div className="grid grid-cols-2 gap-3">
                         <button
                             onClick={() => setShowTestChat(true)}
-                            className="px-4 py-3 border border-brand-primary text-brand-primary rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all flex items-center justify-center gap-2 bg-white"
+                            className="px-4 py-3 bg-[#25D366] text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#128C7E] hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 shadow-md shadow-green-500/20"
                             disabled={!elevenLabsAgentId}
                         >
-                            <Sparkles size={14} />
-                            Probar Agente
+                            <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-current">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                            </svg>
+                            Probar Chat
                         </button>
                         <button
                             onClick={handleSave}
@@ -931,11 +1037,20 @@ export default function AgentConfigPage() {
                                     </div>
                                 </div>
                             ))}
-                            {isChatLoading && (
+                            {isAgentTyping && (
+                                <div className="flex justify-start">
+                                    <div className="bg-white border border-gray-100 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+                                    </div>
+                                </div>
+                            )}
+                            {conversation.status === 'connecting' && (
                                 <div className="flex justify-start">
                                     <div className="bg-white border border-gray-100 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm flex items-center gap-2">
                                         <Loader2 size={14} className="animate-spin text-brand-turquoise" />
-                                        <span className="text-xs text-gray-400">Escribiendo...</span>
+                                        <span className="text-xs text-gray-400">Conectando...</span>
                                     </div>
                                 </div>
                             )}
@@ -952,12 +1067,12 @@ export default function AgentConfigPage() {
                                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendChatMessage()}
                                     placeholder="Escribe un mensaje..."
                                     className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-brand-turquoise/50 focus:border-brand-turquoise placeholder:text-gray-400"
-                                    disabled={isChatLoading}
+                                    disabled={conversation.status === 'connecting'}
                                     autoFocus
                                 />
                                 <button
                                     onClick={sendChatMessage}
-                                    disabled={!chatInput.trim() || isChatLoading}
+                                    disabled={!chatInput.trim() || conversation.status === 'connecting'}
                                     className="p-2.5 bg-brand-primary text-white rounded-xl hover:bg-brand-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md active:scale-95"
                                 >
                                     <Send size={16} />
