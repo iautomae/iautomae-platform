@@ -169,12 +169,22 @@ export default function DynamicLeadsDashboard() {
         try {
             const res = await fetch('/api/elevenlabs/agents');
             const data = await res.json();
-            const elAgents = data.agents || data || [];
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Error from ElevenLabs');
+            }
+
+            // ElevenLabs may return { agents: [...] } or just [...]
+            let elAgents: Array<{ agent_id: string; name: string }> = [];
+            if (Array.isArray(data)) {
+                elAgents = data;
+            } else if (data && Array.isArray(data.agents)) {
+                elAgents = data.agents;
+            }
 
             // Filter out agents already imported
             const existingIds = new Set(agents.map(a => a.eleven_labs_agent_id).filter(Boolean));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const available = elAgents.filter((a: any) => !existingIds.has(a.agent_id));
+            const available = elAgents.filter(a => !existingIds.has(a.agent_id));
             setImportableAgents(available);
         } catch (err) {
             console.error('Error fetching ElevenLabs agents:', err);
