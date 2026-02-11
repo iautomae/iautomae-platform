@@ -48,7 +48,13 @@ export default function DynamicLeadsDashboard() {
 
     // UI States
     const [view, setView] = useState<'GALLERY' | 'LEADS'>('GALLERY');
-    const [editableCompany, setEditableCompany] = useState(company.charAt(0).toUpperCase() + company.slice(1));
+    const [editableCompany, setEditableCompany] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem(`panel_name_${company}`);
+            if (saved) return saved;
+        }
+        return company.charAt(0).toUpperCase() + company.slice(1);
+    });
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newAgentName, setNewAgentName] = useState('');
@@ -119,7 +125,7 @@ export default function DynamicLeadsDashboard() {
                     nombre: newAgentName.trim(),
                     user_id: user.id,
                     status: 'active',
-                    personalidad: 'Profesional y Directo'
+                    personalidad: 'Asesor de ventas / Asistente Comercial'
                 }])
                 .select()
                 .single();
@@ -151,8 +157,16 @@ export default function DynamicLeadsDashboard() {
                                 type="text"
                                 value={editableCompany}
                                 onChange={(e) => setEditableCompany(e.target.value)}
-                                onBlur={() => setIsEditingTitle(false)}
-                                onKeyDown={(e) => e.key === 'Enter' && setIsEditingTitle(false)}
+                                onBlur={() => {
+                                    setIsEditingTitle(false);
+                                    localStorage.setItem(`panel_name_${company}`, editableCompany);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        setIsEditingTitle(false);
+                                        localStorage.setItem(`panel_name_${company}`, editableCompany);
+                                    }
+                                }}
                                 autoFocus
                                 className="text-3xl font-bold text-gray-900 tracking-tight bg-gray-50 border-b border-brand-primary outline-none px-1"
                             />
