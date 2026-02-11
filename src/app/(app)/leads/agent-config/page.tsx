@@ -82,7 +82,6 @@ export default function AgentConfigPage() {
     const [nombre, setNombre] = useState('');
     const [personalidad, setPersonalidad] = useState('Profesional y Directo');
     const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
-    const [elevenLabsApiKey] = useState('bc89727d280cd3dbef51b8580a4a40f73d885f807890ad7306f6301b45006a78');
     const [syncedNumbers, setSyncedNumbers] = useState<any[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
     const [elevenLabsAgentId, setElevenLabsAgentId] = useState('');
@@ -142,6 +141,7 @@ export default function AgentConfigPage() {
             let error;
             if (agentId && agentId !== '1' && agentId !== '2') {
                 // Update existing agent (don't update user_id)
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { user_id, ...updateData } = agentData;
                 const { error: updateError } = await supabase
                     .from('agentes')
