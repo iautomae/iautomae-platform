@@ -99,12 +99,12 @@ export default function DynamicLeadsDashboard() {
                         .order('created_at', { ascending: false });
 
                     if (leadData && !error) {
-                        const formattedLeads: Lead[] = leadData.map((l: any) => {
+                        const formattedLeads: Lead[] = leadData.map((l: { id: string; created_at: string; nombre?: string; phone?: string; status?: string; summary?: string; transcript?: { role: string; message?: string; text?: string; time?: string }[]; score?: number }) => {
                             const dateObj = new Date(l.created_at);
                             return {
                                 id: l.id,
                                 phone: l.phone || 'No proveído',
-                                transcript: l.transcript || [],
+                                transcript: (l.transcript as { role: string; message?: string; text?: string; time?: string }[]) || [],
                                 created_at: l.created_at,
                                 name: l.nombre || 'Lead Desconocido',
                                 date: dateObj.toLocaleDateString('es-ES'),
