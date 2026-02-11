@@ -23,7 +23,7 @@ interface Lead {
     status: 'POTENCIAL' | 'NO_POTENCIAL';
     summary: string;
     score: number;
-    transcript: any[];
+    transcript: { role: string; message?: string; text?: string; time?: string }[];
     created_at: string;
 }
 
@@ -69,10 +69,8 @@ export default function DynamicLeadsDashboard() {
 
     // Lead Stats
     const [realLeads, setRealLeads] = useState<Lead[]>([]);
-    const [isLoadingLeads, setIsLoadingLeads] = useState(false);
 
     // Side Panel State
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
     const [panelTab, setPanelTab] = useState<'SUMMARY' | 'CHAT'>('SUMMARY');
 
@@ -88,7 +86,7 @@ export default function DynamicLeadsDashboard() {
     React.useEffect(() => {
         if (view === 'LEADS' && user?.id) {
             const fetchLeads = async () => {
-                setIsLoadingLeads(true);
+                // setIsLoadingLeads(true); // Temporarily commented if not used for UI spinner
                 // Get all agents for this user first
                 const { data: agentData } = await supabase.from('agentes').select('id').eq('user_id', user!.id);
                 const agentIds = agentData?.map(a => a.id) || [];
@@ -101,7 +99,7 @@ export default function DynamicLeadsDashboard() {
                         .order('created_at', { ascending: false });
 
                     if (leadData && !error) {
-                        const formattedLeads = leadData.map((l: any) => {
+                        const formattedLeads = leadData.map((l: { created_at: string; nombre?: string; status?: string; summary?: string; score?: number }) => {
                             const dateObj = new Date(l.created_at);
                             return {
                                 ...l,
@@ -118,7 +116,7 @@ export default function DynamicLeadsDashboard() {
                         console.error('Error fetching leads:', error);
                     }
                 }
-                setIsLoadingLeads(false);
+                // setIsLoadingLeads(false);
             };
             fetchLeads();
         }
@@ -142,8 +140,7 @@ export default function DynamicLeadsDashboard() {
     const [importKey, setImportKey] = useState('');
     const [importKeyError, setImportKeyError] = useState('');
     const [importStep, setImportStep] = useState<'key' | 'select'>('key');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [importableAgents, setImportableAgents] = useState<any[]>([]);
+    const [importableAgents, setImportableAgents] = useState<{ agent_id: string; name?: string }[]>([]);
     const [selectedImports, setSelectedImports] = useState<Set<string>>(new Set());
     const [isLoadingImports, setIsLoadingImports] = useState(false);
     const [isImporting, setIsImporting] = useState(false);

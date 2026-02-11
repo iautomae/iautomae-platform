@@ -348,7 +348,6 @@ export default function AgentConfigPage() {
                 if (detailRes.ok) {
                     const detail = await detailRes.json();
                     const kb = detail.conversation_config?.agent?.prompt?.knowledge_base || [];
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const matchingDoc = kb.find((doc: { name?: string; file_name?: string; id?: string }) => doc.name === fileToRemove.name || doc.file_name === fileToRemove.name);
                     if (matchingDoc && matchingDoc.id) {
                         // Remove the doc from KB by patching the agent with the doc removed
