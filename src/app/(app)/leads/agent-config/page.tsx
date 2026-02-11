@@ -495,11 +495,12 @@ export default function AgentConfigPage() {
             // 3. Send Message
             // Use sendUserMessage for text input
             // Just assume `sendUserMessage` is safer if `sendText` fails type check.
-            if (typeof (conversation as any).sendText === 'function') {
-                await (conversation as any).sendText(trimmed);
+            const conv = conversation as unknown as { sendText?: (t: string) => Promise<void>; sendUserMessage: (t: string) => Promise<void> };
+            if (typeof conv.sendText === 'function') {
+                await conv.sendText(trimmed);
             } else {
                 // Fallback for newer SDK versions
-                await conversation.sendUserMessage(trimmed);
+                await conv.sendUserMessage(trimmed);
             }
             setIsAgentTyping(true);
 
