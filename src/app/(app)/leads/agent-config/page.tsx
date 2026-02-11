@@ -254,7 +254,7 @@ export default function AgentConfigPage() {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             .filter((doc: any) => doc.id !== matchingDoc.id)
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            .map((doc: any) => ({ type: 'file', id: doc.id }));
+                            .map((doc: any) => ({ type: doc.type || 'file', id: doc.id, name: doc.name || 'documento', usage_mode: doc.usage_mode || 'auto' }));
                         await fetch(`/api/elevenlabs/agents/${elevenLabsAgentId}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },

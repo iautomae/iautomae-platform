@@ -13,6 +13,8 @@ export async function POST(
 
     try {
         const formData = await request.formData();
+        const file = formData.get('file') as File | null;
+        const fileName = file?.name || 'documento';
 
         // Step 1: Upload file to ElevenLabs knowledge base
         const uploadResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${id}/add-to-knowledge-base`, {
@@ -30,6 +32,7 @@ export async function POST(
 
         const uploadData = await uploadResponse.json();
         const newDocId = uploadData.id;
+        const newDocName = uploadData.name || fileName;
 
         if (!newDocId) {
             return NextResponse.json(uploadData);
@@ -41,22 +44,30 @@ export async function POST(
         });
 
         if (!agentResponse.ok) {
-            return NextResponse.json(uploadData); // File uploaded but couldn't link
+            return NextResponse.json(uploadData);
         }
 
         const agentData = await agentResponse.json();
         const currentKb = agentData.conversation_config?.agent?.prompt?.knowledge_base || [];
 
         // Step 3: Build updated KB list with all existing + new doc
+        // Must include: type, id, name, usage_mode (all required by ElevenLabs)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updatedKb = currentKb.map((doc: any) => ({
             type: doc.type || 'file',
             id: doc.id,
+            name: doc.name || doc.file_name || 'documento',
+            usage_mode: doc.usage_mode || 'auto',
         }));
-        updatedKb.push({ type: 'file', id: newDocId });
+        updatedKb.push({
+            type: 'file',
+            id: newDocId,
+            name: newDocName,
+            usage_mode: 'auto',
+        });
 
         // Step 4: PATCH agent to include the new doc in its KB
-        await fetch(`https://api.elevenlabs.io/v1/convai/agents/${id}`, {
+        const patchResponse = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${id}`, {
             method: 'PATCH',
             headers: {
                 'xi-api-key': apiKey,
@@ -72,6 +83,12 @@ export async function POST(
                 },
             }),
         });
+
+        if (!patchResponse.ok) {
+            const patchError = await patchResponse.text();
+            console.error('PATCH KB error:', patchError);
+            return NextResponse.json({ ...uploadData, linked: false, patchError });
+        }
 
         return NextResponse.json({ ...uploadData, linked: true });
     } catch (error) {
