@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Plus, Bot, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { clsx, type ClassValue } from 'clsx';
@@ -25,10 +25,21 @@ const MOCK_LEADS = Array.from({ length: 15 }).map((_, i) => ({
     score: 85
 }));
 
-const MOCK_AGENTS = [
-    { id: '1', name: 'Sofia', specialty: 'Ventas Inmobiliarias', status: 'active', tokenUsage: 45 },
-    { id: '2', name: 'Marcos', specialty: 'Soporte Técnico', status: 'active', tokenUsage: 12 }
-];
+// Placeholder agent type for better type safety
+interface Agent {
+    id: string;
+    nombre: string;
+    status: string;
+    user_id: string;
+    personalidad: string;
+    avatar_url?: string;
+    description?: string;
+    prompt?: string;
+    eleven_labs_agent_id?: string;
+    updated_at: string;
+    created_at: string;
+}
+
 
 export default function DynamicLeadsDashboard() {
     const params = useParams();
@@ -42,9 +53,10 @@ export default function DynamicLeadsDashboard() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newAgentName, setNewAgentName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
-    const [agents, setAgents] = useState<any[]>([]);
+    const [isCreating, setIsCreating] = useState(false);
+    const [agents, setAgents] = useState<Agent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedAgentStats, setSelectedAgentStats] = useState<any | null>(null);
+    const [selectedAgentStats, setSelectedAgentStats] = useState<Agent | null>(null);
     // Custom Modals State
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, name: string } | null>(null);
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
@@ -63,7 +75,7 @@ export default function DynamicLeadsDashboard() {
         loadAgents();
     }, [user]);
 
-    const handleDeleteAgent = (agent: any) => {
+    const handleDeleteAgent = (agent: Agent) => {
         setDeleteConfirmation({ id: agent.id, name: agent.nombre || 'Agente sin nombre' });
     };
 
@@ -80,7 +92,7 @@ export default function DynamicLeadsDashboard() {
         }
     };
 
-    const toggleAgentStatus = async (agent: any) => {
+    const toggleAgentStatus = async (agent: Agent) => {
         const newStatus = agent.status === 'active' ? 'inactive' : 'active';
         const { error } = await supabase
             .from('agentes')

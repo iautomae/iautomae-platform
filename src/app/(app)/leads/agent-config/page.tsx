@@ -82,8 +82,7 @@ export default function AgentConfigPage() {
     const [nombre, setNombre] = useState('');
     const [personalidad, setPersonalidad] = useState('Profesional y Directo');
     const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
-    const [elevenLabsApiKey, setElevenLabsApiKey] = useState('bc89727d280cd3dbef51b8580a4a40f73d885f807890ad7306f6301b45006a78');
-    const [showApiKey, setShowApiKey] = useState(false);
+    const [elevenLabsApiKey] = useState('bc89727d280cd3dbef51b8580a4a40f73d885f807890ad7306f6301b45006a78');
     const [syncedNumbers, setSyncedNumbers] = useState<any[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
     const [elevenLabsAgentId, setElevenLabsAgentId] = useState('');
@@ -789,7 +788,7 @@ export default function AgentConfigPage() {
                                 {/* ElevenLabs Widget Container */}
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     {elevenLabsAgentId ? (
-                                        /* @ts-ignore - custom element */
+                                        // @ts-expect-error - custom element
                                         <elevenlabs-convai agent-id={elevenLabsAgentId}></elevenlabs-convai>
                                     ) : (
                                         <p className="text-sm text-gray-400 font-medium italic">Configura un ID de agente para probar...</p>
@@ -910,6 +909,7 @@ export default function AgentConfigPage() {
 
 // Global scope type safety for custom element
 declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace JSX {
         interface IntrinsicElements {
             'elevenlabs-convai': any;
