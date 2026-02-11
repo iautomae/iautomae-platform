@@ -212,15 +212,66 @@ export default function DynamicLeadsDashboard() {
             const toImport = importableAgents.filter(a => selectedImports.has(a.agent_id));
             const newAgents: Agent[] = [];
 
+            // Fetch all phone numbers from ElevenLabs to match with agents
+            let phoneMap: Record<string, { phone_number: string; phone_number_id: string }> = {};
+            try {
+                const phonesRes = await fetch('/api/elevenlabs/numbers');
+                if (phonesRes.ok) {
+                    const phonesData = await phonesRes.json();
+                    const phonesList = Array.isArray(phonesData) ? phonesData : (phonesData.phone_numbers || []);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    for (const p of phonesList as any[]) {
+                        if (p.agent_id) {
+                            phoneMap[p.agent_id] = {
+                                phone_number: p.phone_number || p.label || '',
+                                phone_number_id: p.phone_number_id || p.id || '',
+                            };
+                        }
+                    }
+                }
+            } catch { /* phone fetch is optional */ }
+
             for (const elAgent of toImport) {
+                // Fetch full agent details (prompt, knowledge base, etc.)
+                let agentPrompt = '';
+                let agentPersonality = 'Asesor de ventas / Asistente Comercial';
+                let knowledgeFiles: { name: string; size: string }[] = [];
+
+                try {
+                    const detailRes = await fetch(`/api/elevenlabs/agents/${elAgent.agent_id}`);
+                    if (detailRes.ok) {
+                        const detail = await detailRes.json();
+
+                        // Extract system prompt from conversation_config
+                        const convConfig = detail.conversation_config || {};
+                        const agentConfig = convConfig.agent || {};
+                        agentPrompt = agentConfig.prompt?.prompt || '';
+
+                        // Extract knowledge base files
+                        const kb = agentConfig.prompt?.knowledge_base || [];
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        knowledgeFiles = kb.map((item: any) => ({
+                            name: item.name || item.file_name || 'documento',
+                            size: item.size ? `${(item.size / 1024).toFixed(1)} KB` : 'N/A',
+                        }));
+                    }
+                } catch { /* detail fetch is optional, agent still gets imported */ }
+
+                // Check if this agent has a phone number linked
+                const phoneInfo = phoneMap[elAgent.agent_id];
+
                 const { data, error } = await supabase
                     .from('agentes')
                     .insert([{
                         nombre: elAgent.name || 'Agente Importado',
                         user_id: user.id,
                         status: 'active',
-                        personalidad: 'Asesor de ventas / Asistente Comercial',
+                        personalidad: agentPersonality,
                         eleven_labs_agent_id: elAgent.agent_id,
+                        prompt: agentPrompt || undefined,
+                        knowledge_files: knowledgeFiles.length > 0 ? knowledgeFiles : undefined,
+                        phone_number: phoneInfo?.phone_number || undefined,
+                        phone_number_id: phoneInfo?.phone_number_id || undefined,
                     }])
                     .select()
                     .single();
@@ -236,7 +287,7 @@ export default function DynamicLeadsDashboard() {
             setImportKey('');
             setSelectedImports(new Set());
             setImportableAgents([]);
-            setInfoModal({ isOpen: true, type: 'success', message: `¡${newAgents.length} agente(s) importado(s) exitosamente!` });
+            setInfoModal({ isOpen: true, type: 'success', message: `¡${newAgents.length} agente(s) importado(s) con su configuración completa!` });
         } catch (err) {
             console.error('Import error:', err);
             setInfoModal({ isOpen: true, type: 'error', message: 'Error al importar agentes.' });
