@@ -212,30 +212,13 @@ export default function DynamicLeadsDashboard() {
             const toImport = importableAgents.filter(a => selectedImports.has(a.agent_id));
             const newAgents: Agent[] = [];
 
-            // Fetch all phone numbers from ElevenLabs to match with agents
-            const phoneMap: Record<string, { phone_number: string; phone_number_id: string }> = {};
-            try {
-                const phonesRes = await fetch('/api/elevenlabs/numbers');
-                if (phonesRes.ok) {
-                    const phonesData = await phonesRes.json();
-                    const phonesList = Array.isArray(phonesData) ? phonesData : (phonesData.phone_numbers || []);
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    for (const p of phonesList as any[]) {
-                        if (p.agent_id) {
-                            phoneMap[p.agent_id] = {
-                                phone_number: p.phone_number || p.label || '',
-                                phone_number_id: p.phone_number_id || p.id || '',
-                            };
-                        }
-                    }
-                }
-            } catch { /* phone fetch is optional */ }
-
             for (const elAgent of toImport) {
-                // Fetch full agent details (prompt, knowledge base, etc.)
+                // Fetch full agent details (prompt, knowledge base, phone, etc.)
                 let agentPrompt = '';
                 const agentPersonality = 'Asesor de ventas / Asistente Comercial';
                 let knowledgeFiles: { name: string; size: string }[] = [];
+                let phoneNumber: string | undefined;
+                let phoneNumberId: string | undefined;
 
                 try {
                     const detailRes = await fetch(`/api/elevenlabs/agents/${elAgent.agent_id}`);
@@ -254,11 +237,24 @@ export default function DynamicLeadsDashboard() {
                             name: item.name || item.file_name || 'documento',
                             size: item.size ? `${(item.size / 1024).toFixed(1)} KB` : 'N/A',
                         }));
+
+                        // Extract WhatsApp phone number from whatsapp_accounts
+                        const waAccounts = detail.whatsapp_accounts || [];
+                        if (waAccounts.length > 0) {
+                            phoneNumber = waAccounts[0].phone_number || '';
+                            phoneNumberId = waAccounts[0].phone_number_id || '';
+                        }
+
+                        // Fallback: check phone_numbers array too
+                        if (!phoneNumber) {
+                            const phoneNums = detail.phone_numbers || [];
+                            if (phoneNums.length > 0) {
+                                phoneNumber = phoneNums[0].phone_number || '';
+                                phoneNumberId = phoneNums[0].phone_number_id || '';
+                            }
+                        }
                     }
                 } catch { /* detail fetch is optional, agent still gets imported */ }
-
-                // Check if this agent has a phone number linked
-                const phoneInfo = phoneMap[elAgent.agent_id];
 
                 const { data, error } = await supabase
                     .from('agentes')
@@ -270,9 +266,10 @@ export default function DynamicLeadsDashboard() {
                         eleven_labs_agent_id: elAgent.agent_id,
                         prompt: agentPrompt || undefined,
                         knowledge_files: knowledgeFiles.length > 0 ? knowledgeFiles : undefined,
-                        phone_number: phoneInfo?.phone_number || undefined,
-                        phone_number_id: phoneInfo?.phone_number_id || undefined,
+                        phone_number: phoneNumber || undefined,
+                        phone_number_id: phoneNumberId || undefined,
                     }])
+
                     .select()
                     .single();
 
