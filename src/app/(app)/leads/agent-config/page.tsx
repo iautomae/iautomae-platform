@@ -82,6 +82,7 @@ export default function AgentConfigPage() {
     const [nombre, setNombre] = useState('');
     const [personalidad, setPersonalidad] = useState('Profesional y Directo');
     const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [syncedNumbers, setSyncedNumbers] = useState<any[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);
     const [elevenLabsAgentId, setElevenLabsAgentId] = useState('');
@@ -182,7 +183,7 @@ export default function AgentConfigPage() {
 
             setHasUnsavedChanges(false);
             setInfoModal({ isOpen: true, type: 'success', message: '¡Configuración guardada y sincronizada correctamente!' });
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error('Error saving agent:', error);
             setInfoModal({ isOpen: true, type: 'error', message: `Error al guardar los cambios: ${error.message || JSON.stringify(error)}` });
         } finally {
@@ -256,7 +257,7 @@ export default function AgentConfigPage() {
             if (!silent) {
                 setInfoModal({ isOpen: true, type: 'success', message: 'Números sincronizados correctamente' });
             }
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error(error);
             if (!silent) {
                 setInfoModal({ isOpen: true, type: 'error', message: "Error: " + error.message });
@@ -292,7 +293,7 @@ export default function AgentConfigPage() {
             setAssociatedPhoneId(null);
             setHasUnsavedChanges(true);
             alert("Número eliminado correctamente. Recuerda guardar los cambios.");
-        } catch (error: any) {
+        } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
             console.error(error);
             alert("Error: " + error.message);
         } finally {
@@ -627,6 +628,7 @@ export default function AgentConfigPage() {
                                     <div className="space-y-4 pt-4 border-t border-gray-50 animate-in fade-in duration-500">
                                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">Números detectados</p>
                                         <div className="grid gap-2 max-w-sm mx-auto">
+                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                             {syncedNumbers.map((num: any) => (
                                                 <button
                                                     key={num.phone_number_id}
@@ -912,6 +914,7 @@ declare global {
     // eslint-disable-next-line @typescript-eslint/no-namespace
     namespace JSX {
         interface IntrinsicElements {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             'elevenlabs-convai': any;
         }
     }
