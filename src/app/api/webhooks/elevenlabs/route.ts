@@ -12,10 +12,10 @@ export async function POST(request: Request) {
         const analysis = payload.analysis || {};
         const dataCollection = analysis.data_collection_results || {};
 
-        // 1. Find the local agent ID using ElevenLabs Agent ID
+        // 1. Find the local agent ID and notification settings
         const { data: agent, error: agentError } = await supabase
             .from('agentes')
-            .select('id')
+            .select('id, pushover_user_key, pushover_api_token, pushover_template, make_webhook_url')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -24,19 +24,47 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
         }
 
-        // 2. Extract specific data points (be flexible with keys)
-        // Trying common variations of the keys designated by the user
+        // 2. Extract specific data points
         const nombreVal = dataCollection.nombre?.value || dataCollection.Nombre?.value || 'Desconocido';
+        const phoneVal = dataCollection.telefono?.value || dataCollection.teléfono?.value || 'No proveído';
         const resumenVal = dataCollection.resumen_de_llamada?.value || dataCollection.resumen?.value || dataCollection.Resumen?.value || 'Sin resumen';
         const calificacionVal = dataCollection.calificacion?.value || dataCollection.Calificación?.value || dataCollection.calificación?.value || 'PENDIENTE';
 
-        // Normalize status for the UI colors
+        // Normalize status
         let status: 'POTENCIAL' | 'NO_POTENCIAL' = 'POTENCIAL';
         if (calificacionVal.toUpperCase().includes('NO') || calificacionVal.toUpperCase().includes('RECHAZADO')) {
             status = 'NO_POTENCIAL';
         }
 
-        // 3. Save Lead to Supabase
+        // 3. Bridge to Make.com (Temporal Transition)
+        if (agent.make_webhook_url) {
+            console.log('Forwarding to Make.com:', agent.make_webhook_url);
+            fetch(agent.make_webhook_url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error('Make.com forward error:', err));
+        }
+
+        // 4. Send Pushover Notification
+        if (agent.pushover_user_key && agent.pushover_api_token) {
+            let message = agent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}';
+            message = message.replace(/{nombre}/g, nombreVal).replace(/{telefono}/g, phoneVal);
+
+            console.log('Sending Pushover notification...');
+            fetch('https://api.pushover.net/1/messages.json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: agent.pushover_api_token,
+                    user: agent.pushover_user_key,
+                    message: message,
+                    title: 'Nuevo Lead Detectado'
+                })
+            }).catch(err => console.error('Pushover error:', err));
+        }
+
+        // 5. Save Lead to Supabase
         const { error: insertError } = await supabase
             .from('leads')
             .insert({
@@ -46,8 +74,7 @@ export async function POST(request: Request) {
                 status: status,
                 summary: resumenVal,
                 transcript: transcript,
-                // We don't have phone from ElevenLabs directly unless it's a data point
-                phone: dataCollection.telefono?.value || dataCollection.teléfono?.value || 'No proveído'
+                phone: phoneVal
             });
 
         if (insertError) {
