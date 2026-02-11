@@ -133,7 +133,7 @@ export default function DynamicLeadsDashboard() {
             if (error) throw error;
 
             if (data) {
-                setAgents([data, ...agents]);
+                setAgents([...agents, data]);
                 setIsCreateModalOpen(false);
                 setNewAgentName('');
                 setInfoModal({ isOpen: true, type: 'success', message: '¡Agente creado con éxito! Ahora puedes configurarlo.' });
