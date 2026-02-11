@@ -516,23 +516,23 @@ export default function AgentConfigPage() {
                                 </div>
 
                                 {files.length > 0 && (
-                                    <div className="space-y-3">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Archivos Subidos</h4>
-                                        <div className="grid grid-cols-1 gap-2">
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Archivos Subidos ({files.length})</h4>
+                                        <div className="max-h-[200px] overflow-y-auto pr-1 space-y-1.5 scrollbar-thin">
                                             {files.map((file, i) => (
-                                                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
-                                                    <div className="flex items-center gap-3">
-                                                        <FileText size={18} className="text-brand-turquoise" />
-                                                        <div>
-                                                            <p className="text-xs font-bold text-gray-900 truncate max-w-[200px]">{file.name}</p>
-                                                            <p className="text-[10px] text-gray-400">{file.size}</p>
+                                                <div key={i} className="flex items-center justify-between py-1.5 px-2.5 bg-gray-50 border border-gray-100 rounded-lg">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <FileText size={14} className="text-brand-turquoise shrink-0" />
+                                                        <div className="min-w-0">
+                                                            <p className="text-[11px] font-semibold text-gray-900 truncate max-w-[180px]">{file.name}</p>
+                                                            <p className="text-[9px] text-gray-400">{file.size}</p>
                                                         </div>
                                                     </div>
                                                     <button
                                                         onClick={() => removeFile(i)}
-                                                        className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-md transition-colors"
+                                                        className="p-0.5 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-colors shrink-0"
                                                     >
-                                                        <X size={14} />
+                                                        <X size={12} />
                                                     </button>
                                                 </div>
                                             ))}
