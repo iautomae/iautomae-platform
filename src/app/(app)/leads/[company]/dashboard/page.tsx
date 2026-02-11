@@ -565,7 +565,6 @@ export default function DynamicLeadsDashboard() {
                                                         {new Date(lead.date).toLocaleDateString()}
                                                     </span>
                                                     <span className="text-[9px] text-gray-400">
-                                                        {/* @ts-ignore */}
                                                         {lead.time}
                                                     </span>
                                                 </div>

@@ -234,7 +234,7 @@ export default function AgentConfigPage() {
                         setIsSaving(false);
                         return;
                     }
-                } catch (creationError: any) {
+                } catch (creationError) {
                     console.error('Error creating agent in ElevenLabs:', creationError);
                     setInfoModal({
                         isOpen: true,
@@ -494,7 +494,7 @@ export default function AgentConfigPage() {
 
             // 3. Send Message
             // Use sendUserMessage for text input
-            // @ts-ignore: Some versions of the SDK might have different typings, but sendUserMessage/sendText is common.
+            // @ts-expect-error: Some versions of the SDK might have different typings, but sendUserMessage/sendText is common.
             // If sendText doesn't exist, we try sendUserMessage or checking the object if it exists.
             // Wait, looking at docs it seems sendText might be deprecated or not on the type, let's use sendUserMessage?
             // Actually, the docs reference might be slightly off. Let's check if the user can use `sendMessage({ text: ... })`?
@@ -503,7 +503,7 @@ export default function AgentConfigPage() {
                 await conversation.sendText(trimmed);
             } else {
                 // Fallback for newer SDK versions
-                // @ts-ignore
+                // @ts-expect-error
                 await conversation.sendUserMessage(trimmed);
             }
             setIsAgentTyping(true);
