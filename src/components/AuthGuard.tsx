@@ -51,7 +51,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         return (
             <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center z-[110]">
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="animate-spin text-brand-mint" size={48} />
+                    <Loader2 className="animate-spin text-brand-turquoise" size={48} />
                     <span className="text-white/40 text-xs font-bold tracking-widest uppercase animate-pulse">Autenticando...</span>
                 </div>
             </div>

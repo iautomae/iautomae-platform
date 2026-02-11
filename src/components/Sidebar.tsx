@@ -111,12 +111,10 @@ export function Sidebar() {
                   ? "border-brand-primary bg-brand-primary/10 text-brand-primary shadow-sm"
                   : "border-transparent text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5"
               )}
-              style={isActive ? { borderColor: '#14b8a6', color: '#14b8a6' } : {}}
             >
               <item.icon
                 size={20}
                 className="relative z-10"
-                style={isActive ? { color: '#14b8a6' } : {}}
               />
 
               {/* Tooltip */}

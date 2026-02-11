@@ -153,13 +153,13 @@ export default function LoginPage() {
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold text-gray-700 ml-1">Correo electrónico</label>
                                     <div className="relative group">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-mint transition-colors" size={20} />
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-turquoise transition-colors" size={20} />
                                         <input
                                             type="email"
                                             placeholder="ejemplo@correo.com"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-mint/50 focus:border-brand-mint transition-all"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-turquoise/50 focus:border-brand-turquoise transition-all"
                                             required
                                         />
                                     </div>
@@ -168,13 +168,13 @@ export default function LoginPage() {
                                 <div className="space-y-3">
                                     <label className="text-sm font-semibold text-gray-700 ml-1">Contraseña</label>
                                     <div className="relative group">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-mint transition-colors" size={20} />
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-turquoise transition-colors" size={20} />
                                         <input
                                             type={showPassword ? "text" : "password"}
                                             placeholder="••••••••"
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-12 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-mint/50 focus:border-brand-mint transition-all"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-12 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-turquoise/50 focus:border-brand-turquoise transition-all"
                                             required
                                         />
                                         <button
@@ -192,7 +192,7 @@ export default function LoginPage() {
                                                 setView('recovery');
                                                 setError(null);
                                             }}
-                                            className="text-xs font-bold text-gray-400 hover:text-brand-mint transition-colors"
+                                            className="text-xs font-bold text-gray-400 hover:text-brand-turquoise transition-colors"
                                         >
                                             ¿Olvidaste tu contraseña?
                                         </button>
@@ -209,7 +209,7 @@ export default function LoginPage() {
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="btn-primary w-full py-4 text-sm tracking-wide shadow-lg shadow-brand-mint/20 flex items-center justify-center gap-2 group"
+                                        className="btn-primary w-full py-4 text-sm tracking-wide shadow-lg shadow-brand-turquoise/20 flex items-center justify-center gap-2 group"
                                     >
                                         {loading ? <Loader2 className="animate-spin" size={20} /> : (
                                             <>
@@ -221,7 +221,7 @@ export default function LoginPage() {
 
                                     <div className="pt-4">
                                         <p className="text-center text-gray-500 text-xs">
-                                            ¿Problemas de acceso? Contacta con el administrador en <span className="text-brand-mint font-semibold">admin@iautomae.com</span>
+                                            ¿Problemas de acceso? Contacta con el administrador en <span className="text-brand-turquoise font-semibold">admin@iautomae.com</span>
                                         </p>
                                     </div>
                                 </div>
@@ -236,7 +236,7 @@ export default function LoginPage() {
                                         setResetSent(false);
                                         setError(null);
                                     }}
-                                    className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-brand-mint transition-colors mb-6 group"
+                                    className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-brand-turquoise transition-colors mb-6 group"
                                 >
                                     <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                                     VOLVER AL INICIO
@@ -250,13 +250,13 @@ export default function LoginPage() {
                                     <div className="space-y-3">
                                         <label className="text-sm font-semibold text-gray-700 ml-1">Tu correo electrónico</label>
                                         <div className="relative group">
-                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-mint transition-colors" size={20} />
+                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-turquoise transition-colors" size={20} />
                                             <input
                                                 type="email"
                                                 placeholder="ejemplo@correo.com"
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-mint/50 focus:border-brand-mint transition-all"
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-turquoise/50 focus:border-brand-turquoise transition-all"
                                                 required
                                             />
                                         </div>
@@ -271,7 +271,7 @@ export default function LoginPage() {
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="btn-primary w-full py-4 text-sm tracking-wide shadow-lg shadow-brand-mint/20 flex items-center justify-center gap-2 group"
+                                        className="btn-primary w-full py-4 text-sm tracking-wide shadow-lg shadow-brand-turquoise/20 flex items-center justify-center gap-2 group"
                                     >
                                         {loading ? <Loader2 className="animate-spin" size={20} /> : (
                                             <>
@@ -282,15 +282,15 @@ export default function LoginPage() {
                                     </button>
                                 </form>
                             ) : (
-                                <div className="bg-brand-mint/5 border border-brand-mint/20 rounded-2xl p-8 text-center space-y-4 animate-in fade-in zoom-in duration-500">
+                                <div className="bg-brand-turquoise/5 border border-brand-turquoise/20 rounded-2xl p-8 text-center space-y-4 animate-in fade-in zoom-in duration-500">
                                     <div className="flex justify-center">
-                                        <Mail className="text-brand-mint" size={60} />
+                                        <Mail className="text-brand-turquoise" size={60} />
                                     </div>
                                     <h4 className="text-xl font-bold text-gray-900">¡Enlace enviado!</h4>
                                     <p className="text-gray-500">Revisa tu bandeja de entrada. Te hemos enviado las instrucciones para recuperar tu acceso.</p>
                                     <button
                                         onClick={() => setView('login')}
-                                        className="text-brand-mint font-bold text-sm hover:underline pt-2"
+                                        className="text-brand-turquoise font-bold text-sm hover:underline pt-2"
                                     >
                                         Volver al login
                                     </button>

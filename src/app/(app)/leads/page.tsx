@@ -12,7 +12,7 @@ export default function LeadsRedirect() {
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-white">
-            <div className="animate-pulse text-brand-mint font-bold uppercase tracking-widest text-xs">
+            <div className="animate-pulse text-brand-turquoise font-bold uppercase tracking-widest text-xs">
                 Cargando panel...
             </div>
         </div>

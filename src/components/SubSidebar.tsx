@@ -76,12 +76,12 @@ export function SubSidebar() {
                                 className={cn(
                                     "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all group",
                                     isActive
-                                        ? "bg-brand-mint/10 text-brand-mint"
+                                        ? "bg-brand-turquoise/10 text-brand-turquoise"
                                         : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
                                 )}
                             >
                                 <div className="flex items-center gap-3">
-                                    <item.icon size={18} className={cn(isActive ? "text-brand-mint" : "text-gray-400 group-hover:text-gray-600")} />
+                                    <item.icon size={18} className={cn(isActive ? "text-brand-turquoise" : "text-gray-400 group-hover:text-gray-600")} />
                                     <span>{item.label}</span>
                                 </div>
                                 <ChevronRight size={14} className={cn("transition-transform opacity-0 group-hover:opacity-100", isActive && "opacity-100")} />
@@ -94,7 +94,7 @@ export function SubSidebar() {
             <div className="absolute bottom-6 left-6 right-6">
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-2">Soporte</p>
-                    <button className="text-[11px] font-semibold text-brand-mint hover:underline">¿WhatsApp de Ayuda?</button>
+                    <button className="text-[11px] font-semibold text-brand-turquoise hover:underline">¿WhatsApp de Ayuda?</button>
                 </div>
             </div>
         </div>

@@ -3,15 +3,17 @@
 @import "tailwindcss";
 
 :root {
-  --brand-primary: #2CDB9B;
+  --brand-primary: #14b8a6;
   --brand-primary-dark: #0d9488;
-  --brand-primary-darker: #064e3b;
-  --brand-dark: #f8fafc;
-  --brand-accent: #14b8a6;
+  --brand-primary-darker: #003327;
+  --brand-dark: #003327;
+  --brand-accent: #2CDB9B;
   --brand-warning: #f97316;
 
-  --brand-mint: var(--brand-primary);
-  --brand-mint-dark: var(--brand-primary-dark);
+  --brand-turquoise: #14b8a6;
+  --brand-turquoise-dark: #0d9488;
+  --brand-mint: var(--brand-turquoise);
+  --brand-mint-dark: var(--brand-turquoise-dark);
   --background: #f3f4f6;
   --foreground: #0f172a;
   --sidebar-bg: #ffffff;
@@ -21,14 +23,16 @@
 }
 
 @theme inline {
-  --color-brand-primary: #2CDB9B;
+  --color-brand-primary: #14b8a6;
   --color-brand-primary-dark: #0d9488;
-  --color-brand-primary-darker: #0d1b1a;
-  --color-brand-mint: #2CDB9B;
-  --color-brand-mint-dark: #0d9488;
-  --color-brand-accent: #14b8a6;
+  --color-brand-primary-darker: #003327;
+  --color-brand-turquoise: #14b8a6;
+  --color-brand-turquoise-dark: #0d9488;
+  --color-brand-mint: var(--color-brand-turquoise);
+  --color-brand-mint-dark: var(--color-brand-turquoise-dark);
+  --color-brand-accent: #2CDB9B;
   --color-brand-warning: #f97316;
-  --color-brand-dark: #f8fafc;
+  --color-brand-dark: #003327;
   --color-background: #f3f4f6;
   --color-sidebar: #ffffff;
   --color-card: #ffffff;

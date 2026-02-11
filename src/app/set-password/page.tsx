@@ -107,7 +107,7 @@ export default function SetPasswordPage() {
     if (loading) {
         return (
             <div className="fixed inset-0 bg-[#050505] flex items-center justify-center">
-                <Loader2 className="text-brand-mint animate-spin" size={40} />
+                <Loader2 className="text-brand-turquoise animate-spin" size={40} />
             </div>
         );
     }
@@ -144,7 +144,7 @@ export default function SetPasswordPage() {
                     </Link>
 
                     <div className="space-y-4 text-center">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-mint/10 border border-brand-mint/20 text-brand-mint text-xs font-bold uppercase tracking-wider mx-auto">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-turquoise/10 border border-brand-turquoise/20 text-brand-turquoise text-xs font-bold uppercase tracking-wider mx-auto">
                             <ShieldCheck size={14} />
                             {isRecovery ? 'Recuperación de Acceso' : 'Configuración de Acceso'}
                         </div>
@@ -164,7 +164,7 @@ export default function SetPasswordPage() {
                             <div className="flex flex-col gap-4">
                                 <Link
                                     href="/login"
-                                    className="btn-primary w-full py-4 text-sm tracking-widest font-bold shadow-lg shadow-brand-mint/20 flex items-center justify-center gap-2 group"
+                                    className="btn-primary w-full py-4 text-sm tracking-widest font-bold shadow-lg shadow-brand-turquoise/20 flex items-center justify-center gap-2 group"
                                 >
                                     INGRESAR AL SISTEMA
                                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -172,7 +172,7 @@ export default function SetPasswordPage() {
 
                                 <button
                                     onClick={() => router.push('/login?view=recovery')}
-                                    className="w-full py-4 text-xs font-bold text-gray-400 hover:text-brand-mint transition-colors flex items-center justify-center gap-2"
+                                    className="w-full py-4 text-xs font-bold text-gray-400 hover:text-brand-turquoise transition-colors flex items-center justify-center gap-2"
                                 >
                                     <History size={16} />
                                     RECUPERAR CONTRASEÑA
@@ -197,13 +197,13 @@ export default function SetPasswordPage() {
                             <div className="space-y-3">
                                 <label className="text-xs font-bold text-gray-700 uppercase tracking-widest ml-1">Nueva contraseña</label>
                                 <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-mint transition-colors" size={20} />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-turquoise transition-colors" size={20} />
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Min. 6 caracteres"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-12 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-mint/50 focus:border-brand-mint transition-all"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-12 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-turquoise/50 focus:border-brand-turquoise transition-all"
                                         required
                                     />
                                     <button
@@ -219,13 +219,13 @@ export default function SetPasswordPage() {
                             <div className="space-y-3">
                                 <label className="text-xs font-bold text-gray-700 uppercase tracking-widest ml-1">Confirmar contraseña</label>
                                 <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-mint transition-colors" size={20} />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-turquoise transition-colors" size={20} />
                                     <input
                                         type={showConfirmPassword ? "text" : "password"}
                                         placeholder="Repite tu contraseña"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-12 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-mint/50 focus:border-brand-mint transition-all"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-12 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-turquoise/50 focus:border-brand-turquoise transition-all"
                                         required
                                     />
                                     <button
@@ -247,7 +247,7 @@ export default function SetPasswordPage() {
                             <button
                                 type="submit"
                                 disabled={updating}
-                                className="btn-primary w-full py-4 text-sm tracking-widest font-bold shadow-lg shadow-brand-mint/20 flex items-center justify-center gap-2 group"
+                                className="btn-primary w-full py-4 text-sm tracking-widest font-bold shadow-lg shadow-brand-turquoise/20 flex items-center justify-center gap-2 group"
                             >
                                 {updating ? <Loader2 className="animate-spin" size={20} /> : (
                                     <>
@@ -258,16 +258,16 @@ export default function SetPasswordPage() {
                             </button>
                         </form>
                     ) : (
-                        <div className="bg-brand-mint/5 border border-brand-mint/20 rounded-2xl p-8 text-center space-y-4 animate-in fade-in zoom-in duration-500">
+                        <div className="bg-brand-turquoise/5 border border-brand-turquoise/20 rounded-2xl p-8 text-center space-y-4 animate-in fade-in zoom-in duration-500">
                             <div className="flex justify-center">
-                                <CheckCircle2 className="text-brand-mint" size={60} />
+                                <CheckCircle2 className="text-brand-turquoise" size={60} />
                             </div>
                             <h4 className="text-xl font-bold text-gray-900">{isRecovery ? '¡Clave actualizada!' : '¡Contraseña establecida!'}</h4>
                             <p className="text-gray-500">
                                 {isRecovery ? 'Tu contraseña ha sido restablecida con éxito.' : 'Tu cuenta de IAUTOMAE ha sido activada correctamente.'} Redirigiendo al inicio de sesión...
                             </p>
                             <div className="flex justify-center pt-4">
-                                <Loader2 className="text-brand-mint animate-spin" size={24} />
+                                <Loader2 className="text-brand-turquoise animate-spin" size={24} />
                             </div>
                         </div>
                     )}

@@ -29,15 +29,15 @@ export default function PendingApprovalPage() {
 
                 {/* Animated Icon Container */}
                 <div className="relative mx-auto w-24 h-24">
-                    <div className="absolute inset-0 bg-brand-mint/20 rounded-full animate-pulse" />
-                    <div className="relative flex items-center justify-center w-full h-full bg-white rounded-full border-4 border-brand-mint shadow-inner">
-                        <Clock className="text-brand-mint" size={40} />
+                    <div className="absolute inset-0 bg-brand-turquoise/20 rounded-full animate-pulse" />
+                    <div className="relative flex items-center justify-center w-full h-full bg-white rounded-full border-4 border-brand-turquoise shadow-inner">
+                        <Clock className="text-brand-turquoise" size={40} />
                     </div>
                 </div>
 
                 <div className="space-y-3">
                     <div className="flex items-center justify-center gap-2 mb-2">
-                        <Shield className="text-brand-mint" size={18} />
+                        <Shield className="text-brand-turquoise" size={18} />
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Acceso Resguardado</span>
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Cuenta en Revisión</h1>
@@ -48,19 +48,19 @@ export default function PendingApprovalPage() {
 
                 <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 text-left space-y-4">
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-brand-mint" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand-turquoise" />
                         ¿Qué sigue ahora?
                     </h4>
                     <ul className="space-y-3">
                         <li className="flex items-start gap-3">
                             <div className="mt-1 p-1 bg-white rounded-md border border-gray-100">
-                                <Shield size={12} className="text-brand-mint" />
+                                <Shield size={12} className="text-brand-turquoise" />
                             </div>
                             <p className="text-[11px] text-gray-600">Verificaremos tu identidad y los servicios solicitados.</p>
                         </li>
                         <li className="flex items-start gap-3">
                             <div className="mt-1 p-1 bg-white rounded-md border border-gray-100">
-                                <MessageSquare size={12} className="text-brand-mint" />
+                                <MessageSquare size={12} className="text-brand-turquoise" />
                             </div>
                             <p className="text-[11px] text-gray-600">Recibirás un mensaje de confirmación cuando tu acceso esté listo.</p>
                         </li>
@@ -70,7 +70,7 @@ export default function PendingApprovalPage() {
                 <div className="flex flex-col gap-3 pt-4">
                     <button
                         onClick={handleSignOut}
-                        className="w-full btn-primary py-4 text-xs font-bold shadow-lg shadow-brand-mint/20 flex items-center justify-center gap-2 group"
+                        className="w-full btn-primary py-4 text-xs font-bold shadow-lg shadow-brand-turquoise/20 flex items-center justify-center gap-2 group"
                     >
                         <LogOut size={16} className="group-hover:-translate-x-1 transition-transform" />
                         CERRAR SESIÓN
