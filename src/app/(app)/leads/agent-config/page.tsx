@@ -16,6 +16,10 @@ import {
     CheckCircle2,
     Camera,
     MinusCircle,
+    Send,
+    Loader2,
+    MessageSquare,
+    RotateCcw,
     Trash2
 } from 'lucide-react';
 import Link from 'next/link';
@@ -96,6 +100,13 @@ export default function AgentConfigPage() {
     const [fileToDelete, setFileToDelete] = useState<number | null>(null);
     const [showDeleteNumberModal, setShowDeleteNumberModal] = useState(false);
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
+
+    // Chat State
+    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'agent'; text: string }[]>([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isChatLoading, setIsChatLoading] = useState(false);
+    const [chatConversationId, setChatConversationId] = useState<string | null>(null);
+    const chatEndRef = React.useRef<HTMLDivElement>(null);
 
     // Load Data
     React.useEffect(() => {
@@ -359,18 +370,53 @@ export default function AgentConfigPage() {
     };
 
 
+    // Auto-scroll chat to bottom
     React.useEffect(() => {
-        if (showTestChat) {
-            const script = document.createElement('script');
-            script.src = "https://elevenlabs.io/convai-widget/index.js";
-            script.async = true;
-            script.type = "text/javascript";
-            document.body.appendChild(script);
-            return () => {
-                document.body.removeChild(script);
-            };
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [chatMessages]);
+
+    const sendChatMessage = async () => {
+        const trimmed = chatInput.trim();
+        if (!trimmed || !elevenLabsAgentId || isChatLoading) return;
+
+        setChatMessages(prev => [...prev, { role: 'user', text: trimmed }]);
+        setChatInput('');
+        setIsChatLoading(true);
+
+        try {
+            const res = await fetch(`/api/elevenlabs/agents/${elevenLabsAgentId}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: trimmed,
+                    conversation_id: chatConversationId,
+                }),
+            });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                setChatMessages(prev => [...prev, { role: 'agent', text: `Error: ${errData.error || 'No se pudo obtener respuesta.'}` }]);
+                return;
+            }
+
+            const data = await res.json();
+            if (data.conversation_id && !chatConversationId) {
+                setChatConversationId(data.conversation_id);
+            }
+            const agentReply = data.response || data.text || data.message || 'Sin respuesta.';
+            setChatMessages(prev => [...prev, { role: 'agent', text: agentReply }]);
+        } catch {
+            setChatMessages(prev => [...prev, { role: 'agent', text: 'Error de conexión. Intenta de nuevo.' }]);
+        } finally {
+            setIsChatLoading(false);
         }
-    }, [showTestChat]);
+    };
+
+    const resetChat = () => {
+        setChatMessages([]);
+        setChatConversationId(null);
+        setChatInput('');
+    };
 
     // Auto-sync when returning to the app
     React.useEffect(() => {
@@ -827,39 +873,100 @@ export default function AgentConfigPage() {
                 </div>
             </div>
             {/* Test Chat Modal */}
-            {
-                showTestChat && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col h-[600px]">
-                            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-brand-turquoise/10 flex items-center justify-center text-brand-turquoise">
-                                        <Sparkles size={16} />
-                                    </div>
-                                    <h3 className="font-bold text-gray-900">Probar Agente</h3>
+            {showTestChat && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col h-[650px]">
+                        {/* Header */}
+                        <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-turquoise/20 to-brand-primary/10 flex items-center justify-center text-brand-turquoise">
+                                    <MessageSquare size={18} />
                                 </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900 text-sm">Probar Agente</h3>
+                                    <p className="text-[10px] text-gray-400">Chat de prueba en tiempo real</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
                                 <button
-                                    onClick={() => setShowTestChat(false)}
+                                    onClick={resetChat}
+                                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-brand-turquoise"
+                                    title="Reiniciar conversación"
+                                >
+                                    <RotateCcw size={16} />
+                                </button>
+                                <button
+                                    onClick={() => { setShowTestChat(false); resetChat(); }}
                                     className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
-                            <div className="flex-1 bg-gray-50 relative min-h-[500px]">
-                                {/* ElevenLabs Widget Container */}
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    {elevenLabsAgentId ? (
-                                        // @ts-expect-error - custom element
-                                        <elevenlabs-convai agent-id={elevenLabsAgentId}></elevenlabs-convai>
-                                    ) : (
-                                        <p className="text-sm text-gray-400 font-medium italic">Configura un ID de agente para probar...</p>
-                                    )}
+                        </div>
+
+                        {/* Messages Area */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/80 scrollbar-thin">
+                            {chatMessages.length === 0 && (
+                                <div className="flex flex-col items-center justify-center h-full text-center space-y-3 py-12">
+                                    <div className="w-16 h-16 rounded-2xl bg-brand-turquoise/10 flex items-center justify-center text-brand-turquoise">
+                                        <Sparkles size={28} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-bold text-gray-700">¡Hola! Soy {nombre || 'tu agente'}</p>
+                                        <p className="text-xs text-gray-400 max-w-[260px]">Escribe un mensaje para probar las respuestas de tu agente en tiempo real.</p>
+                                    </div>
                                 </div>
+                            )}
+                            {chatMessages.map((msg, i) => (
+                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div
+                                        className={cn(
+                                            'max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm',
+                                            msg.role === 'user'
+                                                ? 'bg-brand-primary text-white rounded-br-md'
+                                                : 'bg-white text-gray-800 border border-gray-100 rounded-bl-md'
+                                        )}
+                                    >
+                                        {msg.text}
+                                    </div>
+                                </div>
+                            ))}
+                            {isChatLoading && (
+                                <div className="flex justify-start">
+                                    <div className="bg-white border border-gray-100 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm flex items-center gap-2">
+                                        <Loader2 size={14} className="animate-spin text-brand-turquoise" />
+                                        <span className="text-xs text-gray-400">Escribiendo...</span>
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={chatEndRef} />
+                        </div>
+
+                        {/* Input Area */}
+                        <div className="p-3 border-t border-gray-100 bg-white shrink-0">
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendChatMessage()}
+                                    placeholder="Escribe un mensaje..."
+                                    className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-brand-turquoise/50 focus:border-brand-turquoise placeholder:text-gray-400"
+                                    disabled={isChatLoading}
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={sendChatMessage}
+                                    disabled={!chatInput.trim() || isChatLoading}
+                                    className="p-2.5 bg-brand-primary text-white rounded-xl hover:bg-brand-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:shadow-md active:scale-95"
+                                >
+                                    <Send size={16} />
+                                </button>
                             </div>
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
 
             {/* Prompt Fullscreen Modal */}
             {isPromptModalOpen && (
@@ -997,13 +1104,3 @@ export default function AgentConfigPage() {
     );
 }
 
-// Global scope type safety for custom element
-declare global {
-    // eslint-disable-next-line @typescript-eslint/no-namespace
-    namespace JSX {
-        interface IntrinsicElements {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            'elevenlabs-convai': any;
-        }
-    }
-}
