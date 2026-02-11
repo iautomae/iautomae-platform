@@ -349,14 +349,12 @@ export default function AgentConfigPage() {
                     const detail = await detailRes.json();
                     const kb = detail.conversation_config?.agent?.prompt?.knowledge_base || [];
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const matchingDoc = kb.find((doc: any) => doc.name === fileToRemove.name || doc.file_name === fileToRemove.name);
+                    const matchingDoc = kb.find((doc: { name?: string; file_name?: string; id?: string }) => doc.name === fileToRemove.name || doc.file_name === fileToRemove.name);
                     if (matchingDoc && matchingDoc.id) {
                         // Remove the doc from KB by patching the agent with the doc removed
                         const updatedKb = kb
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            .filter((doc: any) => doc.id !== matchingDoc.id)
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            .map((doc: any) => ({ type: doc.type || 'file', id: doc.id, name: doc.name || 'documento', usage_mode: doc.usage_mode || 'auto' }));
+                            .filter((doc: { id: string }) => doc.id !== matchingDoc.id)
+                            .map((doc: { type?: string; id: string; name?: string; usage_mode?: string }) => ({ type: doc.type || 'file', id: doc.id, name: doc.name || 'documento', usage_mode: doc.usage_mode || 'auto' }));
                         await fetch(`/api/elevenlabs/agents/${elevenLabsAgentId}`, {
                             method: 'PATCH',
                             headers: { 'Content-Type': 'application/json' },
