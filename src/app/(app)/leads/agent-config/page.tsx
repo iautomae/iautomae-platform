@@ -239,7 +239,7 @@ export default function AgentConfigPage() {
                     setInfoModal({
                         isOpen: true,
                         type: 'error',
-                        message: `Error de conexión con ElevenLabs: ${creationError.message}`
+                        message: `Error de conexión con ElevenLabs: ${(creationError as any).message}`
                     });
                     setIsSaving(false);
                     return;
@@ -503,7 +503,7 @@ export default function AgentConfigPage() {
                 await conversation.sendText(trimmed);
             } else {
                 // Fallback for newer SDK versions
-                // @ts-expect-error
+                // Fallback for newer SDK versions
                 await conversation.sendUserMessage(trimmed);
             }
             setIsAgentTyping(true);
