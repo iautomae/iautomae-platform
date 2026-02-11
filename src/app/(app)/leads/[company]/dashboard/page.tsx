@@ -53,7 +53,6 @@ export default function DynamicLeadsDashboard() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newAgentName, setNewAgentName] = useState('');
     const [isCreating, setIsCreating] = useState(false);
-    const [isCreating, setIsCreating] = useState(false);
     const [agents, setAgents] = useState<Agent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAgentStats, setSelectedAgentStats] = useState<Agent | null>(null);
