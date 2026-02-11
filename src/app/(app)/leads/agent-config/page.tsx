@@ -73,7 +73,7 @@ export default function AgentConfigPage() {
     const agentId = searchParams.get('id');
 
     const [activeTab, setActiveTab] = useState<'behavior' | 'knowledge' | 'channels'>('behavior');
-    const [files, setFiles] = useState<{ name: string, size: string, url: string }[]>([]);
+    const [files, setFiles] = useState<{ name: string, size: string }[]>([]);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -196,37 +196,14 @@ export default function AgentConfigPage() {
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || !agentId) return;
-        const uploadedFiles: { name: string, size: string, url: string }[] = [];
-
-        for (const f of Array.from(e.target.files)) {
-            const filePath = `${agentId}/${Date.now()}_${f.name}`;
-            const { error: uploadError } = await supabase.storage
-                .from('knowledge')
-                .upload(filePath, f, { upsert: true });
-
-            if (uploadError) {
-                console.error('Upload error:', uploadError);
-                setInfoModal({ isOpen: true, type: 'error', message: `Error subiendo ${f.name}: ${uploadError.message}` });
-                continue;
-            }
-
-            const { data: urlData } = supabase.storage
-                .from('knowledge')
-                .getPublicUrl(filePath);
-
-            uploadedFiles.push({
-                name: f.name,
-                size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + ' MB' : (f.size / 1024).toFixed(1) + ' KB',
-                url: urlData.publicUrl
-            });
-        }
-
-        if (uploadedFiles.length > 0) {
-            setFiles(prev => [...prev, ...uploadedFiles]);
-            setHasUnsavedChanges(true);
-        }
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files) return;
+        const newFiles = Array.from(e.target.files).map(f => ({
+            name: f.name,
+            size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + ' MB' : (f.size / 1024).toFixed(1) + ' KB'
+        }));
+        setFiles(prev => [...prev, ...newFiles]);
+        setHasUnsavedChanges(true);
         // Reset input so the same file can be re-uploaded
         e.target.value = '';
     };
@@ -235,21 +212,8 @@ export default function AgentConfigPage() {
         setFileToDelete(index);
     };
 
-    const confirmRemoveFile = async () => {
+    const confirmRemoveFile = () => {
         if (fileToDelete === null) return;
-        const fileToRemove = files[fileToDelete];
-        // Try to delete from Supabase Storage
-        if (fileToRemove?.url) {
-            try {
-                const urlPath = new URL(fileToRemove.url).pathname;
-                const storagePath = urlPath.split('/storage/v1/object/public/knowledge/')[1];
-                if (storagePath) {
-                    await supabase.storage.from('knowledge').remove([decodeURIComponent(storagePath)]);
-                }
-            } catch (err) {
-                console.error('Error deleting file from storage:', err);
-            }
-        }
         setFiles(files.filter((_, i) => i !== fileToDelete));
         setHasUnsavedChanges(true);
         setFileToDelete(null);
