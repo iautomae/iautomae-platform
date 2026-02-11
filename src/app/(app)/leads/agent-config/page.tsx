@@ -73,7 +73,7 @@ export default function AgentConfigPage() {
     const agentId = searchParams.get('id');
 
     const [activeTab, setActiveTab] = useState<'behavior' | 'knowledge' | 'channels'>('behavior');
-    const [files, setFiles] = useState<{ name: string, size: string }[]>([]);
+    const [files, setFiles] = useState<{ name: string, size: string, url: string }[]>([]);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -117,6 +117,10 @@ export default function AgentConfigPage() {
                 setElevenLabsAgentId(data.eleven_labs_agent_id || '');
                 setAssociatedPhone(data.phone_number || null);
                 setAssociatedPhoneId(data.phone_number_id || null);
+                // Load persisted knowledge files
+                if (data.knowledge_files && Array.isArray(data.knowledge_files)) {
+                    setFiles(data.knowledge_files);
+                }
             }
         }
 
@@ -136,6 +140,7 @@ export default function AgentConfigPage() {
                 eleven_labs_agent_id: elevenLabsAgentId,
                 phone_number: associatedPhone,
                 phone_number_id: associatedPhoneId,
+                knowledge_files: files,
                 user_id: user.id
             };
 
@@ -191,23 +196,60 @@ export default function AgentConfigPage() {
         }
     };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files).map(f => ({
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || !agentId) return;
+        const uploadedFiles: { name: string, size: string, url: string }[] = [];
+
+        for (const f of Array.from(e.target.files)) {
+            const filePath = `${agentId}/${Date.now()}_${f.name}`;
+            const { error: uploadError } = await supabase.storage
+                .from('knowledge')
+                .upload(filePath, f, { upsert: true });
+
+            if (uploadError) {
+                console.error('Upload error:', uploadError);
+                setInfoModal({ isOpen: true, type: 'error', message: `Error subiendo ${f.name}: ${uploadError.message}` });
+                continue;
+            }
+
+            const { data: urlData } = supabase.storage
+                .from('knowledge')
+                .getPublicUrl(filePath);
+
+            uploadedFiles.push({
                 name: f.name,
-                size: (f.size / 1024).toFixed(1) + ' KB'
-            }));
-            setFiles([...files, ...newFiles]);
+                size: f.size > 1024 * 1024 ? (f.size / (1024 * 1024)).toFixed(1) + ' MB' : (f.size / 1024).toFixed(1) + ' KB',
+                url: urlData.publicUrl
+            });
+        }
+
+        if (uploadedFiles.length > 0) {
+            setFiles(prev => [...prev, ...uploadedFiles]);
             setHasUnsavedChanges(true);
         }
+        // Reset input so the same file can be re-uploaded
+        e.target.value = '';
     };
 
     const removeFile = (index: number) => {
         setFileToDelete(index);
     };
 
-    const confirmRemoveFile = () => {
+    const confirmRemoveFile = async () => {
         if (fileToDelete === null) return;
+        const fileToRemove = files[fileToDelete];
+        // Try to delete from Supabase Storage
+        if (fileToRemove?.url) {
+            try {
+                const urlPath = new URL(fileToRemove.url).pathname;
+                const storagePath = urlPath.split('/storage/v1/object/public/knowledge/')[1];
+                if (storagePath) {
+                    await supabase.storage.from('knowledge').remove([decodeURIComponent(storagePath)]);
+                }
+            } catch (err) {
+                console.error('Error deleting file from storage:', err);
+            }
+        }
         setFiles(files.filter((_, i) => i !== fileToDelete));
         setHasUnsavedChanges(true);
         setFileToDelete(null);
@@ -492,13 +534,13 @@ export default function AgentConfigPage() {
                     {activeTab === 'knowledge' && (
                         <div className="card-professional p-8 space-y-8 animate-in fade-in duration-500 h-full">
                             <div className="space-y-6">
-                                <div className="border-2 border-dashed border-gray-200 rounded-2xl p-10 flex flex-col items-center justify-center space-y-4 hover:border-brand-turquoise/50 transition-colors">
-                                    <div className="w-16 h-16 rounded-full bg-brand-turquoise/5 flex items-center justify-center text-brand-turquoise">
-                                        <Upload size={32} />
+                                <div className="border-2 border-dashed border-gray-200 rounded-2xl p-4 flex flex-col items-center justify-center space-y-2 hover:border-brand-turquoise/50 transition-colors">
+                                    <div className="w-10 h-10 rounded-full bg-brand-turquoise/5 flex items-center justify-center text-brand-turquoise">
+                                        <Upload size={20} />
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-slate-400 text-sm">Define el &quot;alma&quot; de tu agente. Su rol, tono y objetivos principales.</p>
-                                        <p className="text-xs text-gray-500 mt-1">PDF, DOCX, TXT (Max 10MB por archivo)</p>
+                                        <p className="text-slate-400 text-xs">Sube preguntas frecuentes, detalle de servicios, catálogos de precios o cualquier documento útil para tu agente.</p>
+                                        <p className="text-[10px] text-gray-500 mt-0.5">PDF, DOCX, TXT (Max 10MB por archivo)</p>
                                     </div>
                                     <input
                                         type="file"
@@ -506,10 +548,11 @@ export default function AgentConfigPage() {
                                         onChange={handleFileUpload}
                                         className="hidden"
                                         id="file-upload"
+                                        accept=".pdf,.docx,.doc,.txt,.csv,.xlsx"
                                     />
                                     <label
                                         htmlFor="file-upload"
-                                        className="cursor-pointer px-6 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold hover:bg-gray-50 transition-all"
+                                        className="cursor-pointer px-5 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold hover:bg-gray-50 transition-all"
                                     >
                                         Seleccionar Archivos
                                     </label>
