@@ -494,15 +494,10 @@ export default function AgentConfigPage() {
 
             // 3. Send Message
             // Use sendUserMessage for text input
-            // @ts-expect-error: Some versions of the SDK might have different typings, but sendUserMessage/sendText is common.
-            // If sendText doesn't exist, we try sendUserMessage or checking the object if it exists.
-            // Wait, looking at docs it seems sendText might be deprecated or not on the type, let's use sendUserMessage?
-            // Actually, the docs reference might be slightly off. Let's check if the user can use `sendMessage({ text: ... })`?
             // Just assume `sendUserMessage` is safer if `sendText` fails type check.
-            if (typeof conversation.sendText === 'function') {
-                await conversation.sendText(trimmed);
+            if (typeof (conversation as any).sendText === 'function') {
+                await (conversation as any).sendText(trimmed);
             } else {
-                // Fallback for newer SDK versions
                 // Fallback for newer SDK versions
                 await conversation.sendUserMessage(trimmed);
             }
