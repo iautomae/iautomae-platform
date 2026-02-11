@@ -239,7 +239,7 @@ export default function AgentConfigPage() {
                     setInfoModal({
                         isOpen: true,
                         type: 'error',
-                        message: `Error de conexión con ElevenLabs: ${(creationError as any).message}`
+                        message: `Error de conexión con ElevenLabs: ${creationError instanceof Error ? creationError.message : String(creationError)}`
                     });
                     setIsSaving(false);
                     return;
