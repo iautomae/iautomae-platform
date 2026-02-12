@@ -114,16 +114,25 @@ export async function POST(request: Request) {
             payload.metadata?.phone_number ||
             webData.metadata?.caller_id ||
             webData.metadata?.phone_number ||
+            payload.conversation_initiation_metadata?.caller_id ||
+            webData.conversation_initiation_metadata?.caller_id ||
+            payload.conversation_initiation_client_data?.phone_number ||
+            webData.conversation_initiation_client_data?.phone_number ||
+            payload.caller_id || // Added root fields
+            payload.phone_number ||
+            webData.caller_id ||
+            webData.phone_number ||
             dataCollection.telefono?.value ||
             dataCollection.teléfono?.value ||
+            dataCollection.phone?.value ||
             'No proveído';
 
         // Prioritize data_collection (which is often in the prompt's language, e.g., Spanish)
-        // over the default transcript_summary (which is often English)
         const rawSummary = dataCollection.resumen_conversacion?.value ||
             dataCollection.resumen_de_llamada?.value ||
             dataCollection.resumen?.value ||
             dataCollection.Resumen?.value ||
+            dataCollection.summary?.value ||
             analysis.transcript_summary ||
             'Sin resumen';
 

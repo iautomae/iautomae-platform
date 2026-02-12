@@ -218,16 +218,22 @@ export default function DynamicLeadsDashboard() {
 
     const confirmDelete = async () => {
         if (!deleteConfirmation || deleteInput !== 'ELIMINAR') return;
-        const { id } = deleteConfirmation;
+        const { id, name: nombre } = deleteConfirmation;
 
         try {
-            // 1. Manually delete associated leads first to avoid 409 Conflict
-            const { error: leadsError } = await supabase
+            console.log(`🗑️ Starting deletion for agent ${nombre} (${id})...`);
+
+            // 1. Manually delete associated leads first
+            const { error: leadsError, count: leadsCount } = await supabase
                 .from('leads')
-                .delete()
+                .delete({ count: 'exact' })
                 .eq('agent_id', id);
 
-            if (leadsError) throw leadsError;
+            if (leadsError) {
+                console.error('Error deleting leads:', leadsError);
+                throw new Error('No se pudieron eliminar los leads asociados.');
+            }
+            console.log(`✅ Leads deleted: ${leadsCount}`);
 
             // 2. Delete the agent
             const { error: agentError } = await supabase
@@ -235,15 +241,37 @@ export default function DynamicLeadsDashboard() {
                 .delete()
                 .eq('id', id);
 
-            if (agentError) throw agentError;
+            if (agentError) {
+                console.error('Error deleting agent:', agentError);
+                throw new Error('No se pudo eliminar el registro del agente.');
+            }
+
+            // 3. Double check deletion (Verification step)
+            const { data: verifyAgent } = await supabase
+                .from('agentes')
+                .select('id')
+                .eq('id', id)
+                .single();
+
+            if (verifyAgent) {
+                throw new Error('Error crítico: El agente aún aparece en la base de datos tras el borrado.');
+            }
+
+            console.log(`✅ Agent ${nombre} successfully deleted from backend.`);
 
             setAgents(agents.filter(a => a.id !== id));
             setDeleteConfirmation(null);
+            setDeleteInput('');
             setInfoModal({ isOpen: true, type: 'success', message: 'Agente y sus datos eliminados correctamente.' });
-        } catch (error) {
-            console.error('Error deleting agent/leads:', error);
+        } catch (error: any) {
+            console.error('Detailed deletion error:', error);
             setDeleteConfirmation(null);
-            setInfoModal({ isOpen: true, type: 'error', message: 'Error al eliminar el agente. Puede que tenga datos protegidos.' });
+            setDeleteInput('');
+            setInfoModal({
+                isOpen: true,
+                type: 'error',
+                message: error.message || 'Error al eliminar el agente. Puede que tenga datos protegidos.'
+            });
         }
     };
 
@@ -458,31 +486,34 @@ export default function DynamicLeadsDashboard() {
         setIsSavingPushover(true);
 
         try {
-            const { error } = await supabase
-                .from('agentes')
-                .update({
-                    pushover_user_key: pushoverUserKey,
-                    pushover_api_token: pushoverApiToken,
-                    pushover_template: pushoverTemplate,
-                    make_webhook_url: makeWebhookUrl
+            const response = await fetch('/api/agents/update-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    agentId: configuringAgent.id,
+                    config: {
+                        pushover_user_key: pushoverUserKey,
+                        pushover_api_token: pushoverApiToken,
+                        pushover_template: pushoverTemplate,
+                        make_webhook_url: makeWebhookUrl
+                    }
                 })
-                .eq('id', configuringAgent.id);
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update config');
+            }
+
+            const { agent: updatedAgent } = await response.json();
 
             // Update local state
-            setAgents(agents.map(a => a.id === configuringAgent.id ? {
-                ...a,
-                pushover_user_key: pushoverUserKey,
-                pushover_api_token: pushoverApiToken,
-                pushover_template: pushoverTemplate,
-                make_webhook_url: makeWebhookUrl
-            } : a));
+            setAgents(agents.map(a => a.id === configuringAgent.id ? updatedAgent : a));
 
             setIsPushoverModalOpen(false);
             setInfoModal({ isOpen: true, type: 'success', message: 'Configuración de notificación actualizada.' });
         } catch (error) {
-            console.error('Error saving pushover config:', error);
+            console.error('Error saving config:', error);
             setInfoModal({ isOpen: true, type: 'error', message: 'Error al ahorrar la configuración.' });
         } finally {
             setIsSavingPushover(false);
@@ -1210,9 +1241,11 @@ export default function DynamicLeadsDashboard() {
                             {/* Header */}
                             <div className="p-6 border-b border-gray-100 bg-gray-50/50 space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
-                                            {panelTab === 'SUMMARY' ? <MessageSquare size={18} /> : <MessageSquare size={18} />}
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-green-50 rounded-xl text-green-600 shadow-sm border border-green-100">
+                                            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#25D366]">
+                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                            </svg>
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-gray-900 text-sm">{selectedLead.name}</h3>
@@ -1264,26 +1297,19 @@ export default function DynamicLeadsDashboard() {
                             </div>
 
                             {/* Content */}
-                            <div className="flex-1 overflow-y-auto bg-white relative">
+                            <div className="flex-1 overflow-visible bg-white relative flex flex-col min-h-0">
                                 {panelTab === 'SUMMARY' ? (
-                                    <div className="p-6">
+                                    <div className="p-6 overflow-y-auto">
                                         <div className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap font-medium">
                                             {selectedLead.summary}
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col h-full">
-                                        {/* Real Transcript Content */}
-                                        <div className="p-4 space-y-4 flex-1">
-                                            <div className="flex flex-col items-center justify-center p-8 text-center space-y-2 opacity-50">
-                                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                                    <Lock size={16} className="text-gray-400" />
-                                                </div>
-                                                <p className="text-[10px] text-gray-400">Esta conversación está protegida y guardada por ElevenLabs.</p>
-                                            </div>
-
+                                    <div className="flex flex-col h-full min-h-0">
+                                        {/* Transcript Content */}
+                                        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 relative">
                                             {selectedLead.transcript && selectedLead.transcript.length > 0 ? (
-                                                selectedLead.transcript.map((msg: { role: string; message?: string; text?: string; time?: string }, idx: number) => (
+                                                selectedLead.transcript.map((msg: any, idx: number) => (
                                                     <div key={idx} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
                                                         <div className={cn(
                                                             "px-3 py-2 rounded-lg text-xs max-w-[80%] shadow-sm",
@@ -1298,32 +1324,25 @@ export default function DynamicLeadsDashboard() {
                                                 ))
                                             ) : (
                                                 <div className="flex flex-col items-center justify-center p-12 text-center">
-                                                    <MessageSquare size={32} className="text-gray-200 mb-2" />
-                                                    <p className="text-xs text-gray-400">No hay transcripción disponible para esta llamada.</p>
+                                                    <Lock size={32} className="text-gray-200 mb-2" />
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Sin transcripción disponible</p>
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Mock Input (Read-only) */}
-                                        <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center gap-2">
-                                            <input
-                                                disabled
-                                                placeholder="Solo lectura..."
-                                                className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs opacity-60"
-                                            />
+                                        {/* Fixed Footer Disclaimer */}
+                                        <div className="bg-gray-50 border-t border-gray-100 p-4 shrink-0">
+                                            <div className="flex items-center justify-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-100 shadow-sm">
+                                                <Lock size={10} className="text-gray-400" />
+                                                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                                                    Protegido y guardado por <span className="text-brand-primary">iautomae systems</span>
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-                                <button
-                                    onClick={() => setSelectedLead(null)}
-                                    className="w-full py-3 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm"
-                                >
-                                    Cerrar Panel
-                                </button>
-                            </div>
                         </div>
                     </div>
                 )
