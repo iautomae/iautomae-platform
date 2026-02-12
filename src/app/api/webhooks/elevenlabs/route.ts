@@ -13,6 +13,16 @@ export async function POST(request: Request) {
     // Create a new client instance for this request
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Define strict type for AgentData to avoid 'any'
+    type AgentData = {
+        id: string;
+        user_id: string;
+        pushover_user_key: string | null;
+        pushover_api_token: string | null;
+        pushover_template: string | null;
+        make_webhook_url: string | null;
+    };
+
     try {
         const bodyText = await request.text();
         const payload = JSON.parse(bodyText);
@@ -58,7 +68,7 @@ export async function POST(request: Request) {
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
-        let finalAgent = agentData;
+        let finalAgent: AgentData | null = agentData;
         let summaryPrefix = '';
 
         if (agentError || !finalAgent) {
@@ -81,7 +91,7 @@ export async function POST(request: Request) {
                     pushover_api_token: null,
                     pushover_template: null,
                     make_webhook_url: null
-                } as any;
+                };
                 summaryPrefix = `[MISSING AGENT ID: ${elAgentId}] `;
             } else {
                 return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
