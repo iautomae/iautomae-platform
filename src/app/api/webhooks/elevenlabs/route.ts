@@ -119,20 +119,24 @@ export async function POST(request: Request) {
             dataCollection.nombre_cliente?.value ||
             'Desconocido';
 
-        const phoneVal = payload.metadata?.caller_id ||
-            payload.metadata?.phone_number ||
+        const phoneVal =
+            // 1. WhatsApp ID (Highest priority for WhatsApp calls)
+            payload.whatsapp?.whatsapp_user_id ||
+            webData.whatsapp?.whatsapp_user_id ||
+            // 2. System Caller ID (User standard for dynamic vars)
+            payload.conversation_initiation_client_data?.dynamic_variables?.system_caller_id ||
+            webData.conversation_initiation_client_data?.dynamic_variables?.system_caller_id ||
+            // 3. Standard Metadata
+            payload.metadata?.caller_id ||
             webData.metadata?.caller_id ||
+            payload.metadata?.phone_number ||
             webData.metadata?.phone_number ||
+            // 4. Fallbacks
             payload.conversation_initiation_metadata?.caller_id ||
             webData.conversation_initiation_metadata?.caller_id ||
             payload.conversation_initiation_client_data?.phone_number ||
             webData.conversation_initiation_client_data?.phone_number ||
-            // New paths from user screenshot
-            payload.conversation_initiation_client_data?.dynamic_variables?.system_caller_id ||
-            webData.conversation_initiation_client_data?.dynamic_variables?.system_caller_id ||
-            payload.whatsapp?.whatsapp_user_id || // WhatsApp specific
-            webData.whatsapp?.whatsapp_user_id ||
-            payload.caller_id || // Added root fields
+            payload.caller_id ||
             payload.phone_number ||
             webData.caller_id ||
             webData.phone_number ||
@@ -142,20 +146,27 @@ export async function POST(request: Request) {
             'No proveído';
 
         // Prioritize data_collection (which is often in the prompt's language, e.g., Spanish)
-        // Find any key that looks like a summary
         let rawSummary = 'Sin resumen';
-        const summaryKeys = Object.keys(dataCollection);
-        const foundSummaryKey = summaryKeys.find(key =>
-            key.toLowerCase().includes('resumen') ||
-            key.toLowerCase().includes('summary') ||
-            key.toLowerCase().includes('conclusion') ||
-            key.toLowerCase().includes('analisis')
-        );
 
-        if (foundSummaryKey && dataCollection[foundSummaryKey]?.value) {
-            rawSummary = dataCollection[foundSummaryKey].value;
-        } else {
-            rawSummary = analysis.transcript_summary || 'Sin resumen';
+        // 1. Standard key defined by user
+        if (dataCollection.resumen_conversacion?.value) {
+            rawSummary = dataCollection.resumen_conversacion.value;
+        }
+        // 2. Dynamic search for other Spanish keys
+        else {
+            const summaryKeys = Object.keys(dataCollection);
+            const foundSummaryKey = summaryKeys.find(key =>
+                key.toLowerCase().includes('resumen') ||
+                key.toLowerCase().includes('summary') ||
+                key.toLowerCase().includes('conclusion') ||
+                key.toLowerCase().includes('analisis')
+            );
+            if (foundSummaryKey && dataCollection[foundSummaryKey]?.value) {
+                rawSummary = dataCollection[foundSummaryKey].value;
+            } else {
+                // 3. Fallback to ElevenLabs generated summary (often English)
+                rawSummary = analysis.transcript_summary || 'Sin resumen';
+            }
         }
 
         const resumenVal = summaryPrefix + rawSummary;
