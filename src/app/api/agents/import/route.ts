@@ -31,6 +31,7 @@ export async function POST(request: Request) {
                 .from('agentes')
                 .update({
                     nombre: agent.name,
+                    user_id: userId, // CRITICAL: Update owner to current user
                     prompt: agent.prompt,
                     personalidad: agent.personalidad,
                     knowledge_files: agent.knowledge_files,
