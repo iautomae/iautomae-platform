@@ -200,7 +200,7 @@ export default function DynamicLeadsDashboard() {
     const [isPushoverSectionOpen, setIsPushoverSectionOpen] = useState(false);
 
     // Derived: Final template generated from components
-    const generatedPushoverTemplate = `Nombre: {nombre}\nResumen: {resumen}\n\n👉 Responder:\nhttps://wa.me/+{telefono}?text=${encodeURIComponent(pushoverReplyMessage)}`;
+    const generatedPushoverTemplate = `Nombre: {nombre}\n\n👉 Responder:\nhttps://wa.me/+{telefono}?text=${encodeURIComponent(pushoverReplyMessage)}`;
 
     // Derived state for unsaved changes in Pushover modal
     const hasUnsavedNotificationChanges = configuringAgent && (
@@ -236,7 +236,7 @@ export default function DynamicLeadsDashboard() {
 
         // Extract message from existing template if it has a wa.me URL
         const msgMatch = agent.pushover_template?.match(/text=(.*)/);
-        const initialMsg = msgMatch ? decodeURIComponent(msgMatch[1]) : `Hola {nombre}, bienvenido a ${editableCompany}, recibimos tu solicitud e info, cuéntanos en qué podemos ayudarte.`;
+        const initialMsg = msgMatch ? decodeURIComponent(msgMatch[1]) : `Hola {nombre}, bienvenido, recibimos tu solicitud e info, cuéntanos en qué podemos ayudarte.`;
 
         setPushoverReplyMessage(initialMsg);
         setPushoverTitle(agent.pushover_title || '');
@@ -1486,26 +1486,41 @@ export default function DynamicLeadsDashboard() {
 
                                             <div className="space-y-3">
                                                 <div className="flex items-center justify-between">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Respuesta para el Cliente</label>
-                                                    <div className="flex gap-1">
-                                                        {['✨', '🚀', '👋', '✅', '📞', '💬', '📍'].map(emoji => (
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                        Respuesta para el Cliente
+                                                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[8px] text-blue-500 border border-blue-100 font-bold uppercase tracking-tighter">
+                                                            Usa {"{nombre}"} para personalizar
+                                                        </span>
+                                                    </label>
+                                                    <div className="flex flex-wrap gap-1 justify-end max-w-[50%]">
+                                                        {['👋', '😊', '🤝', '🙌', '🔥', '✨', '🚀', '✅', '📞', '💬', '📍', '📩', '📱', '🎯'].map(emoji => (
                                                             <button
                                                                 key={emoji}
                                                                 onClick={() => setPushoverReplyMessage(prev => prev + emoji)}
-                                                                className="w-6 h-6 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-md text-xs transition-colors"
+                                                                className="w-7 h-7 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-all hover:scale-110 active:scale-90"
                                                             >
                                                                 {emoji}
                                                             </button>
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <textarea
-                                                    value={pushoverReplyMessage}
-                                                    onChange={(e) => setPushoverReplyMessage(e.target.value)}
-                                                    placeholder="Escribe el mensaje que se enviará por WhatsApp..."
-                                                    rows={4}
-                                                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all leading-relaxed"
-                                                />
+                                                <div className="relative">
+                                                    <textarea
+                                                        value={pushoverReplyMessage}
+                                                        onChange={(e) => setPushoverReplyMessage(e.target.value)}
+                                                        placeholder="Escribe el mensaje..."
+                                                        rows={4}
+                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all leading-relaxed relative z-10 bg-transparent"
+                                                    />
+                                                    {/* Visual highlight for variables */}
+                                                    <div className="absolute inset-0 py-4 px-5 text-sm text-transparent pointer-events-none whitespace-pre-wrap break-words leading-relaxed">
+                                                        {pushoverReplyMessage.split(/(\{nombre\})/).map((part, i) =>
+                                                            part === '{nombre}'
+                                                                ? <span key={i} className="bg-blue-100 text-blue-600 rounded px-1 font-bold border border-blue-200">{part}</span>
+                                                                : part
+                                                        )}
+                                                    </div>
+                                                </div>
                                                 <div className="p-4 bg-gray-900 rounded-2xl border border-gray-800 shadow-inner">
                                                     <div className="flex items-center gap-2 mb-3">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -1515,10 +1530,6 @@ export default function DynamicLeadsDashboard() {
                                                         <div className="flex gap-2">
                                                             <span className="text-[10px] font-bold text-brand-primary">Nombre:</span>
                                                             <span className="text-[10px] text-gray-300">Juan Pérez</span>
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <span className="text-[10px] font-bold text-brand-primary">Resumen:</span>
-                                                            <span className="text-[10px] text-gray-300 line-clamp-1">Interesado en cotización...</span>
                                                         </div>
                                                         <div className="pt-2 border-t border-gray-800">
                                                             <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-xl p-2 flex items-center justify-between">
