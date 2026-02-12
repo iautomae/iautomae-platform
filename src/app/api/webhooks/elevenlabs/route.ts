@@ -54,10 +54,27 @@ export async function POST(request: Request) {
         }
 
         // 2. Extract specific data points
-        const nombreVal = dataCollection.nombre?.value || dataCollection.Nombre?.value || 'Desconocido';
-        const phoneVal = dataCollection.telefono?.value || dataCollection.teléfono?.value || 'No proveído';
-        const resumenVal = dataCollection.resumen_de_llamada?.value || dataCollection.resumen?.value || dataCollection.Resumen?.value || 'Sin resumen';
-        const calificacionVal = dataCollection.calificacion?.value || dataCollection.Calificación?.value || dataCollection.calificación?.value || 'PENDIENTE';
+        // Nombres posibles observados: 'nombre', 'Nombre', 'nombre_cliente'
+        const nombreVal = dataCollection.nombre?.value ||
+            dataCollection.Nombre?.value ||
+            dataCollection.nombre_cliente?.value ||
+            'Desconocido';
+
+        const phoneVal = dataCollection.telefono?.value ||
+            dataCollection.teléfono?.value ||
+            'No proveído';
+
+        // Resúmenes posibles observados: 'resumen_de_llamada', 'resumen', 'Resumen', 'resumen_conversacion'
+        const resumenVal = dataCollection.resumen_de_llamada?.value ||
+            dataCollection.resumen?.value ||
+            dataCollection.Resumen?.value ||
+            dataCollection.resumen_conversacion?.value ||
+            'Sin resumen';
+
+        const calificacionVal = dataCollection.calificacion?.value ||
+            dataCollection.Calificación?.value ||
+            dataCollection.calificación?.value ||
+            'PENDIENTE';
 
         // Normalize status
         let status: 'POTENCIAL' | 'NO_POTENCIAL' = 'POTENCIAL';
