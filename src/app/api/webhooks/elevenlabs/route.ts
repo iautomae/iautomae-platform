@@ -174,7 +174,7 @@ export async function POST(request: Request) {
             else if (filter === 'NO_POTENTIAL_ONLY' && status === 'NO_POTENCIAL') shouldNotify = true;
 
             if (shouldNotify) {
-                let messageTemplate = finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
+                const messageTemplate = finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
 
                 // Replace variables
                 let message = messageTemplate

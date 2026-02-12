@@ -1470,7 +1470,7 @@ export default function DynamicLeadsDashboard() {
                                         <div className="relative">
                                             <select
                                                 value={pushoverFilter}
-                                                onChange={(e) => setPushoverFilter(e.target.value as any)}
+                                                onChange={(e) => setPushoverFilter(e.target.value as 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY')}
                                                 className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium transition-all appearance-none cursor-pointer"
                                             >
                                                 <option value="ALL">Notificar Todos los Leads</option>
