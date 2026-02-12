@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from 'next/link';
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
 import { useRouter } from "next/navigation";
@@ -257,13 +258,13 @@ export default function SuperAdminDashboard() {
                                             >
                                                 <Settings size={18} />
                                             </button>
-                                            <button
-                                                title="Entrar como usuario"
+                                            <Link
+                                                href={`/leads/dashboard?view_as=${client.id}`}
                                                 className="flex items-center gap-2 px-3 py-1.5 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary text-[11px] font-bold rounded-xl transition-all hover:text-white"
                                             >
                                                 <ExternalLink size={14} />
                                                 ENTRAR
-                                            </button>
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>
