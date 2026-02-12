@@ -994,9 +994,8 @@ export default function DynamicLeadsDashboard() {
                                 </p>
                                 <ul className="text-xs text-amber-700/80 space-y-1 ml-4 list-disc font-medium">
                                     <li>Todos los leads capturados por <span className="font-bold text-amber-900">{deleteConfirmation.name}</span>.</li>
-                                    <li>Configuración de notificaciones (Pushover, Make.com).</li>
-                                    <li>Todo el historial de chats y registros locales.</li>
-                                    <li><span className="font-bold">Nota:</span> El agente en ElevenLabs no será afectado.</li>
+                                    <li>Historial de chats y registros de actividad.</li>
+                                    <li>Configuración personalizada del agente.</li>
                                 </ul>
                             </div>
 
@@ -1025,7 +1024,7 @@ export default function DynamicLeadsDashboard() {
                                     disabled={deleteInput !== 'ELIMINAR'}
                                     className="flex-1 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-30 disabled:shadow-none"
                                 >
-                                    Eliminar Todo
+                                    Eliminar Agente
                                 </button>
                             </div>
                         </div>
