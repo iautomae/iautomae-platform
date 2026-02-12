@@ -68,6 +68,7 @@ export default function DynamicLeadsDashboard() {
     const [agents, setAgents] = useState<Agent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAgentStats, setSelectedAgentStats] = useState<Agent | null>(null);
+    const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
 
 
 
@@ -75,50 +76,49 @@ export default function DynamicLeadsDashboard() {
     const [realLeads, setRealLeads] = useState<Lead[]>([]);
 
     const fetchLeads = React.useCallback(async () => {
-        if (!user?.id) return;
+        if (!user?.id || !activeAgentId) {
+            if (view === 'LEADS' && !activeAgentId) setView('GALLERY');
+            return;
+        }
+
         // setIsLoadingLeads(true);
-        const { data: agentData } = await supabase.from('agentes').select('id').eq('user_id', user.id);
-        const agentIds = agentData?.map(a => a.id) || [];
+        const { data: leadData, error } = await supabase
+            .from('leads')
+            .select('*')
+            .eq('agent_id', activeAgentId) // Strict filtering by active agent
+            .order('created_at', { ascending: false });
 
-        if (agentIds.length > 0) {
-            const { data: leadData, error } = await supabase
-                .from('leads')
-                .select('*')
-                .in('agent_id', agentIds)
-                .order('created_at', { ascending: false });
-
-            if (leadData && !error) {
-                const formattedLeads: Lead[] = leadData.map((l: {
-                    id: string;
-                    created_at: string;
-                    nombre?: string;
-                    phone?: string;
-                    status?: string;
-                    summary?: string;
-                    transcript?: { role: string; message?: string; text?: string; time?: string }[];
-                    score?: number
-                }) => {
-                    const dateObj = new Date(l.created_at);
-                    return {
-                        id: l.id,
-                        phone: l.phone || 'No proveído',
-                        transcript: l.transcript || [],
-                        created_at: l.created_at,
-                        name: l.nombre || 'Lead Desconocido',
-                        date: dateObj.toLocaleDateString('es-ES'),
-                        time: dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-                        status: (l.status as 'POTENCIAL' | 'NO_POTENCIAL') || 'POTENCIAL',
-                        summary: l.summary || 'Sin resumen',
-                        score: l.score || 0
-                    };
-                });
-                setRealLeads(formattedLeads);
-            } else if (error) {
-                console.error('Error fetching leads:', error);
-            }
+        if (leadData && !error) {
+            const formattedLeads: Lead[] = leadData.map((l: {
+                id: string;
+                created_at: string;
+                nombre?: string;
+                phone?: string;
+                status?: string;
+                summary?: string;
+                transcript?: { role: string; message?: string; text?: string; time?: string }[];
+                score?: number
+            }) => {
+                const dateObj = new Date(l.created_at);
+                return {
+                    id: l.id,
+                    phone: l.phone || 'No proveído',
+                    transcript: l.transcript || [],
+                    created_at: l.created_at,
+                    name: l.nombre || 'Lead Desconocido',
+                    date: dateObj.toLocaleDateString('es-ES'),
+                    time: dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                    status: (l.status as 'POTENCIAL' | 'NO_POTENCIAL') || 'POTENCIAL',
+                    summary: l.summary || 'Sin resumen',
+                    score: l.score || 0
+                };
+            });
+            setRealLeads(formattedLeads);
+        } else if (error) {
+            console.error('Error fetching leads:', error);
         }
         // setIsLoadingLeads(false);
-    }, [user]);
+    }, [user, activeAgentId, view]);
 
     // Side Panel State
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -173,6 +173,7 @@ export default function DynamicLeadsDashboard() {
 
     // Custom Modals State
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, name: string } | null>(null);
+    const [deleteInput, setDeleteInput] = useState('');
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
     // Import Modal States
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -212,18 +213,37 @@ export default function DynamicLeadsDashboard() {
 
     const handleDeleteAgent = (agent: Agent) => {
         setDeleteConfirmation({ id: agent.id, name: agent.nombre || 'Agente sin nombre' });
+        setDeleteInput(''); // Reset word check
     };
 
     const confirmDelete = async () => {
-        if (!deleteConfirmation) return;
+        if (!deleteConfirmation || deleteInput !== 'ELIMINAR') return;
         const { id } = deleteConfirmation;
-        const { error } = await supabase.from('agentes').delete().eq('id', id);
-        if (!error) {
+
+        try {
+            // 1. Manually delete associated leads first to avoid 409 Conflict
+            const { error: leadsError } = await supabase
+                .from('leads')
+                .delete()
+                .eq('agent_id', id);
+
+            if (leadsError) throw leadsError;
+
+            // 2. Delete the agent
+            const { error: agentError } = await supabase
+                .from('agentes')
+                .delete()
+                .eq('id', id);
+
+            if (agentError) throw agentError;
+
             setAgents(agents.filter(a => a.id !== id));
             setDeleteConfirmation(null);
-        } else {
+            setInfoModal({ isOpen: true, type: 'success', message: 'Agente y sus datos eliminados correctamente.' });
+        } catch (error) {
+            console.error('Error deleting agent/leads:', error);
             setDeleteConfirmation(null);
-            setInfoModal({ isOpen: true, type: 'error', message: 'Error al eliminar el agente' });
+            setInfoModal({ isOpen: true, type: 'error', message: 'Error al eliminar el agente. Puede que tenga datos protegidos.' });
         }
     };
 
@@ -631,7 +651,10 @@ export default function DynamicLeadsDashboard() {
                                         Configurar
                                     </Link>
                                     <button
-                                        onClick={() => setView('LEADS')}
+                                        onClick={() => {
+                                            setActiveAgentId(agent.id);
+                                            setView('LEADS');
+                                        }}
                                         className="flex-1 bg-brand-primary-darker text-white py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-md shadow-brand-primary-darker/10"
                                     >
                                         Ver Leads
@@ -956,26 +979,51 @@ export default function DynamicLeadsDashboard() {
             {
                 deleteConfirmation && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-8 text-center">
-                            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 p-8 text-center border-2 border-red-100">
+                            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <Trash2 size={32} />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">¿Eliminar Agente?</h3>
-                            <p className="text-sm text-gray-500 mb-8">
-                                Estás a punto de eliminar a <span className="font-bold text-gray-900">{deleteConfirmation.name}</span>. Esta acción no se puede deshacer.
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4">¡Cuidado! Acción de alto riesgo</h3>
+
+                            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-6 text-left">
+                                <p className="text-[11px] font-bold text-amber-800 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <Activity size={14} />
+                                    ¿Qué se eliminará?
+                                </p>
+                                <ul className="text-xs text-amber-700/80 space-y-1 ml-4 list-disc font-medium">
+                                    <li>Todos los leads capturados por <span className="font-bold text-amber-900">{deleteConfirmation.name}</span>.</li>
+                                    <li>Configuración de notificaciones (Pushover, Make.com).</li>
+                                    <li>Todo el historial de chats y registros locales.</li>
+                                    <li><span className="font-bold">Nota:</span> El agente en ElevenLabs no será afectado.</li>
+                                </ul>
+                            </div>
+
+                            <p className="text-sm text-gray-500 mb-6 font-medium">
+                                Para confirmar la eliminación permanente, escribe <span className="font-bold text-red-600">ELIMINAR</span> a continuación:
                             </p>
+
+                            <input
+                                type="text"
+                                value={deleteInput}
+                                onChange={(e) => setDeleteInput(e.target.value.toUpperCase())}
+                                placeholder="Escribe ELIMINAR"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-center font-bold text-red-600 placeholder:text-gray-300 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none mb-6 transition-all"
+                                autoFocus
+                            />
+
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setDeleteConfirmation(null)}
-                                    className="flex-1 py-3 bg-gray-50 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                                    className="flex-1 py-3 bg-gray-50 text-gray-700 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-100"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={confirmDelete}
-                                    className="flex-1 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+                                    disabled={deleteInput !== 'ELIMINAR'}
+                                    className="flex-1 py-3 bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-30 disabled:shadow-none"
                                 >
-                                    Sí, Eliminar
+                                    Eliminar Todo
                                 </button>
                             </div>
                         </div>
