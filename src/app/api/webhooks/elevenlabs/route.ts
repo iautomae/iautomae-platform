@@ -123,7 +123,7 @@ export async function POST(request: Request) {
 
         // Helper to format name to Title Case (e.g. "LUISIN" -> "Luisin", "juan perez" -> "Juan Perez")
         if (nombreVal && nombreVal !== 'Desconocido') {
-            nombreVal = nombreVal.toLowerCase().replace(/(?:^|\s)\S/g, function (a) { return a.toUpperCase(); });
+            nombreVal = nombreVal.toLowerCase().replace(/(?:^|\s)\S/g, function (a: string) { return a.toUpperCase(); });
         }
 
         const phoneVal =
