@@ -125,6 +125,9 @@ export async function POST(request: Request) {
             webData.conversation_initiation_metadata?.caller_id ||
             payload.conversation_initiation_client_data?.phone_number ||
             webData.conversation_initiation_client_data?.phone_number ||
+            // New paths from user screenshot
+            payload.conversation_initiation_client_data?.dynamic_variables?.system_caller_id ||
+            webData.conversation_initiation_client_data?.dynamic_variables?.system_caller_id ||
             payload.caller_id || // Added root fields
             payload.phone_number ||
             webData.caller_id ||
