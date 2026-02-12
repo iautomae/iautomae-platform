@@ -617,24 +617,18 @@ export default function DynamicLeadsDashboard() {
                                                 <div
                                                     onClick={() => toggleAgentStatus(agent)}
                                                     className={cn(
-                                                        "w-8 h-4 rounded-full relative transition-all cursor-pointer shadow-inner",
+                                                        "w-11 h-6 rounded-full relative transition-all cursor-pointer shadow-inner flex items-center px-1",
                                                         agent.status === 'active' ? "bg-brand-primary/20" : "bg-gray-100 border border-gray-200"
                                                     )}
                                                 >
                                                     <div className={cn(
-                                                        "absolute top-0.5 w-3 h-3 rounded-full shadow-md transition-all duration-300",
-                                                        agent.status === 'active' ? "right-0.5 bg-brand-primary" : "left-0.5 bg-gray-400"
+                                                        "w-4 h-4 rounded-full shadow-md transition-all duration-300",
+                                                        agent.status === 'active' ? "translate-x-5 bg-brand-primary" : "translate-x-0 bg-gray-400"
                                                     )} />
                                                 </div>
                                             </div>
-                                            {/* Stats Icon */}
-                                            <button
-                                                onClick={(e) => { e.preventDefault(); setSelectedAgentStats(agent); }}
-                                                className="p-1 hover:bg-amber-50 text-gray-400 hover:text-amber-700 rounded-lg transition-colors border border-transparent hover:border-amber-200 flex items-center gap-1"
-                                            >
-                                                <BarChart2 size={12} className="text-amber-600" />
-                                                <span className="text-[8px] font-bold uppercase text-amber-700/70">Uso</span>
-                                            </button>
+                                            {/* Empty space where stats used to be */}
+                                            <div className="h-8" />
                                         </div>
                                     </div>
 
@@ -642,22 +636,30 @@ export default function DynamicLeadsDashboard() {
                                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-4 truncate" title={agent.personalidad}>{agent.personalidad || 'Sin especialidad'}</p>
                                 </div>
 
-                                <div className="flex gap-2 mt-auto">
+                                <div className="flex gap-1.5 mt-auto">
                                     <Link
                                         href={`/leads/agent-config?id=${agent.id}`}
-                                        className="flex-1 bg-gray-50 text-gray-700 py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all text-center flex items-center justify-center gap-1.5 border border-gray-100 hover:border-brand-primary shadow-sm hover:shadow-md"
+                                        className="flex-[0.8] bg-gray-50 text-gray-600 py-3 rounded-xl text-[8px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all text-center flex flex-col items-center justify-center gap-1 border border-gray-100 hover:border-brand-primary shadow-sm"
                                     >
-                                        <Settings size={12} />
-                                        Configurar
+                                        <Settings size={14} />
+                                        <span>Config</span>
                                     </Link>
                                     <button
                                         onClick={() => {
                                             setActiveAgentId(agent.id);
                                             setView('LEADS');
                                         }}
-                                        className="flex-1 bg-brand-primary-darker text-white py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-md shadow-brand-primary-darker/10"
+                                        className="flex-[1.2] bg-brand-primary-darker text-white py-3 rounded-xl text-[8px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-md shadow-brand-primary-darker/10 flex flex-col items-center justify-center gap-1"
                                     >
-                                        Ver Leads
+                                        <Bot size={14} />
+                                        <span>Ver Leads</span>
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.preventDefault(); setSelectedAgentStats(agent); }}
+                                        className="flex-[0.8] bg-amber-50 text-amber-700 py-3 rounded-xl text-[8px] font-bold uppercase tracking-widest hover:bg-amber-100 transition-all text-center flex flex-col items-center justify-center gap-1 border border-amber-100 shadow-sm"
+                                    >
+                                        <BarChart2 size={14} />
+                                        <span>Uso</span>
                                     </button>
                                 </div>
                             </div>
