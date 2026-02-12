@@ -74,6 +74,43 @@ export default function DynamicLeadsDashboard() {
     // Lead Stats
     const [realLeads, setRealLeads] = useState<Lead[]>([]);
 
+    const fetchLeads = React.useCallback(async () => {
+        if (!user?.id) return;
+        // setIsLoadingLeads(true);
+        const { data: agentData } = await supabase.from('agentes').select('id').eq('user_id', user.id);
+        const agentIds = agentData?.map(a => a.id) || [];
+
+        if (agentIds.length > 0) {
+            const { data: leadData, error } = await supabase
+                .from('leads')
+                .select('*')
+                .in('agent_id', agentIds)
+                .order('created_at', { ascending: false });
+
+            if (leadData && !error) {
+                const formattedLeads: Lead[] = leadData.map((l: any) => {
+                    const dateObj = new Date(l.created_at);
+                    return {
+                        id: l.id,
+                        phone: l.phone || 'No proveído',
+                        transcript: l.transcript || [],
+                        created_at: l.created_at,
+                        name: l.nombre || 'Lead Desconocido',
+                        date: dateObj.toLocaleDateString('es-ES'),
+                        time: dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                        status: l.status || 'POTENCIAL',
+                        summary: l.summary || 'Sin resumen',
+                        score: l.score || 0
+                    };
+                });
+                setRealLeads(formattedLeads);
+            } else if (error) {
+                console.error('Error fetching leads:', error);
+            }
+        }
+        // setIsLoadingLeads(false);
+    }, [user]);
+
     // Side Panel State
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
     const [panelTab, setPanelTab] = useState<'SUMMARY' | 'CHAT'>('SUMMARY');
@@ -89,45 +126,31 @@ export default function DynamicLeadsDashboard() {
     // Load Real Leads when moving to LEADS view
     React.useEffect(() => {
         if (view === 'LEADS' && user?.id) {
-            const fetchLeads = async () => {
-                // setIsLoadingLeads(true); // Temporarily commented if not used for UI spinner
-                // Get all agents for this user first
-                const { data: agentData } = await supabase.from('agentes').select('id').eq('user_id', user!.id);
-                const agentIds = agentData?.map(a => a.id) || [];
-
-                if (agentIds.length > 0) {
-                    const { data: leadData, error } = await supabase
-                        .from('leads')
-                        .select('*')
-                        .in('agent_id', agentIds)
-                        .order('created_at', { ascending: false });
-
-                    if (leadData && !error) {
-                        const formattedLeads: Lead[] = leadData.map((l: { id: string; created_at: string; nombre?: string; phone?: string; status?: string; summary?: string; transcript?: { role: string; message?: string; text?: string; time?: string }[]; score?: number }) => {
-                            const dateObj = new Date(l.created_at);
-                            return {
-                                id: l.id,
-                                phone: l.phone || 'No proveído',
-                                transcript: (l.transcript as { role: string; message?: string; text?: string; time?: string }[]) || [],
-                                created_at: l.created_at,
-                                name: l.nombre || 'Lead Desconocido',
-                                date: dateObj.toLocaleDateString('es-ES'),
-                                time: dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-                                status: (l.status as 'POTENCIAL' | 'NO_POTENCIAL') || 'POTENCIAL',
-                                summary: l.summary || 'Sin resumen',
-                                score: l.score || 0
-                            };
-                        });
-                        setRealLeads(formattedLeads);
-                    } else if (error) {
-                        console.error('Error fetching leads:', error);
-                    }
-                }
-                // setIsLoadingLeads(false);
-            };
             fetchLeads();
+
+            // Subscribe to real-time changes
+            const channel = supabase
+                .channel('realtime-leads-dashboard')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'leads' },
+                    () => {
+                        console.log('🔔 New lead received, refreshing dashboard...');
+                        fetchLeads();
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    { event: 'DELETE', schema: 'public', table: 'leads' },
+                    () => fetchLeads()
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
-    }, [view, user]);
+    }, [view, user, fetchLeads]);
 
     const filteredLeads = realLeads.filter(lead => {
         if (filterStatus === 'ALL') return true;

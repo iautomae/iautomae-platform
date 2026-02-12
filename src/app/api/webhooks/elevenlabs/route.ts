@@ -110,15 +110,21 @@ export async function POST(request: Request) {
             dataCollection.nombre_cliente?.value ||
             'Desconocido';
 
-        const phoneVal = dataCollection.telefono?.value ||
+        const phoneVal = payload.metadata?.caller_id ||
+            payload.metadata?.phone_number ||
+            webData.metadata?.caller_id ||
+            webData.metadata?.phone_number ||
+            dataCollection.telefono?.value ||
             dataCollection.teléfono?.value ||
             'No proveído';
 
-        const rawSummary = analysis.transcript_summary ||
+        // Prioritize data_collection (which is often in the prompt's language, e.g., Spanish)
+        // over the default transcript_summary (which is often English)
+        const rawSummary = dataCollection.resumen_conversacion?.value ||
             dataCollection.resumen_de_llamada?.value ||
             dataCollection.resumen?.value ||
             dataCollection.Resumen?.value ||
-            dataCollection.resumen_conversacion?.value ||
+            analysis.transcript_summary ||
             'Sin resumen';
 
         const resumenVal = summaryPrefix + rawSummary;
