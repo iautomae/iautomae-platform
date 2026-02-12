@@ -95,7 +95,7 @@ export default function DynamicLeadsDashboard() {
                     phone?: string;
                     status?: string;
                     summary?: string;
-                    transcript?: any[];
+                    transcript?: { role: string; message?: string; text?: string; time?: string }[];
                     score?: number
                 }) => {
                     const dateObj = new Date(l.created_at);
