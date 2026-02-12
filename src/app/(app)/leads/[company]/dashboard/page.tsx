@@ -197,6 +197,17 @@ export default function DynamicLeadsDashboard() {
     const [pushoverFilter, setPushoverFilter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL');
     const [makeWebhookUrl, setMakeWebhookUrl] = useState('');
     const [isSavingPushover, setIsSavingPushover] = useState(false);
+    const [isPushoverSectionOpen, setIsPushoverSectionOpen] = useState(false);
+
+    // Derived state for unsaved changes in Pushover modal
+    const hasUnsavedNotificationChanges = configuringAgent && (
+        pushoverUserKey !== (configuringAgent.pushover_user_key || '') ||
+        pushoverApiToken !== (configuringAgent.pushover_api_token || '') ||
+        pushoverTemplate !== (configuringAgent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}') ||
+        pushoverTitle !== (configuringAgent.pushover_title || '') ||
+        pushoverFilter !== (configuringAgent.pushover_notification_filter || 'ALL') ||
+        makeWebhookUrl !== (configuringAgent.make_webhook_url || '')
+    );
 
     // ... (Keep existing loadAgents useEffect and handlers)
 
@@ -219,10 +230,14 @@ export default function DynamicLeadsDashboard() {
         setConfiguringAgent(agent);
         setPushoverUserKey(agent.pushover_user_key || '');
         setPushoverApiToken(agent.pushover_api_token || '');
-        setPushoverTemplate(agent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}');
+        const defaultTemplate = `Hola {nombre}, bienvenido a ${editableCompany}, recibimos tu solicitud e info, cuéntanos en qué podemos ayudarte. 
+https://wa.me/+{telefono}`;
+
+        setPushoverTemplate(agent.pushover_template || defaultTemplate);
         setPushoverTitle(agent.pushover_title || '');
         setPushoverFilter(agent.pushover_notification_filter || 'ALL');
         setMakeWebhookUrl(agent.make_webhook_url || '');
+        setIsPushoverSectionOpen(false);
         setIsPushoverModalOpen(true);
     };
 
@@ -1451,110 +1466,121 @@ export default function DynamicLeadsDashboard() {
                             </div>
 
                             <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh]">
-                                <div className="space-y-4">
-                                    <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2">Pushover (Recomendado)</h4>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key</label>
-                                        <input
-                                            type="text"
-                                            value={pushoverUserKey}
-                                            onChange={(e) => setPushoverUserKey(e.target.value)}
-                                            placeholder="Ingresa tu User Key de Pushover"
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
-                                        />
+                                <div className="space-y-4 pt-4">
+                                    <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+                                        <h4 className="text-[11px] font-bold text-gray-400 gap-2 uppercase tracking-widest flex items-center">
+                                            <Bell size={12} className="text-brand-primary" />
+                                            Pushover (Opcional)
+                                        </h4>
+                                        <button
+                                            onClick={() => setIsPushoverSectionOpen(!isPushoverSectionOpen)}
+                                            className="text-[10px] font-bold text-brand-primary uppercase tracking-tighter hover:underline"
+                                        >
+                                            {isPushoverSectionOpen ? 'Ocultar' : 'Configurar'}
+                                        </button>
                                     </div>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">API Token / App Token</label>
-                                        <input
-                                            type="password"
-                                            value={pushoverApiToken}
-                                            onChange={(e) => setPushoverApiToken(e.target.value)}
-                                            placeholder="Ingresa tu App Token"
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
-                                        />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtro de Notificaciones</label>
-                                        <div className="relative">
-                                            <select
-                                                value={pushoverFilter}
-                                                onChange={(e) => setPushoverFilter(e.target.value as 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY')}
-                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="ALL">Notificar Todos los Leads</option>
-                                                <option value="POTENTIAL_ONLY">Solo Leads Potenciales</option>
-                                                <option value="NO_POTENTIAL_ONLY">Solo Leads No Potenciales</option>
-                                            </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                                <ChevronsRight size={14} className="rotate-90" />
+
+                                    {isPushoverSectionOpen && (
+                                        <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                            <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key</label>
+                                                <input
+                                                    type="text"
+                                                    value={pushoverUserKey}
+                                                    onChange={(e) => setPushoverUserKey(e.target.value)}
+                                                    placeholder="Ingresa tu User Key de Pushover"
+                                                    className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
+                                                />
+                                            </div>
+                                            <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">API Token / App Token</label>
+                                                <input
+                                                    type="password"
+                                                    value={pushoverApiToken}
+                                                    onChange={(e) => setPushoverApiToken(e.target.value)}
+                                                    placeholder="Ingresa tu App Token"
+                                                    className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
+                                                />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtro de Notificaciones</label>
+                                                <div className="relative">
+                                                    <select
+                                                        value={pushoverFilter}
+                                                        onChange={(e) => setPushoverFilter(e.target.value as 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY')}
+                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium transition-all appearance-none cursor-pointer"
+                                                    >
+                                                        <option value="ALL">Notificar Todos los Leads</option>
+                                                        <option value="POTENTIAL_ONLY">Solo Leads Potenciales</option>
+                                                        <option value="NO_POTENTIAL_ONLY">Solo Leads No Potenciales</option>
+                                                    </select>
+                                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                        <ChevronsRight size={14} className="rotate-90" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Título de Notificación</label>
+                                                <input
+                                                    type="text"
+                                                    value={pushoverTitle}
+                                                    onChange={(e) => setPushoverTitle(e.target.value)}
+                                                    placeholder="Ej: Nuevo Lead Detectado"
+                                                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Formato de Mensaje</label>
+                                                <textarea
+                                                    value={pushoverTemplate}
+                                                    onChange={(e) => setPushoverTemplate(e.target.value)}
+                                                    placeholder={`Ej: Hola {nombre}, bienvenido a ${editableCompany}... https://wa.me/+{telefono}`}
+                                                    rows={5}
+                                                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono leading-relaxed"
+                                                />
+                                                <p className="text-[9px] text-gray-400 font-medium leading-relaxed bg-blue-50/50 p-2 rounded-lg border border-blue-100/50">
+                                                    Variables: <span className="text-brand-primary font-bold">{"{nombre}"}</span>, <span className="text-brand-primary font-bold">{"{telefono}"}</span>, <span className="text-brand-primary font-bold">{"{resumen}"}</span>. <br />
+                                                    Usa <span className="font-bold">https://wa.me/+{"{telefono}"}</span> para crear un botón de chat directo.
+                                                </p>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Título de Notificación</label>
-                                        <input
-                                            type="text"
-                                            value={pushoverTitle}
-                                            onChange={(e) => setPushoverTitle(e.target.value)}
-                                            placeholder="Ej: Nuevo Lead Detectado"
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Formato de Mensaje</label>
-                                        <textarea
-                                            value={pushoverTemplate}
-                                            onChange={(e) => setPushoverTemplate(e.target.value)}
-                                            placeholder="Ej: Nuevo Lead: *{nombre}*. Tel: {telefono}"
-                                            rows={2}
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
-                                        />
-                                        <p className="text-[9px] text-gray-400 font-medium leading-relaxed">
-                                            Variables: <span className="text-brand-primary font-bold">{"{nombre}"}</span>, <span className="text-brand-primary font-bold">{"{telefono}"}</span>, <span className="text-brand-primary font-bold">{"{resumen}"}</span>. <br />
-                                            Usa <span className="font-bold">*asteriscos*</span> para poner texto en <span className="font-bold">negrita</span>.
-                                        </p>
-                                    </div>
+                                    )}
                                 </div>
 
-                                <div className="space-y-4 pt-4">
-                                    <h4 className="text-[11px] font-bold text-amber-500 uppercase tracking-widest border-b border-amber-50 pb-2 flex items-center gap-2">
-                                        <RotateCcw size={12} />
-                                        WEBHOOK
-                                    </h4>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">WEBHOOK</label>
-                                        <input
-                                            type="text"
-                                            value={makeWebhookUrl}
-                                            onChange={(e) => setMakeWebhookUrl(e.target.value)}
-                                            placeholder="https://hook.us1.make.com/..."
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
-                                        />
-                                        <p className="text-[9px] text-amber-500 font-medium">Reenviará el paquete de datos original a esta URL.</p>
+                                {!isPushoverSectionOpen && (
+                                    <div className="space-y-4 pt-4 border-t border-gray-50 animate-in fade-in duration-500">
+                                        <h4 className="text-[11px] font-bold text-amber-500 uppercase tracking-widest pb-2 flex items-center gap-2">
+                                            <RotateCcw size={12} />
+                                            WEBHOOK
+                                        </h4>
+                                        <div className="space-y-3">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">WEBHOOK URL</label>
+                                            <input
+                                                type="text"
+                                                value={makeWebhookUrl}
+                                                onChange={(e) => setMakeWebhookUrl(e.target.value)}
+                                                placeholder="https://hook.us1.make.com/..."
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
+                                            />
+                                            <p className="text-[9px] text-amber-500 font-medium">Reenviará el paquete de datos original a esta URL.</p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-3 pt-4 border-t border-gray-50">
                                     <button
                                         onClick={handleSavePushover}
                                         disabled={isSavingPushover}
-                                        className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                        className={cn(
+                                            "w-full py-4 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2",
+                                            hasUnsavedNotificationChanges ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/10" : "bg-gray-900 hover:brightness-110 shadow-gray-900/10"
+                                        )}
                                     >
                                         {isSavingPushover ? <RefreshCw size={14} className="animate-spin" /> : null}
                                         {isSavingPushover ? 'Guardando...' : 'Guardar Configuración'}
                                     </button>
-
-                                    {configuringAgent.pushover_user_key && (
-                                        <button
-                                            onClick={handleDisconnectPushover}
-                                            disabled={isSavingPushover}
-                                            className="w-full py-3 bg-red-50 text-red-500 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50"
-                                        >
-                                            Desconectar y Limpiar
-                                        </button>
-                                    )}
                                 </div>
                             </div>
                         </div>
