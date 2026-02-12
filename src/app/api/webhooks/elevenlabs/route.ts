@@ -229,6 +229,13 @@ export async function POST(request: Request) {
                 // Handles *text* -> <b>text</b>
                 message = message.replace(/\*(.*?)\*/g, '<b>$1</b>');
 
+                // Convert newlines to <br> for HTML mode
+                message = message.replace(/\n/g, '<br>');
+
+                // Auto-link URLs to ensure they are clickable in HTML mode
+                // This wraps anything starting with http/https in an <a> tag
+                message = message.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+
                 fetch('https://api.pushover.net/1/messages.json', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
