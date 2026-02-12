@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         console.log(`📥 Importing agent ${agent.name} for user ${userId}...`);
 
         // Check if agent already exists (by eleven_labs_agent_id)
-        const { data: existingAgent, error: findError } = await supabase
+        const { data: existingAgent } = await supabase
             .from('agentes')
             .select('id')
             .eq('eleven_labs_agent_id', agent.eleven_labs_agent_id)
@@ -66,8 +66,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: true, agent: newAgent, action: 'created' });
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('❌ Error importing agent:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: (error as Error).message || 'Internal Server Error' }, { status: 500 });
     }
 }
