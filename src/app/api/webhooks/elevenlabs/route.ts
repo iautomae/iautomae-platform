@@ -29,15 +29,7 @@ export async function POST(request: Request) {
         const bodyText = await request.text();
         const payload = JSON.parse(bodyText);
 
-        // --- DEBUG: LOG FULL PAYLOAD TO DB ---
-        // This is a temporary measure to audit the exact incoming data structure
-        await supabase
-            .from('agentes')
-            .update({
-                prompt: `DEBUG PAYLOAD [${new Date().toISOString()}]: ${JSON.stringify(payload, null, 2)}`
-            })
-            .eq('nombre', 'DEBUG_Fallback');
-        // -------------------------------------
+
 
         // --- SECURITY: Verify ElevenLabs Signature ---
         const signature = request.headers.get('elevenlabs-signature');
@@ -130,18 +122,27 @@ export async function POST(request: Request) {
             'Desconocido';
 
         const phoneVal =
-            // 1. WhatsApp ID (Highest priority for WhatsApp calls)
+            // 1. WhatsApp ID (Verified from payload: metadata.whatsapp.whatsapp_user_id)
+            payload.metadata?.whatsapp?.whatsapp_user_id ||
+            webData.metadata?.whatsapp?.whatsapp_user_id ||
             payload.whatsapp?.whatsapp_user_id ||
             webData.whatsapp?.whatsapp_user_id ||
-            // 2. System Caller ID (User standard for dynamic vars)
-            payload.conversation_initiation_client_data?.dynamic_variables?.system_caller_id ||
+
+            // 2. System Caller ID (Verified from payload: dynamic_variables.system__caller_id - DOUBLE UNDERSCORE)
+            payload.conversation_initiation_client_data?.dynamic_variables?.system__caller_id ||
+            webData.conversation_initiation_client_data?.dynamic_variables?.system__caller_id ||
+
+            // 3. Additional System Paths
+            payload.conversation_initiation_client_data?.dynamic_variables?.system_caller_id || // Keep single underscore as fallback
             webData.conversation_initiation_client_data?.dynamic_variables?.system_caller_id ||
-            // 3. Standard Metadata
+
+            // 4. Standard Metadata
             payload.metadata?.caller_id ||
             webData.metadata?.caller_id ||
             payload.metadata?.phone_number ||
             webData.metadata?.phone_number ||
-            // 4. Fallbacks
+
+            // 5. Fallbacks
             payload.conversation_initiation_metadata?.caller_id ||
             webData.conversation_initiation_metadata?.caller_id ||
             payload.conversation_initiation_client_data?.phone_number ||

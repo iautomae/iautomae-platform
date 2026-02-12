@@ -1,0 +1,640 @@
+DEBUG PAYLOAD [2026-02-12T20:02:02.276Z]: {
+  "type": "post_call_transcription",
+  "event_timestamp": 1770926520,
+  "data": {
+    "agent_id": "agent_3901kdgxq358f518w6cjz6f179aa",
+    "agent_name": "Omar",
+    "status": "done",
+    "user_id": null,
+    "branch_id": "agtbrch_9601kdgxq4vgegy8hbtcdvca306g",
+    "version_id": "agtvrsn_3601kh8cka35fzmrg41jxdr6vhvq",
+    "transcript": [
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Hola",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 0,
+        "conversation_turn_metrics": null,
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "text"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_3901kdgxq358f518w6cjz6f179aa",
+          "branch_id": "agtbrch_9601kdgxq4vgegy8hbtcdvca306g",
+          "workflow_node_id": null
+        },
+        "message": "¡Hola! Soy Omar, tu asesor virtual de ESCOLTA. Estoy aquí para ayudarte con tus trámites de licencias de armas, cursos Sucamec y consultoría legal en seguridad privada.\n\nPara empezar, ¿podrías decirme tu nombre y qué trámite o consulta te interesa? Así podré entender mejor cómo puedo asistirte.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 0,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.9707609899996896
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.7533662859996184
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.4527019389997804
+            }
+          },
+          "convai_asr_provider": null,
+          "convai_tts_model": null
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 12450,
+                "price": 0.0018675
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0
+              },
+              "output_total": {
+                "tokens": 71,
+                "price": 0.0000426
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "LUISIN",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 11,
+        "conversation_turn_metrics": null,
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "text"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_3901kdgxq358f518w6cjz6f179aa",
+          "branch_id": "agtbrch_9601kdgxq4vgegy8hbtcdvca306g",
+          "workflow_node_id": null
+        },
+        "message": "¡Hola, Luisín! Un gusto saludarte.\n\nCuéntame, ¿qué trámite o consulta te interesa? ¿Estás buscando iniciar un proceso para una licencia de armas, necesitas información sobre cursos Sucamec o tienes alguna consulta legal relacionada con seguridad privada?\n\nEstoy aquí para guiarte en lo que necesites.",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 11,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 2.5597904260002906
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 2.5593724529999236
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 3.0375296700003673
+            }
+          },
+          "convai_asr_provider": null,
+          "convai_tts_model": null
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 734,
+                "price": 0.00011009999999999999
+              },
+              "input_cache_read": {
+                "tokens": 11790,
+                "price": 0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0
+              },
+              "output_total": {
+                "tokens": 68,
+                "price": 0.000040799999999999996
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "me equivoque, disculpa, sera para la proxima",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 41,
+        "conversation_turn_metrics": null,
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "text"
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_3901kdgxq358f518w6cjz6f179aa",
+          "branch_id": "agtbrch_9601kdgxq4vgegy8hbtcdvca306g",
+          "workflow_node_id": null
+        },
+        "message": "No te preocupes, Luisín. Entiendo perfectamente.\n\nCuando lo necesites, aquí estaré para ayudarte con cualquier consulta sobre licencias de armas, cursos Sucamec o asesoría legal en seguridad privada.\n\nMientras tanto, te invito a descargar nuestra app, donde encontrarás detalles sobre el examen Sucamec, partes de armas y otras funcionalidades útiles. Por ahora está disponible en Android y pronto en iOS. ¡Anímate a crear tu cuenta y explorarla!\n\nhttps://play.google.com/store/apps/details?id=org.ymp.secury&pcampaignid=web_share\n\n¡Que tengas un excelente día!\n",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 41,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.9665177770002629
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.7191357470001094
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.6390800170001967
+            }
+          },
+          "convai_asr_provider": null,
+          "convai_tts_model": null
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_3901kdgxq358f518w6cjz6f179aa",
+          "branch_id": "agtbrch_9601kdgxq4vgegy8hbtcdvca306g",
+          "workflow_node_id": null
+        },
+        "message": null,
+        "multivoice_message": null,
+        "tool_calls": [
+          {
+            "type": "system",
+            "request_id": "end_call_6b92ca6ff28e4fcea596dab0c0fd598b",
+            "tool_name": "end_call",
+            "params_as_json": "{\"system__message_to_speak\": \"No te preocupes, Luis\\u00edn. Entiendo perfectamente.\\n\\nCuando lo necesites, aqu\\u00ed estar\\u00e9 para ayudarte con cualquier consulta sobre licencias de armas, cursos Sucamec o asesor\\u00eda legal en seguridad privada.\\n\\nMientras tanto, te invito a descargar nuestra app, donde encontrar\\u00e1s detalles sobre el examen Sucamec, partes de armas y otras funcionalidades \\u00fatiles. Por ahora est\\u00e1 disponible en Android y pronto en iOS. \\u00a1An\\u00edmate a crear tu cuenta y explorarla!\\n\\nhttps://play.google.com/store/apps/details?id=org.ymp.secury&pcampaignid=web_share\\n\\n\\u00a1Que tengas un excelente d\\u00eda!\", \"reason\": \"El usuario se despide y pospone su consulta.\"}",
+            "tool_has_been_called": true,
+            "tool_details": null
+          }
+        ],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 51,
+        "conversation_turn_metrics": {
+          "metrics": {
+            "convai_llm_service_ttf_sentence": {
+              "elapsed_time": 0.9665177770002629
+            },
+            "convai_llm_service_ttfb": {
+              "elapsed_time": 0.7191357470001094
+            },
+            "convai_llm_tool_request_generation_latency": {
+              "elapsed_time": 0.6613884110001891
+            },
+            "convai_llm_service_tt_last_sentence": {
+              "elapsed_time": 1.6390800170001967
+            }
+          },
+          "convai_asr_provider": null,
+          "convai_tts_model": null
+        },
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "agent",
+        "agent_metadata": {
+          "agent_id": "agent_3901kdgxq358f518w6cjz6f179aa",
+          "branch_id": "agtbrch_9601kdgxq4vgegy8hbtcdvca306g",
+          "workflow_node_id": null
+        },
+        "message": null,
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [
+          {
+            "request_id": "end_call_6b92ca6ff28e4fcea596dab0c0fd598b",
+            "tool_name": "end_call",
+            "result_value": "{\"result_type\":\"end_call_success\",\"status\":\"success\",\"reason\":\"El usuario se despide y pospone su consulta.\",\"message\":null}",
+            "is_error": false,
+            "tool_has_been_called": true,
+            "tool_latency_secs": 0.5021066380004413,
+            "error_type": "",
+            "raw_error_message": "",
+            "dynamic_variable_updates": [],
+            "type": "system",
+            "result": {
+              "result_type": "end_call_success",
+              "status": "success",
+              "reason": "El usuario se despide y pospone su consulta.",
+              "message": null
+            }
+          }
+        ],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 52,
+        "conversation_turn_metrics": null,
+        "rag_retrieval_info": null,
+        "llm_usage": {
+          "model_usage": {
+            "gemini-2.5-flash": {
+              "input": {
+                "tokens": 12605,
+                "price": 0.00189075
+              },
+              "input_cache_read": {
+                "tokens": 0,
+                "price": 0
+              },
+              "input_cache_write": {
+                "tokens": 0,
+                "price": 0
+              },
+              "output_total": {
+                "tokens": 295,
+                "price": 0.000177
+              }
+            }
+          }
+        },
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": null
+      },
+      {
+        "role": "user",
+        "agent_metadata": null,
+        "message": "Ok",
+        "multivoice_message": null,
+        "tool_calls": [],
+        "tool_results": [],
+        "feedback": null,
+        "llm_override": null,
+        "time_in_call_secs": 56,
+        "conversation_turn_metrics": null,
+        "rag_retrieval_info": null,
+        "llm_usage": null,
+        "interrupted": false,
+        "original_message": null,
+        "source_medium": "text"
+      }
+    ],
+    "metadata": {
+      "start_time_unix_secs": 1770926459,
+      "accepted_time_unix_secs": 1770926459,
+      "call_duration_secs": 57,
+      "cost": 51,
+      "deletion_settings": {
+        "deletion_time_unix_secs": null,
+        "deleted_logs_at_time_unix_secs": null,
+        "deleted_audio_at_time_unix_secs": null,
+        "deleted_transcript_at_time_unix_secs": null,
+        "delete_transcript_and_pii": false,
+        "delete_audio": false
+      },
+      "feedback": {
+        "type": null,
+        "overall_score": null,
+        "likes": 0,
+        "dislikes": 0,
+        "rating": null,
+        "comment": null
+      },
+      "authorization_method": "whatsapp",
+      "charging": {
+        "dev_discount": false,
+        "is_burst": false,
+        "tier": "creator",
+        "llm_usage": {
+          "irreversible_generation": {
+            "model_usage": {
+              "gemini-2.5-flash": {
+                "input": {
+                  "tokens": 25789,
+                  "price": 0.00386835
+                },
+                "input_cache_read": {
+                  "tokens": 11790,
+                  "price": 0
+                },
+                "input_cache_write": {
+                  "tokens": 0,
+                  "price": 0
+                },
+                "output_total": {
+                  "tokens": 434,
+                  "price": 0.0002604
+                }
+              }
+            }
+          },
+          "initiated_generation": {
+            "model_usage": {
+              "gemini-2.5-flash": {
+                "input": {
+                  "tokens": 25789,
+                  "price": 0.00386835
+                },
+                "input_cache_read": {
+                  "tokens": 11790,
+                  "price": 0
+                },
+                "input_cache_write": {
+                  "tokens": 0,
+                  "price": 0
+                },
+                "output_total": {
+                  "tokens": 434,
+                  "price": 0.0002604
+                }
+              }
+            }
+          }
+        },
+        "llm_price": 0.00412875,
+        "llm_charge": 9,
+        "call_charge": 42,
+        "free_minutes_consumed": 0,
+        "free_llm_dollars_consumed": 0
+      },
+      "phone_call": null,
+      "batch_call": null,
+      "termination_reason": "end_call tool was called.",
+      "error": null,
+      "warnings": [],
+      "main_language": "en",
+      "rag_usage": null,
+      "text_only": true,
+      "features_usage": {
+        "language_detection": {
+          "enabled": false,
+          "used": false
+        },
+        "transfer_to_agent": {
+          "enabled": false,
+          "used": false
+        },
+        "transfer_to_number": {
+          "enabled": false,
+          "used": false
+        },
+        "multivoice": {
+          "enabled": false,
+          "used": false
+        },
+        "dtmf_tones": {
+          "enabled": false,
+          "used": false
+        },
+        "external_mcp_servers": {
+          "enabled": false,
+          "used": false
+        },
+        "pii_zrm_workspace": false,
+        "pii_zrm_agent": false,
+        "tool_dynamic_variable_updates": {
+          "enabled": false,
+          "used": false
+        },
+        "is_livekit": false,
+        "voicemail_detection": {
+          "enabled": false,
+          "used": false
+        },
+        "workflow": {
+          "enabled": false,
+          "tool_node": {
+            "enabled": false,
+            "used": false
+          },
+          "standalone_agent_node": {
+            "enabled": false,
+            "used": false
+          },
+          "phone_number_node": {
+            "enabled": false,
+            "used": false
+          },
+          "end_node": {
+            "enabled": false,
+            "used": false
+          }
+        },
+        "agent_testing": {
+          "enabled": false,
+          "tests_ran_after_last_modification": false,
+          "tests_ran_in_last_7_days": false
+        },
+        "versioning": {
+          "enabled": true,
+          "used": false
+        }
+      },
+      "eleven_assistant": {
+        "is_eleven_assistant": false
+      },
+      "initiator_id": null,
+      "conversation_initiation_source": "whatsapp",
+      "conversation_initiation_source_version": null,
+      "timezone": null,
+      "async_metadata": null,
+      "whatsapp": {
+        "direction": "inbound",
+        "whatsapp_phone_number_id": "1007660172424682",
+        "whatsapp_user_id": "51992075793",
+        "awaiting_first_user_message": null
+      },
+      "agent_created_from": "ui",
+      "agent_last_updated_from": "api"
+    },
+    "analysis": {
+      "evaluation_criteria_results": {},
+      "data_collection_results": {
+        "nombre_cliente": {
+          "data_collection_id": "nombre_cliente",
+          "value": "LUISIN",
+          "json_schema": {
+            "type": "string",
+            "description": "Extrae el nombre del usuario. Si no lo mencionó, escribe \"SIN_NOMBRE\"",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "El usuario menciona su nombre como LUISIN en el mensaje del 2026-02-12T20:01:10+00:00."
+        },
+        "resumen_conversacion": {
+          "data_collection_id": "resumen_conversacion",
+          "value": "El usuario, llamado Luisin, se disculpa por un error y pospone su consulta sobre licencias de armas, cursos Sucamec o asesoría legal en seguridad privada.",
+          "json_schema": {
+            "type": "string",
+            "description": "Escribe un resumen breve y claro sobre la conversación y sobre  lo que quería el usuario.",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "El usuario saluda, indica un nombre (Luisin) y luego se disculpa por equivocarse, posponiendo la consulta. El agente se ofrece a ayudar en el futuro con licencias de armas, cursos Sucamec o asesoría legal en seguridad privada, e invita a descargar la app."
+        },
+        "calificacion": {
+          "data_collection_id": "calificacion",
+          "value": "NO_POTENCIAL",
+          "json_schema": {
+            "type": "string",
+            "description": "Tu tarea es clasificar el resultado de la conversación en una de dos categorías excluyentes: POTENCIAL o NO_POTENCIAL. Califica la conversación como POTENCIAL si el cliente ha confirmado su interés en iniciar el proceso o en que lo contacten, o muestra interés en ser derivado con un asesor de la empresa, incluso cuando no haya dado su nombre completo. Por otro lado, califica como NO_POTENCIAL si el usuario rechaza el contacto, si solo hace preguntas generales (información), si su respuesta es ambigua o si la conversación termina sin confirmación clara. Regla importante: Si tienes cualquier duda sobre la intención, clasifícalo siempre como NO_POTENCIAL.",
+            "enum": [
+              "POTENCIAL",
+              "NO_POTENCIAL"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "El usuario indica que se equivocó y pospone la consulta para la próxima, lo que indica que no hay un interés actual en iniciar un proceso o ser contactado. Por lo tanto, la conversación se clasifica como NO_POTENCIAL."
+        }
+      },
+      "evaluation_criteria_results_list": [],
+      "data_collection_results_list": [
+        {
+          "data_collection_id": "nombre_cliente",
+          "value": "LUISIN",
+          "json_schema": {
+            "type": "string",
+            "description": "Extrae el nombre del usuario. Si no lo mencionó, escribe \"SIN_NOMBRE\"",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "El usuario menciona su nombre como LUISIN en el mensaje del 2026-02-12T20:01:10+00:00."
+        },
+        {
+          "data_collection_id": "resumen_conversacion",
+          "value": "El usuario, llamado Luisin, se disculpa por un error y pospone su consulta sobre licencias de armas, cursos Sucamec o asesoría legal en seguridad privada.",
+          "json_schema": {
+            "type": "string",
+            "description": "Escribe un resumen breve y claro sobre la conversación y sobre  lo que quería el usuario.",
+            "enum": null,
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "El usuario saluda, indica un nombre (Luisin) y luego se disculpa por equivocarse, posponiendo la consulta. El agente se ofrece a ayudar en el futuro con licencias de armas, cursos Sucamec o asesoría legal en seguridad privada, e invita a descargar la app."
+        },
+        {
+          "data_collection_id": "calificacion",
+          "value": "NO_POTENCIAL",
+          "json_schema": {
+            "type": "string",
+            "description": "Tu tarea es clasificar el resultado de la conversación en una de dos categorías excluyentes: POTENCIAL o NO_POTENCIAL. Califica la conversación como POTENCIAL si el cliente ha confirmado su interés en iniciar el proceso o en que lo contacten, o muestra interés en ser derivado con un asesor de la empresa, incluso cuando no haya dado su nombre completo. Por otro lado, califica como NO_POTENCIAL si el usuario rechaza el contacto, si solo hace preguntas generales (información), si su respuesta es ambigua o si la conversación termina sin confirmación clara. Regla importante: Si tienes cualquier duda sobre la intención, clasifícalo siempre como NO_POTENCIAL.",
+            "enum": [
+              "POTENCIAL",
+              "NO_POTENCIAL"
+            ],
+            "is_system_provided": false,
+            "dynamic_variable": "",
+            "constant_value": ""
+          },
+          "rationale": "El usuario indica que se equivocó y pospone la consulta para la próxima, lo que indica que no hay un interés actual en iniciar un proceso o ser contactado. Por lo tanto, la conversación se clasifica como NO_POTENCIAL."
+        }
+      ],
+      "call_successful": "success",
+      "transcript_summary": "Luisin initiated a conversation but stated it was a mistake and would return later. The agent offered assistance with gun licenses, Sucamec courses, and legal advice, also suggesting the user download their app. The conversation ended with the user acknowledging the message.\n",
+      "call_summary_title": "User postpones consultation"
+    },
+    "conversation_initiation_client_data": {
+      "conversation_config_override": {
+        "turn": null,
+        "tts": null,
+        "conversation": {
+          "text_only": true
+        },
+        "agent": {
+          "first_message": "",
+          "language": "en",
+          "prompt": {
+            "prompt": "",
+            "llm": "gemini-2.5-flash",
+            "native_mcp_server_ids": []
+          }
+        }
+      },
+      "custom_llm_extra_body": {},
+      "user_id": null,
+      "source_info": {
+        "source": null,
+        "version": null
+      },
+      "dynamic_variables": {
+        "system__agent_id": "agent_3901kdgxq358f518w6cjz6f179aa",
+        "system__agent_turns": 3,
+        "system__current_agent_turns": 3,
+        "system__current_subagent_turns": 3,
+        "system__current_agent_id": "agent_3901kdgxq358f518w6cjz6f179aa",
+        "system__conversation_id": "conv_1101kh9q2jfrf2pb9k6e1ewtsmem",
+        "system__call_duration_secs": 57,
+        "system__time_utc": "2026-02-12T20:01:56.654735+00:00",
+        "system__time": "Thursday, 20:01 12 February 2026",
+        "system__timezone": null,
+        "system__caller_id": "51992075793",
+        "system__called_number": "1007660172424682",
+        "system__call_sid": null
+      }
+    },
+    "conversation_id": "conv_1101kh9q2jfrf2pb9k6e1ewtsmem"
+  }
+}
