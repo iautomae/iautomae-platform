@@ -20,6 +20,7 @@ export async function POST(request: Request) {
         pushover_user_key: string | null;
         pushover_api_token: string | null;
         pushover_template: string | null;
+        pushover_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
         make_webhook_url: string | null;
     };
 
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
-            .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, make_webhook_url')
+            .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, pushover_notification_filter, make_webhook_url')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -96,12 +97,18 @@ export async function POST(request: Request) {
                     pushover_user_key: null,
                     pushover_api_token: null,
                     pushover_template: null,
+                    pushover_notification_filter: null,
                     make_webhook_url: null
                 };
                 summaryPrefix = `[MISSING AGENT ID: ${elAgentId}] `;
             } else {
                 return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
             }
+        }
+
+        // Ensure finalAgent is not null for TypeScript
+        if (!finalAgent) {
+            return NextResponse.json({ error: 'Agent not found (Final check)' }, { status: 404 });
         }
 
         // 2. Extract specific data points
@@ -159,19 +166,38 @@ export async function POST(request: Request) {
 
         // 4. Send Pushover Notification
         if (finalAgent.pushover_user_key && finalAgent.pushover_api_token) {
-            let message = finalAgent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}';
-            message = message.replace(/{nombre}/g, nombreVal).replace(/{telefono}/g, phoneVal);
+            const filter = finalAgent.pushover_notification_filter || 'ALL';
+            let shouldNotify = false;
 
-            fetch('https://api.pushover.net/1/messages.json', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    token: finalAgent.pushover_api_token,
-                    user: finalAgent.pushover_user_key,
-                    message: message,
-                    title: 'Nuevo Lead Detectado'
-                })
-            }).catch(err => console.error('Pushover error:', err));
+            if (filter === 'ALL') shouldNotify = true;
+            else if (filter === 'POTENTIAL_ONLY' && status === 'POTENCIAL') shouldNotify = true;
+            else if (filter === 'NO_POTENTIAL_ONLY' && status === 'NO_POTENCIAL') shouldNotify = true;
+
+            if (shouldNotify) {
+                let messageTemplate = finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
+
+                // Replace variables
+                let message = messageTemplate
+                    .replace(/{nombre}/g, nombreVal)
+                    .replace(/{telefono}/g, phoneVal)
+                    .replace(/{resumen}/g, resumenVal);
+
+                // Convert markdown bold to HTML bold for Pushover
+                // Handles *text* -> <b>text</b>
+                message = message.replace(/\*(.*?)\*/g, '<b>$1</b>');
+
+                fetch('https://api.pushover.net/1/messages.json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: finalAgent.pushover_api_token,
+                        user: finalAgent.pushover_user_key,
+                        message: message,
+                        title: 'Nuevo Lead Detectado',
+                        html: 1 // Enable HTML parsing
+                    })
+                }).catch(err => console.error('Pushover error:', err));
+            }
         }
 
         // 5. Save Lead to Supabase

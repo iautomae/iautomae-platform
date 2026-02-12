@@ -41,6 +41,7 @@ interface Agent {
     pushover_user_key?: string;
     pushover_api_token?: string;
     pushover_template?: string;
+    pushover_notification_filter?: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY';
     make_webhook_url?: string;
     updated_at: string;
     created_at: string;
@@ -191,6 +192,7 @@ export default function DynamicLeadsDashboard() {
     const [pushoverUserKey, setPushoverUserKey] = useState('');
     const [pushoverApiToken, setPushoverApiToken] = useState('');
     const [pushoverTemplate, setPushoverTemplate] = useState('Nuevo Lead: {nombre}. Tel: {telefono}');
+    const [pushoverFilter, setPushoverFilter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL');
     const [makeWebhookUrl, setMakeWebhookUrl] = useState('');
     const [isSavingPushover, setIsSavingPushover] = useState(false);
 
@@ -210,6 +212,16 @@ export default function DynamicLeadsDashboard() {
         }
         loadAgents();
     }, [user]);
+
+    const handleOpenPushover = (agent: Agent) => {
+        setConfiguringAgent(agent);
+        setPushoverUserKey(agent.pushover_user_key || '');
+        setPushoverApiToken(agent.pushover_api_token || '');
+        setPushoverTemplate(agent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}');
+        setPushoverFilter(agent.pushover_notification_filter || 'ALL');
+        setMakeWebhookUrl(agent.make_webhook_url || '');
+        setIsPushoverModalOpen(true);
+    };
 
     const handleDeleteAgent = (agent: Agent) => {
         setDeleteConfirmation({ id: agent.id, name: agent.nombre || 'Agente sin nombre' });
@@ -473,17 +485,10 @@ export default function DynamicLeadsDashboard() {
         }
     };
 
-    const handleOpenPushover = (agent: Agent) => {
-        setConfiguringAgent(agent);
-        setPushoverUserKey(agent.pushover_user_key || '');
-        setPushoverApiToken(agent.pushover_api_token || '');
-        setPushoverTemplate(agent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}');
-        setMakeWebhookUrl(agent.make_webhook_url || '');
-        setIsPushoverModalOpen(true);
-    };
+
 
     const handleSavePushover = async () => {
-        if (!configuringAgent || !user?.id) return;
+        if (!configuringAgent) return;
         setIsSavingPushover(true);
 
         try {
@@ -496,26 +501,75 @@ export default function DynamicLeadsDashboard() {
                         pushover_user_key: pushoverUserKey,
                         pushover_api_token: pushoverApiToken,
                         pushover_template: pushoverTemplate,
+                        pushover_notification_filter: pushoverFilter,
                         make_webhook_url: makeWebhookUrl
                     }
                 })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to update config');
-            }
-
-            const { agent: updatedAgent } = await response.json();
+            if (!response.ok) throw new Error('Failed to update config');
 
             // Update local state
-            setAgents(agents.map(a => a.id === configuringAgent.id ? updatedAgent : a));
+            setAgents(agents.map(a => a.id === configuringAgent.id ? {
+                ...a,
+                pushover_user_key: pushoverUserKey,
+                pushover_api_token: pushoverApiToken,
+                pushover_template: pushoverTemplate,
+                pushover_notification_filter: pushoverFilter,
+                make_webhook_url: makeWebhookUrl
+            } : a));
 
             setIsPushoverModalOpen(false);
-            setInfoModal({ isOpen: true, type: 'success', message: 'Configuración de notificación actualizada.' });
+            setInfoModal({ isOpen: true, type: 'success', message: 'Configuración guardada correctamente.' });
         } catch (error) {
-            console.error('Error saving config:', error);
-            setInfoModal({ isOpen: true, type: 'error', message: 'Error al ahorrar la configuración.' });
+            console.error('Error saving pushover config:', error);
+            setInfoModal({ isOpen: true, type: 'error', message: 'Error al guardar la configuración.' });
+        } finally {
+            setIsSavingPushover(false);
+        }
+    };
+
+    const handleDisconnectPushover = async () => {
+        if (!configuringAgent) return;
+        if (!confirm('¿Estás seguro de que deseas desconectar y borrar la configuración de notificaciones para este agente?')) return;
+
+        setIsSavingPushover(true);
+        try {
+            const response = await fetch('/api/agents/update-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    agentId: configuringAgent.id,
+                    config: {
+                        pushover_user_key: null,
+                        pushover_api_token: null,
+                        pushover_template: null,
+                        pushover_notification_filter: 'ALL',
+                        make_webhook_url: makeWebhookUrl // Keep Make URL if set, or should we clear it too? User said "Pushover", let's keep Make independent or clear both? User said "Disconnect/Clear Config", usually implies notifications. Let's clear notification fields specifically.
+                    }
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to clear config');
+
+            // Update local state
+            setAgents(agents.map(a => a.id === configuringAgent.id ? {
+                ...a,
+                pushover_user_key: undefined,
+                pushover_api_token: undefined,
+                pushover_template: undefined,
+                pushover_notification_filter: 'ALL'
+            } : a));
+
+            setPushoverUserKey('');
+            setPushoverApiToken('');
+            setPushoverTemplate('Nuevo Lead: {nombre}. Tel: {telefono}');
+            setPushoverFilter('ALL');
+
+            setInfoModal({ isOpen: true, type: 'success', message: 'Configuración de notificaciones eliminada.' });
+        } catch (error) {
+            console.error('Error disconnecting pushover:', error);
+            setInfoModal({ isOpen: true, type: 'error', message: 'Error al desconectar.' });
         } finally {
             setIsSavingPushover(false);
         }
@@ -1412,16 +1466,35 @@ export default function DynamicLeadsDashboard() {
                                         />
                                     </div>
                                     <div className="space-y-3">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtro de Notificaciones</label>
+                                        <div className="relative">
+                                            <select
+                                                value={pushoverFilter}
+                                                onChange={(e) => setPushoverFilter(e.target.value as any)}
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium transition-all appearance-none cursor-pointer"
+                                            >
+                                                <option value="ALL">Notificar Todos los Leads</option>
+                                                <option value="POTENTIAL_ONLY">Solo Leads Potenciales</option>
+                                                <option value="NO_POTENTIAL_ONLY">Solo Leads No Potenciales</option>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                                <ChevronsRight size={14} className="rotate-90" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Formato de Mensaje</label>
                                         <textarea
                                             value={pushoverTemplate}
                                             onChange={(e) => setPushoverTemplate(e.target.value)}
-                                            placeholder="Ej: Nuevo Lead: {nombre}. Tel: {telefono}"
+                                            placeholder="Ej: Nuevo Lead: *{nombre}*. Tel: {telefono}"
                                             rows={2}
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all"
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
                                         />
                                         <p className="text-[9px] text-gray-400 font-medium leading-relaxed">
-                                            Puedes usar variables como <span className="text-brand-primary font-bold">{"{nombre}"}</span> y <span className="text-brand-primary font-bold">{"{telefono}"}</span> para personalizar la notificación.
+                                            Variables: <span className="text-brand-primary font-bold">{"{nombre}"}</span>, <span className="text-brand-primary font-bold">{"{telefono}"}</span>, <span className="text-brand-primary font-bold">{"{resumen}"}</span>. <br />
+                                            Usa <span className="font-bold">*asteriscos*</span> para poner texto en <span className="font-bold">negrita</span>.
                                         </p>
                                     </div>
                                 </div>
@@ -1438,20 +1511,32 @@ export default function DynamicLeadsDashboard() {
                                             value={makeWebhookUrl}
                                             onChange={(e) => setMakeWebhookUrl(e.target.value)}
                                             placeholder="https://hook.us1.make.com/..."
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all"
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
                                         />
                                         <p className="text-[9px] text-amber-500 font-medium">Reenviará el paquete de datos original a esta URL.</p>
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={handleSavePushover}
-                                    disabled={isSavingPushover}
-                                    className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
-                                >
-                                    {isSavingPushover ? <RefreshCw size={14} className="animate-spin" /> : null}
-                                    {isSavingPushover ? 'Guardando...' : 'Guardar Configuración'}
-                                </button>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={handleSavePushover}
+                                        disabled={isSavingPushover}
+                                        className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {isSavingPushover ? <RefreshCw size={14} className="animate-spin" /> : null}
+                                        {isSavingPushover ? 'Guardando...' : 'Guardar Configuración'}
+                                    </button>
+
+                                    {configuringAgent.pushover_user_key && (
+                                        <button
+                                            onClick={handleDisconnectPushover}
+                                            disabled={isSavingPushover}
+                                            className="w-full py-3 bg-red-50 text-red-500 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50"
+                                        >
+                                            Desconectar y Limpiar
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
