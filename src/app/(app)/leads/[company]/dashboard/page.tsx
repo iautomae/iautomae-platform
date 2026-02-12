@@ -87,7 +87,8 @@ export default function DynamicLeadsDashboard() {
         const { data: leadData, error } = await supabase
             .from('leads')
             .select('*')
-            .eq('agent_id', activeAgentId) // Strict filtering by active agent
+            .eq('agent_id', activeAgentId) // Filter by active agent
+            .eq('user_id', user.id)         // STRICT: Filter by current user
             .order('created_at', { ascending: false });
 
         if (leadData && !error) {
@@ -134,21 +135,45 @@ export default function DynamicLeadsDashboard() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(15);
 
-    // Load Real Leads when moving to LEADS view
+    // Lead filtering and pagination logic
+    const filteredLeads = realLeads.filter(lead => {
+        if (filterStatus === 'ALL') return true;
+        return lead.status === filterStatus;
+    });
+
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const paginatedLeads = filteredLeads.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
+
+    // Modal States
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, name: string } | null>(null);
+    const [deleteInput, setDeleteInput] = useState('');
+    const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
+
+    // Safety check: ensure activeAgentId belongs to the current user
+    React.useEffect(() => {
+        if (activeAgentId && agents.length > 0 && !isLoading) {
+            const isOwned = agents.some(a => a.id === activeAgentId);
+            if (!isOwned) {
+                console.warn('❌ Attempted access to unowned agent:', activeAgentId);
+                setActiveAgentId(null);
+                setView('GALLERY');
+            }
+        }
+    }, [activeAgentId, agents, isLoading]);
+
+    // Fetch leads effect with realtime subscription
     React.useEffect(() => {
         if (view === 'LEADS' && user?.id) {
             fetchLeads();
 
-            // Subscribe to real-time changes
             const channel = supabase
                 .channel('realtime-leads-dashboard')
                 .on(
                     'postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'leads' },
-                    () => {
-                        console.log('🔔 New lead received, refreshing dashboard...');
-                        fetchLeads();
-                    }
+                    () => fetchLeads()
                 )
                 .on(
                     'postgres_changes',
@@ -163,20 +188,29 @@ export default function DynamicLeadsDashboard() {
         }
     }, [view, user, fetchLeads]);
 
-    const filteredLeads = realLeads.filter(lead => {
-        if (filterStatus === 'ALL') return true;
-        return lead.status === filterStatus;
-    });
+    // Load Real Agents
+    React.useEffect(() => {
+        if (!user?.id) {
+            setAgents([]);
+            return;
+        }
+        async function loadAgents() {
+            setIsLoading(true);
+            const { data, error } = await supabase
+                .from('agentes')
+                .select('*')
+                .eq('user_id', user!.id)
+                .order('created_at', { ascending: true });
+            if (data && !error) {
+                setAgents(data);
+            } else {
+                setAgents([]);
+            }
+            setIsLoading(false);
+        }
+        loadAgents();
+    }, [user]);
 
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const paginatedLeads = filteredLeads.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
-
-    // Custom Modals State
-    const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, name: string } | null>(null);
-    const [deleteInput, setDeleteInput] = useState('');
-    const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
     // Import Modal States
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importKey, setImportKey] = useState('');
@@ -211,23 +245,6 @@ export default function DynamicLeadsDashboard() {
         pushoverFilter !== (configuringAgent.pushover_notification_filter || 'ALL') ||
         makeWebhookUrl !== (configuringAgent.make_webhook_url || '')
     );
-
-    // ... (Keep existing loadAgents useEffect and handlers)
-
-    // Load Real Agents
-    React.useEffect(() => {
-        if (!user?.id) return;
-        async function loadAgents() {
-            const { data, error } = await supabase
-                .from('agentes')
-                .select('*')
-                .eq('user_id', user!.id)
-                .order('created_at', { ascending: true });
-            if (data && !error) setAgents(data);
-            setIsLoading(false);
-        }
-        loadAgents();
-    }, [user]);
 
     const handleOpenPushover = (agent: Agent) => {
         setConfiguringAgent(agent);
@@ -303,7 +320,8 @@ export default function DynamicLeadsDashboard() {
             const { error: leadsError, count: leadsCount } = await supabase
                 .from('leads')
                 .delete({ count: 'exact' })
-                .eq('agent_id', id);
+                .eq('agent_id', id)
+                .eq('user_id', user!.id);
 
             if (leadsError) {
                 console.error('Error deleting leads:', leadsError);
@@ -315,7 +333,8 @@ export default function DynamicLeadsDashboard() {
             const { error: agentError } = await supabase
                 .from('agentes')
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .eq('user_id', user!.id);
 
             if (agentError) {
                 console.error('Error deleting agent:', agentError);
