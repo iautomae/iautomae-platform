@@ -38,6 +38,10 @@ interface Agent {
     description?: string;
     prompt?: string;
     eleven_labs_agent_id?: string;
+    pushover_user_key?: string;
+    pushover_api_token?: string;
+    pushover_template?: string;
+    make_webhook_url?: string;
     updated_at: string;
     created_at: string;
 }
@@ -150,7 +154,7 @@ export default function DynamicLeadsDashboard() {
 
     // Pushover States
     const [isPushoverModalOpen, setIsPushoverModalOpen] = useState(false);
-    const [configuringAgent, setConfiguringAgent] = useState<any | null>(null);
+    const [configuringAgent, setConfiguringAgent] = useState<Agent | null>(null);
     const [pushoverUserKey, setPushoverUserKey] = useState('');
     const [pushoverApiToken, setPushoverApiToken] = useState('');
     const [pushoverTemplate, setPushoverTemplate] = useState('Nuevo Lead: {nombre}. Tel: {telefono}');
@@ -376,7 +380,7 @@ export default function DynamicLeadsDashboard() {
         }
     };
 
-    const handleOpenPushover = (agent: any) => {
+    const handleOpenPushover = (agent: Agent) => {
         setConfiguringAgent(agent);
         setPushoverUserKey(agent.pushover_user_key || '');
         setPushoverApiToken(agent.pushover_api_token || '');
