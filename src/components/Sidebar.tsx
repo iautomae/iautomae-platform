@@ -8,7 +8,6 @@ import {
   Users,
   Settings,
   LogOut,
-  LogOut,
   Upload,
   Shield,
   Calendar,
