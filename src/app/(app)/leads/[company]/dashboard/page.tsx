@@ -648,8 +648,8 @@ export default function DynamicLeadsDashboard() {
                     ) : (
                         <button
                             onClick={() => {
-                                // Select first agent by default if none selected
-                                const agentToConfig = agents.length > 0 ? agents[0] : null;
+                                // Select active agent
+                                const agentToConfig = agents.find(a => a.id === activeAgentId);
                                 if (agentToConfig) {
                                     handleOpenPushover(agentToConfig);
                                 } else {
@@ -1502,7 +1502,7 @@ export default function DynamicLeadsDashboard() {
                                 <div className="space-y-4 pt-4">
                                     <h4 className="text-[11px] font-bold text-amber-500 uppercase tracking-widest border-b border-amber-50 pb-2 flex items-center gap-2">
                                         <RotateCcw size={12} />
-                                        Puente con Make.com (Temporal)
+                                        WEBHOOK
                                     </h4>
                                     <div className="space-y-3">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Make Webhook URL</label>
