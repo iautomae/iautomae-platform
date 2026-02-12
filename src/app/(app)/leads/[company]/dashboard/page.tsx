@@ -780,25 +780,25 @@ export default function DynamicLeadsDashboard() {
                     <div className="flex flex-col h-full overflow-hidden">
                         {/* Filter Buttons */}
                         <div className="flex items-center justify-between mb-4 shrink-0">
-                            {/* Status Filters */}
-                            <div className="flex bg-gray-200/50 p-1 rounded-xl shadow-sm border border-gray-100/50">
+                            {/* Filter Tabs with Counts */}
+                            <div className="flex bg-gray-100/50 p-1 rounded-xl">
                                 <button
                                     onClick={() => { setFilterStatus('ALL'); setCurrentPage(1); }}
                                     className={cn(
                                         "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
-                                        filterStatus === 'ALL' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                                        filterStatus === 'ALL' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
                                     )}
                                 >
-                                    Todos
+                                    Todos ({realLeads.length})
                                 </button>
                                 <button
                                     onClick={() => { setFilterStatus('NO_POTENCIAL'); setCurrentPage(1); }}
                                     className={cn(
                                         "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
-                                        filterStatus === 'NO_POTENCIAL' ? "bg-white text-red-700 shadow-sm" : "text-gray-500 hover:text-red-600"
+                                        filterStatus === 'NO_POTENCIAL' ? "bg-white text-red-600 shadow-sm" : "text-gray-500 hover:text-red-500"
                                     )}
                                 >
-                                    No Potencial
+                                    No Potencial ({realLeads.filter(l => l.status === 'NO_POTENCIAL').length})
                                 </button>
                                 <button
                                     onClick={() => { setFilterStatus('POTENCIAL'); setCurrentPage(1); }}
@@ -807,7 +807,7 @@ export default function DynamicLeadsDashboard() {
                                         filterStatus === 'POTENCIAL' ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-emerald-600"
                                     )}
                                 >
-                                    Potencial
+                                    Potencial ({realLeads.filter(l => l.status === 'POTENCIAL').length})
                                 </button>
                             </div>
 
