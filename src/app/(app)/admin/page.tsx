@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
 import { useRouter } from "next/navigation";
-import { Users, Shield, Check, X, Settings, ExternalLink, Search, RefreshCw, Star } from "lucide-react";
+import { Users, Shield, Settings, ExternalLink, Search, RefreshCw, Star } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -20,6 +20,16 @@ interface ClientProfile {
     brand_logo?: string;
     created_at: string;
     agent_count?: number;
+}
+
+interface ProfileRawResponse {
+    id: string;
+    email: string;
+    role: string;
+    features: Record<string, boolean>;
+    brand_logo?: string;
+    created_at: string;
+    agentes: { count: number }[];
 }
 
 export default function SuperAdminDashboard() {
@@ -46,7 +56,7 @@ export default function SuperAdminDashboard() {
         if (profile?.role === "admin") {
             fetchClients();
         }
-    }, [profile, profileLoading]);
+    }, [profile, profileLoading, router]);
 
     const fetchClients = async () => {
         setIsLoading(true);
@@ -58,7 +68,8 @@ export default function SuperAdminDashboard() {
 
             if (error) throw error;
 
-            const formatted = data.map((p: any) => ({
+            const typedData = (data as unknown) as ProfileRawResponse[];
+            const formatted = typedData.map((p) => ({
                 ...p,
                 agent_count: p.agentes?.[0]?.count || 0
             }));

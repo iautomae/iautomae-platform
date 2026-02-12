@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard,
   Users,
   Settings,
   LogOut,
@@ -12,7 +10,7 @@ import {
   Shield,
   Calendar,
   MapPin,
-  HelpCircle
+  type LucideIcon
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,7 +22,16 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const PRIMARY_MENU = [
+interface MenuItem {
+  id: MainCategory;
+  icon: LucideIcon;
+  label: string;
+  href?: string;
+  permission?: string;
+  feature?: string;
+}
+
+const PRIMARY_MENU: MenuItem[] = [
   { id: 'admin' as MainCategory, icon: Shield, label: 'Admin', href: '/admin', permission: 'admin_only' },
   { id: 'leads' as MainCategory, icon: Users, label: 'Agentes', href: '/leads', permission: 'has_leads_access' },
   { id: 'calendar' as MainCategory, icon: Calendar, label: 'Calendario', href: '/calendar', feature: 'calendar' },
@@ -55,13 +62,13 @@ export function Sidebar() {
   // Filter menu based on permissions AND features
   const visibleMenu = PRIMARY_MENU.filter(item => {
     // Admin only routes
-    if ((item as any).permission === 'admin_only') {
+    if (item.permission === 'admin_only') {
       return profile?.role === 'admin';
     }
 
     // Feature-flagged routes
-    if ((item as any).feature) {
-      return profile?.features?.[(item as any).feature] === true;
+    if (item.feature) {
+      return profile?.features?.[item.feature] === true;
     }
 
     // Standard permission routes
