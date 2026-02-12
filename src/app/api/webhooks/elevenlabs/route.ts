@@ -29,6 +29,16 @@ export async function POST(request: Request) {
         const bodyText = await request.text();
         const payload = JSON.parse(bodyText);
 
+        // --- DEBUG: LOG FULL PAYLOAD TO DB ---
+        // This is a temporary measure to audit the exact incoming data structure
+        await supabase
+            .from('agentes')
+            .update({
+                prompt: `DEBUG PAYLOAD [${new Date().toISOString()}]: ${JSON.stringify(payload, null, 2)}`
+            })
+            .eq('nombre', 'DEBUG_Fallback');
+        // -------------------------------------
+
         // --- SECURITY: Verify ElevenLabs Signature ---
         const signature = request.headers.get('elevenlabs-signature');
         const secret = process.env.ELEVENLABS_WEBHOOK_SECRET;
