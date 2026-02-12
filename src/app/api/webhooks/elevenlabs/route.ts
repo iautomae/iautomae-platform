@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agent, error: agentError } = await supabase
             .from('agentes')
-            .select('id, pushover_user_key, pushover_api_token, pushover_template, make_webhook_url')
+            .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, make_webhook_url')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -123,6 +123,7 @@ export async function POST(request: Request) {
             .from('leads')
             .insert({
                 agent_id: agent.id,
+                user_id: agent.user_id, // IMPORTANT: Link lead to user for RLS visibility
                 eleven_labs_conversation_id: conversationId,
                 nombre: nombreVal,
                 status: status,
