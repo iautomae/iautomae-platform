@@ -142,13 +142,21 @@ export async function POST(request: Request) {
             'No proveído';
 
         // Prioritize data_collection (which is often in the prompt's language, e.g., Spanish)
-        const rawSummary = dataCollection.resumen_conversacion?.value ||
-            dataCollection.resumen_de_llamada?.value ||
-            dataCollection.resumen?.value ||
-            dataCollection.Resumen?.value ||
-            dataCollection.summary?.value ||
-            analysis.transcript_summary ||
-            'Sin resumen';
+        // Find any key that looks like a summary
+        let rawSummary = 'Sin resumen';
+        const summaryKeys = Object.keys(dataCollection);
+        const foundSummaryKey = summaryKeys.find(key =>
+            key.toLowerCase().includes('resumen') ||
+            key.toLowerCase().includes('summary') ||
+            key.toLowerCase().includes('conclusion') ||
+            key.toLowerCase().includes('analisis')
+        );
+
+        if (foundSummaryKey && dataCollection[foundSummaryKey]?.value) {
+            rawSummary = dataCollection[foundSummaryKey].value;
+        } else {
+            rawSummary = analysis.transcript_summary || 'Sin resumen';
+        }
 
         const resumenVal = summaryPrefix + rawSummary;
 
