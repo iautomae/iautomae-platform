@@ -173,7 +173,17 @@ export async function POST(request: Request) {
 
         if (insertError) {
             console.error('Error saving lead:', insertError);
-            return NextResponse.json({ error: 'Error saving lead' }, { status: 500 });
+
+            // --- BLACK BOX LOGGING ---
+            // Save error to DEBUG_Fallback agent so we can read it via script
+            await supabase
+                .from('agentes')
+                .update({
+                    prompt: `ERROR LOG [${new Date().toISOString()}]: ${JSON.stringify(insertError)}. Payload Agent ID: ${elAgentId}. Conv ID: ${conversationId}`
+                })
+                .eq('nombre', 'DEBUG_Fallback');
+
+            return NextResponse.json({ error: 'Error saving lead', details: insertError }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });
