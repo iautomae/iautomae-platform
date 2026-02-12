@@ -1505,7 +1505,7 @@ export default function DynamicLeadsDashboard() {
                                         WEBHOOK
                                     </h4>
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Make Webhook URL</label>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">WEBHOOK</label>
                                         <input
                                             type="text"
                                             value={makeWebhookUrl}
