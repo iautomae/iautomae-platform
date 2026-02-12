@@ -780,8 +780,8 @@ export default function DynamicLeadsDashboard() {
                     <div className="flex flex-col h-full overflow-hidden">
                         {/* Filter Buttons */}
                         <div className="flex items-center justify-between mb-4 shrink-0">
-                            {/* Filter Tabs with Counts */}
-                            <div className="flex bg-gray-100/50 p-1 rounded-xl">
+                            {/* Filter Tabs with Counts - Defined Container */}
+                            <div className="flex bg-gray-200/50 p-1 rounded-xl shadow-sm border border-gray-100/50">
                                 <button
                                     onClick={() => { setFilterStatus('ALL'); setCurrentPage(1); }}
                                     className={cn(
@@ -798,7 +798,7 @@ export default function DynamicLeadsDashboard() {
                                         filterStatus === 'NO_POTENCIAL' ? "bg-white text-red-600 shadow-sm" : "text-gray-500 hover:text-red-500"
                                     )}
                                 >
-                                    No Potencial ({realLeads.filter(l => l.status === 'NO_POTENCIAL').length})
+                                    No Aptos ({realLeads.filter(l => l.status === 'NO_POTENCIAL').length})
                                 </button>
                                 <button
                                     onClick={() => { setFilterStatus('POTENCIAL'); setCurrentPage(1); }}
@@ -807,7 +807,7 @@ export default function DynamicLeadsDashboard() {
                                         filterStatus === 'POTENCIAL' ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-emerald-600"
                                     )}
                                 >
-                                    Potencial ({realLeads.filter(l => l.status === 'POTENCIAL').length})
+                                    Aptos ({realLeads.filter(l => l.status === 'POTENCIAL').length})
                                 </button>
                             </div>
 
@@ -1300,7 +1300,7 @@ export default function DynamicLeadsDashboard() {
                         />
 
                         {/* Panel */}
-                        <div className="relative w-full max-w-md bg-white h-full shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col border-l border-gray-100">
+                        <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col border-l border-gray-100">
                             {/* Header */}
                             <div className="p-6 border-b border-gray-100 bg-gray-50/50 space-y-4">
                                 <div className="flex items-center justify-between">
