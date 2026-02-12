@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 // crypto is available in Node.js environment
 import crypto from 'crypto';
 
 export async function POST(request: Request) {
+    // Determine which key to use
+    // Using service role key allows bypassing RLS policies
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+    // Create a new client instance for this request
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     try {
         const bodyText = await request.text();
         const payload = JSON.parse(bodyText);
