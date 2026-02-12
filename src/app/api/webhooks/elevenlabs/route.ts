@@ -20,6 +20,7 @@ export async function POST(request: Request) {
         pushover_user_key: string | null;
         pushover_api_token: string | null;
         pushover_template: string | null;
+        pushover_title: string | null;
         pushover_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
         make_webhook_url: string | null;
     };
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
-            .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, pushover_notification_filter, make_webhook_url')
+            .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
                     pushover_user_key: null,
                     pushover_api_token: null,
                     pushover_template: null,
+                    pushover_title: null,
                     pushover_notification_filter: null,
                     make_webhook_url: null
                 };
@@ -178,6 +180,7 @@ export async function POST(request: Request) {
 
             if (shouldNotify) {
                 const messageTemplate = finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
+                const messageTitle = finalAgent.pushover_title || 'Nuevo Lead Detectado';
 
                 // Replace variables
                 let message = messageTemplate
@@ -196,7 +199,7 @@ export async function POST(request: Request) {
                         token: finalAgent.pushover_api_token,
                         user: finalAgent.pushover_user_key,
                         message: message,
-                        title: 'Nuevo Lead Detectado',
+                        title: messageTitle,
                         html: 1 // Enable HTML parsing
                     })
                 }).catch(err => console.error('Pushover error:', err));

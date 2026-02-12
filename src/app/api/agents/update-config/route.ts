@@ -24,6 +24,7 @@ export async function POST(request: Request) {
                 pushover_api_token: config.pushover_api_token || null,
                 pushover_template: config.pushover_template || null,
                 pushover_notification_filter: config.pushover_notification_filter || 'ALL',
+                pushover_title: config.pushover_title || null,
                 make_webhook_url: config.make_webhook_url || null
             })
             .eq('id', agentId)

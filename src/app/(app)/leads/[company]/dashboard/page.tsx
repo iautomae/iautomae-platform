@@ -41,6 +41,7 @@ interface Agent {
     pushover_user_key?: string;
     pushover_api_token?: string;
     pushover_template?: string;
+    pushover_title?: string;
     pushover_notification_filter?: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY';
     make_webhook_url?: string;
     updated_at: string;
@@ -192,6 +193,7 @@ export default function DynamicLeadsDashboard() {
     const [pushoverUserKey, setPushoverUserKey] = useState('');
     const [pushoverApiToken, setPushoverApiToken] = useState('');
     const [pushoverTemplate, setPushoverTemplate] = useState('Nuevo Lead: {nombre}. Tel: {telefono}');
+    const [pushoverTitle, setPushoverTitle] = useState('');
     const [pushoverFilter, setPushoverFilter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL');
     const [makeWebhookUrl, setMakeWebhookUrl] = useState('');
     const [isSavingPushover, setIsSavingPushover] = useState(false);
@@ -218,6 +220,7 @@ export default function DynamicLeadsDashboard() {
         setPushoverUserKey(agent.pushover_user_key || '');
         setPushoverApiToken(agent.pushover_api_token || '');
         setPushoverTemplate(agent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}');
+        setPushoverTitle(agent.pushover_title || '');
         setPushoverFilter(agent.pushover_notification_filter || 'ALL');
         setMakeWebhookUrl(agent.make_webhook_url || '');
         setIsPushoverModalOpen(true);
@@ -501,6 +504,7 @@ export default function DynamicLeadsDashboard() {
                         pushover_user_key: pushoverUserKey,
                         pushover_api_token: pushoverApiToken,
                         pushover_template: pushoverTemplate,
+                        pushover_title: pushoverTitle,
                         pushover_notification_filter: pushoverFilter,
                         make_webhook_url: makeWebhookUrl
                     }
@@ -515,6 +519,7 @@ export default function DynamicLeadsDashboard() {
                 pushover_user_key: pushoverUserKey,
                 pushover_api_token: pushoverApiToken,
                 pushover_template: pushoverTemplate,
+                pushover_title: pushoverTitle,
                 pushover_notification_filter: pushoverFilter,
                 make_webhook_url: makeWebhookUrl
             } : a));
@@ -544,6 +549,7 @@ export default function DynamicLeadsDashboard() {
                         pushover_user_key: null,
                         pushover_api_token: null,
                         pushover_template: null,
+                        pushover_title: null,
                         pushover_notification_filter: 'ALL',
                         make_webhook_url: makeWebhookUrl // Keep Make URL if set, or should we clear it too? User said "Pushover", let's keep Make independent or clear both? User said "Disconnect/Clear Config", usually implies notifications. Let's clear notification fields specifically.
                     }
@@ -558,12 +564,14 @@ export default function DynamicLeadsDashboard() {
                 pushover_user_key: undefined,
                 pushover_api_token: undefined,
                 pushover_template: undefined,
+                pushover_title: undefined,
                 pushover_notification_filter: 'ALL'
             } : a));
 
             setPushoverUserKey('');
             setPushoverApiToken('');
             setPushoverTemplate('Nuevo Lead: {nombre}. Tel: {telefono}');
+            setPushoverTitle('');
             setPushoverFilter('ALL');
 
             setInfoModal({ isOpen: true, type: 'success', message: 'Configuración de notificaciones eliminada.' });
@@ -1481,6 +1489,17 @@ export default function DynamicLeadsDashboard() {
                                                 <ChevronsRight size={14} className="rotate-90" />
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Título de Notificación</label>
+                                        <input
+                                            type="text"
+                                            value={pushoverTitle}
+                                            onChange={(e) => setPushoverTitle(e.target.value)}
+                                            placeholder="Ej: Nuevo Lead Detectado"
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
+                                        />
                                     </div>
 
                                     <div className="space-y-3">
