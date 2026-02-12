@@ -34,7 +34,6 @@ export async function POST(request: Request) {
         if (secret) {
             if (!signature) {
                 console.error('Missing ElevenLabs signature');
-                // return NextResponse.json({ error: 'Missing signature' }, { status: 401 }); // DISABLED FORDEBUG
             }
 
             // Calculate HMAC
@@ -45,31 +44,28 @@ export async function POST(request: Request) {
                 console.error('❌ Invalid ElevenLabs signature');
                 console.log(`Expected: ${digest}, Received: ${signature}`);
                 console.log(`Secret Used (first 4 chars): ${secret.substring(0, 4)}...`);
-                // return NextResponse.json({ error: 'Invalid signature' }, { status: 401 }); // DISABLED FOR DEBUG
+            } else {
+                console.log('✅ ElevenLabs Signature Verified');
             }
-            console.log('✅ ElevenLabs Signature Verified (or ignored for debug)');
         } else {
             console.warn('⚠️ ELEVENLABS_WEBHOOK_SECRET not set. Webhook is insecure.');
         }
-        // ---------------------------------------------
 
-        console.log('Received ElevenLabs Webhook:', JSON.stringify(payload, null, 2));
+        console.log('Received ElevenLabs Webhook Type:', payload.type);
 
-        const conversationId = payload.conversation_id;
-        const elAgentId = payload.agent_id;
-        const transcript = payload.transcript || [];
-        const analysis = payload.analysis || {};
+        // --- ENHANCED EXTRACTION (Support for new nested format) ---
+        // ElevenLabs Unified Payload: data { agent_id, conversation_id, analysis, ... }
+        const webData = payload.data || {};
+        const conversationId = webData.conversation_id || payload.conversation_id;
+        const elAgentId = webData.agent_id || payload.agent_id;
+        const transcript = webData.transcript || payload.transcript || [];
+        const analysis = webData.analysis || payload.analysis || {};
         const dataCollection = analysis.data_collection_results || {};
+        // ------------------------------------------------------------
 
-        // --- DEBUG: LOG FULL PAYLOAD TO DB ---
-        // This helps us see the structure of text-based agents
-        await supabase
-            .from('agentes')
-            .update({
-                personalidad: `PAYLOAD LOG [${new Date().toISOString()}]: ${JSON.stringify(payload)}`
-            })
-            .eq('nombre', 'DEBUG_Fallback');
-        // ------------------------------------
+        // --- DEBUG: LOG KEY FIELDS ---
+        console.log(`Debug Mapping - AgentID: ${elAgentId}, ConvID: ${conversationId}`);
+        // -----------------------------
 
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
@@ -109,7 +105,6 @@ export async function POST(request: Request) {
         }
 
         // 2. Extract specific data points
-        // Nombres posibles observados: 'nombre', 'Nombre', 'nombre_cliente'
         const nombreVal = dataCollection.nombre?.value ||
             dataCollection.Nombre?.value ||
             dataCollection.nombre_cliente?.value ||
@@ -119,8 +114,8 @@ export async function POST(request: Request) {
             dataCollection.teléfono?.value ||
             'No proveído';
 
-        // Resúmenes posibles observados: 'resumen_de_llamada', 'resumen', 'Resumen', 'resumen_conversacion'
-        const rawSummary = dataCollection.resumen_de_llamada?.value ||
+        const rawSummary = analysis.transcript_summary ||
+            dataCollection.resumen_de_llamada?.value ||
             dataCollection.resumen?.value ||
             dataCollection.Resumen?.value ||
             dataCollection.resumen_conversacion?.value ||
@@ -133,7 +128,6 @@ export async function POST(request: Request) {
             dataCollection.calificación?.value ||
             'PENDIENTE';
 
-        // Normalize status
         let status: 'POTENCIAL' | 'NO_POTENCIAL' = 'POTENCIAL';
         if (calificacionVal.toUpperCase().includes('NO') || calificacionVal.toUpperCase().includes('RECHAZADO')) {
             status = 'NO_POTENCIAL';
@@ -141,12 +135,11 @@ export async function POST(request: Request) {
 
         // 3. Bridge to Make.com
         if (finalAgent.make_webhook_url) {
-            console.log('Forwarding to Make.com:', finalAgent.make_webhook_url);
             fetch(finalAgent.make_webhook_url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            }).catch(err => console.error('Make.com forward error:', err));
+            }).catch(err => console.error('Make.com error:', err));
         }
 
         // 4. Send Pushover Notification
@@ -154,7 +147,6 @@ export async function POST(request: Request) {
             let message = finalAgent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}';
             message = message.replace(/{nombre}/g, nombreVal).replace(/{telefono}/g, phoneVal);
 
-            console.log('Sending Pushover notification...');
             fetch('https://api.pushover.net/1/messages.json', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -172,7 +164,7 @@ export async function POST(request: Request) {
             .from('leads')
             .insert({
                 agent_id: finalAgent.id,
-                user_id: finalAgent.user_id, // IMPORTANT: Link lead to user for RLS visibility
+                user_id: finalAgent.user_id,
                 eleven_labs_conversation_id: conversationId,
                 nombre: nombreVal,
                 status: status,
@@ -184,8 +176,6 @@ export async function POST(request: Request) {
         if (insertError) {
             console.error('Error saving lead:', insertError);
 
-            // --- BLACK BOX LOGGING ---
-            // Save error to DEBUG_Fallback agent so we can read it via script
             await supabase
                 .from('agentes')
                 .update({
