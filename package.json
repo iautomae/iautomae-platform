@@ -12,6 +12,7 @@
     "@elevenlabs/react": "^0.14.0",
     "@supabase/supabase-js": "^2.93.3",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.4",
     "eslint-config-next": "^15.1.7",
     "lucide-react": "^0.563.0",
     "next": "^15.1.7",

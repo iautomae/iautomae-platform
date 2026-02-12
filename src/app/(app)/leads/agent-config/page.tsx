@@ -20,8 +20,7 @@ import {
     Loader2,
     MessageSquare,
     RotateCcw,
-    Trash2,
-    Bell
+    Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -98,13 +97,6 @@ export default function AgentConfigPage() {
     const [isEditingNombre, setIsEditingNombre] = useState(false);
     const [isEditingPersonalidad, setIsEditingPersonalidad] = useState(false);
     const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
-    const [isPushoverModalOpen, setIsPushoverModalOpen] = useState(false);
-
-    // Pushover & Make States
-    const [pushoverUserKey, setPushoverUserKey] = useState('');
-    const [pushoverApiToken, setPushoverApiToken] = useState('');
-    const [pushoverTemplate, setPushoverTemplate] = useState('Nuevo Lead: {nombre}. Tel: {telefono}');
-    const [makeWebhookUrl, setMakeWebhookUrl] = useState('');
     const [fileToDelete, setFileToDelete] = useState<number | null>(null);
     const [showDeleteNumberModal, setShowDeleteNumberModal] = useState(false);
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
@@ -171,11 +163,8 @@ export default function AgentConfigPage() {
                 setElevenLabsAgentId(data.eleven_labs_agent_id || '');
                 setAssociatedPhone(data.phone_number || null);
                 setAssociatedPhoneId(data.phone_number_id || null);
-                // Load Pushover & Make
-                setPushoverUserKey(data.pushover_user_key || '');
-                setPushoverApiToken(data.pushover_api_token || '');
-                setPushoverTemplate(data.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}');
-                setMakeWebhookUrl(data.make_webhook_url || '');
+                setAssociatedPhone(data.phone_number || null);
+                setAssociatedPhoneId(data.phone_number_id || null);
 
                 // Load persisted knowledge files
                 if (data.knowledge_files && Array.isArray(data.knowledge_files)) {
@@ -201,11 +190,7 @@ export default function AgentConfigPage() {
                 phone_number: associatedPhone,
                 phone_number_id: associatedPhoneId,
                 knowledge_files: files,
-                user_id: user.id,
-                pushover_user_key: pushoverUserKey,
-                pushover_api_token: pushoverApiToken,
-                pushover_template: pushoverTemplate,
-                make_webhook_url: makeWebhookUrl
+                user_id: user.id
             };
 
             let error;
@@ -906,13 +891,6 @@ export default function AgentConfigPage() {
                             Probar Chat
                         </button>
                         <button
-                            onClick={() => setIsPushoverModalOpen(true)}
-                            className="px-4 py-3 bg-brand-primary text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:brightness-110 hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 shadow-md shadow-brand-primary/20"
-                        >
-                            <Bell size={16} />
-                            Notificación Push
-                        </button>
-                        <button
                             onClick={handleSave}
                             disabled={isSaving}
                             className={cn(
@@ -1229,94 +1207,6 @@ export default function AgentConfigPage() {
                         >
                             Entendido
                         </button>
-                    </div>
-                </div>
-            )}
-            {/* Pushover Configuration Modal */}
-            {isPushoverModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                                    <Bell size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900">Configurar Notificación Push</h3>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Conecta Pushover y puente con Make.com</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setIsPushoverModalOpen(false)}
-                                className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh]">
-                            <div className="space-y-4">
-                                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50 pb-2">Pushover (Recomendado)</h4>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key</label>
-                                    <input
-                                        type="text"
-                                        value={pushoverUserKey}
-                                        onChange={(e) => { setPushoverUserKey(e.target.value); setHasUnsavedChanges(true); }}
-                                        placeholder="Ingresa tu User Key de Pushover"
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
-                                    />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">API Token / App Token</label>
-                                    <input
-                                        type="password"
-                                        value={pushoverApiToken}
-                                        onChange={(e) => { setPushoverApiToken(e.target.value); setHasUnsavedChanges(true); }}
-                                        placeholder="Ingresa tu App Token"
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
-                                    />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Formato de Mensaje</label>
-                                    <textarea
-                                        value={pushoverTemplate}
-                                        onChange={(e) => { setPushoverTemplate(e.target.value); setHasUnsavedChanges(true); }}
-                                        placeholder="Ej: Nuevo Lead: {nombre}. Tel: {telefono}"
-                                        rows={2}
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all"
-                                    />
-                                    <p className="text-[9px] text-gray-400 font-medium leading-relaxed">
-                                        Puedes usar variables como <span className="text-brand-primary font-bold">{"{nombre}"}</span> y <span className="text-brand-primary font-bold">{"{telefono}"}</span> para personalizar la notificación.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4 pt-4">
-                                <h4 className="text-[11px] font-bold text-amber-500 uppercase tracking-widest border-b border-amber-50 pb-2 flex items-center gap-2">
-                                    <RotateCcw size={12} />
-                                    Puente con Make.com (Temporal)
-                                </h4>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Make Webhook URL</label>
-                                    <input
-                                        type="text"
-                                        value={makeWebhookUrl}
-                                        onChange={(e) => { setMakeWebhookUrl(e.target.value); setHasUnsavedChanges(true); }}
-                                        placeholder="https://hook.us1.make.com/..."
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all"
-                                    />
-                                    <p className="text-[9px] text-amber-500 font-medium">Reenviará el paquete de datos original a esta URL.</p>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => setIsPushoverModalOpen(false)}
-                                className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10"
-                            >
-                                Entendido
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
