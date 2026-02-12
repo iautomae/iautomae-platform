@@ -1484,26 +1484,12 @@ export default function DynamicLeadsDashboard() {
                                                 />
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                                        Respuesta para el Cliente
-                                                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[8px] text-blue-500 border border-blue-100 font-bold uppercase tracking-tighter">
-                                                            Usa {"{nombre}"} para personalizar
-                                                        </span>
-                                                    </label>
-                                                    <div className="flex flex-wrap gap-1 justify-end max-w-[50%]">
-                                                        {['👋', '😊', '🤝', '🙌', '🔥', '✨', '🚀', '✅', '📞', '💬', '📍', '📩', '📱', '🎯'].map(emoji => (
-                                                            <button
-                                                                key={emoji}
-                                                                onClick={() => setPushoverReplyMessage(prev => prev + emoji)}
-                                                                className="w-7 h-7 flex items-center justify-center bg-gray-50 hover:bg-gray-100 rounded-lg text-sm transition-all hover:scale-110 active:scale-90"
-                                                            >
-                                                                {emoji}
-                                                            </button>
-                                                        ))}
-                                                    </div>
+                                            <div className="space-y-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Respuesta para el Cliente</label>
+                                                    <span className="text-[9px] text-blue-500 font-medium">Usa {"{nombre}"} para personalizar</span>
                                                 </div>
+
                                                 <div className="relative">
                                                     <textarea
                                                         value={pushoverReplyMessage}
@@ -1513,6 +1499,19 @@ export default function DynamicLeadsDashboard() {
                                                         className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all leading-relaxed"
                                                     />
                                                 </div>
+
+                                                <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                    {['👋', '😊', '🤝', '🙌', '🔥', '✨', '🚀', '✅', '📞', '💬', '📍', '📩', '📱', '🎯'].map(emoji => (
+                                                        <button
+                                                            key={emoji}
+                                                            onClick={() => setPushoverReplyMessage(prev => prev + emoji)}
+                                                            className="w-8 h-8 flex items-center justify-center bg-white hover:bg-gray-100 rounded-lg text-base shadow-sm transition-all hover:scale-110 active:scale-90 border border-gray-100"
+                                                        >
+                                                            {emoji}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
                                                 <div className="p-4 bg-gray-900 rounded-2xl border border-gray-800 shadow-inner">
                                                     <div className="flex items-center gap-2 mb-3">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
