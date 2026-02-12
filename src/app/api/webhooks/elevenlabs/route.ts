@@ -219,11 +219,14 @@ export async function POST(request: Request) {
                 const messageTemplate = finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
                 const messageTitle = finalAgent.pushover_title || 'Nuevo Lead Detectado';
 
-                // Replace variables
+                // Replace variables (both plain and URL-encoded for links)
                 let message = messageTemplate
                     .replace(/{nombre}/g, nombreVal)
+                    .replace(/%7Bnombre%7D/g, encodeURIComponent(nombreVal))
                     .replace(/{telefono}/g, phoneVal)
-                    .replace(/{resumen}/g, resumenVal);
+                    .replace(/%7Btelefono%7D/g, encodeURIComponent(phoneVal))
+                    .replace(/{resumen}/g, resumenVal)
+                    .replace(/%7Bresumen%7D/g, encodeURIComponent(resumenVal));
 
                 // Convert markdown bold to HTML bold for Pushover
                 // Handles *text* -> <b>text</b>
