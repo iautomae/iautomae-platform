@@ -18,13 +18,11 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
-import { useUI } from '@/hooks/useUI';
+import { useUI, type MainCategory } from '@/hooks/useUI';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
-
-type MainCategory = 'dashboard' | 'leads' | 'settings';
 
 const PRIMARY_MENU = [
   { id: 'admin' as MainCategory, icon: Shield, label: 'Admin', href: '/admin', permission: 'admin_only' },
