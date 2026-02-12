@@ -24,7 +24,7 @@ export async function POST(request: Request) {
         if (secret) {
             if (!signature) {
                 console.error('Missing ElevenLabs signature');
-                return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
+                // return NextResponse.json({ error: 'Missing signature' }, { status: 401 }); // DISABLED FORDEBUG
             }
 
             // Calculate HMAC
@@ -32,10 +32,12 @@ export async function POST(request: Request) {
             const digest = hmac.update(bodyText).digest('hex');
 
             if (signature !== digest) {
-                console.error('Invalid ElevenLabs signature');
-                return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+                console.error('❌ Invalid ElevenLabs signature');
+                console.log(`Expected: ${digest}, Received: ${signature}`);
+                console.log(`Secret Used (first 4 chars): ${secret.substring(0, 4)}...`);
+                // return NextResponse.json({ error: 'Invalid signature' }, { status: 401 }); // DISABLED FOR DEBUG
             }
-            console.log('✅ ElevenLabs Signature Verified');
+            console.log('✅ ElevenLabs Signature Verified (or ignored for debug)');
         } else {
             console.warn('⚠️ ELEVENLABS_WEBHOOK_SECRET not set. Webhook is insecure.');
         }

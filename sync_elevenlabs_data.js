@@ -3,7 +3,7 @@ const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
 
 if (!supabaseUrl || !supabaseKey || !elevenLabsApiKey) {

@@ -343,26 +343,38 @@ export default function DynamicLeadsDashboard() {
                     }
                 } catch { /* detail fetch is optional, agent still gets imported */ }
 
-                const { data, error } = await supabase
-                    .from('agentes')
-                    .insert([{
-                        nombre: elAgent.name || 'Agente Importado',
-                        user_id: user.id,
-                        status: 'active',
-                        personalidad: agentPersonality,
-                        eleven_labs_agent_id: elAgent.agent_id,
-                        prompt: agentPrompt || undefined,
-                        knowledge_files: knowledgeFiles.length > 0 ? knowledgeFiles : undefined,
-                        phone_number: phoneNumber || undefined,
-                        phone_number_id: phoneNumberId || undefined,
-                    }])
+                const importResponse = await fetch('/api/agents/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: user.id,
+                        agent: {
+                            name: elAgent.name || 'Agente Importado',
+                            status: 'active',
+                            personalidad: agentPersonality,
+                            eleven_labs_agent_id: elAgent.agent_id,
+                            prompt: agentPrompt || undefined,
+                            knowledge_files: knowledgeFiles.length > 0 ? knowledgeFiles : undefined,
+                            phone_number: phoneNumber || undefined,
+                            phone_number_id: phoneNumberId || undefined,
+                        }
+                    })
+                });
 
-                    .select()
-                    .single();
-
-                if (data && !error) {
-                    newAgents.push(data);
+                if (importResponse.ok) {
+                    const { agent: importedAgent } = await importResponse.json();
+                    if (importedAgent) {
+                        // Check if we already have this agent in state to avoid duplicates if updating
+                        const exists = newAgents.find(a => a.id === importedAgent.id);
+                        if (!exists) {
+                            newAgents.push(importedAgent);
+                        }
+                    }
+                } else {
+                    console.error('Failed to import agent via API');
                 }
+
+
             }
 
             setAgents(prev => [...prev, ...newAgents]);
