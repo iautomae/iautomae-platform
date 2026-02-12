@@ -116,10 +116,15 @@ export async function POST(request: Request) {
         }
 
         // 2. Extract specific data points
-        const nombreVal = dataCollection.nombre?.value ||
+        let nombreVal = dataCollection.nombre?.value ||
             dataCollection.Nombre?.value ||
             dataCollection.nombre_cliente?.value ||
             'Desconocido';
+
+        // Helper to format name to Title Case (e.g. "LUISIN" -> "Luisin", "juan perez" -> "Juan Perez")
+        if (nombreVal && nombreVal !== 'Desconocido') {
+            nombreVal = nombreVal.toLowerCase().replace(/(?:^|\s)\S/g, function (a) { return a.toUpperCase(); });
+        }
 
         const phoneVal =
             // 1. WhatsApp ID (Verified from payload: metadata.whatsapp.whatsapp_user_id)
