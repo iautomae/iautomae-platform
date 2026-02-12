@@ -8,7 +8,12 @@ import {
   Users,
   Settings,
   LogOut,
-  Upload
+  LogOut,
+  Upload,
+  Shield,
+  Calendar,
+  MapPin,
+  HelpCircle
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -23,7 +28,10 @@ function cn(...inputs: ClassValue[]) {
 type MainCategory = 'dashboard' | 'leads' | 'settings';
 
 const PRIMARY_MENU = [
+  { id: 'admin' as MainCategory, icon: Shield, label: 'Admin', href: '/admin', permission: 'admin_only' },
   { id: 'leads' as MainCategory, icon: Users, label: 'Agentes', href: '/leads', permission: 'has_leads_access' },
+  { id: 'calendar' as MainCategory, icon: Calendar, label: 'Calendario', href: '/calendar', feature: 'calendar' },
+  { id: 'gps' as MainCategory, icon: MapPin, label: 'Rutas GPS', href: '/gps', feature: 'gps' },
 ];
 
 export function Sidebar() {
@@ -47,10 +55,24 @@ export function Sidebar() {
 
   if (loading || !user || pathname === '/login' || pathname === '/pending-approval') return null;
 
-  // Filter menu based on permissions
+  // Filter menu based on permissions AND features
   const visibleMenu = PRIMARY_MENU.filter(item => {
-    if (!item.permission) return true;
-    return profile?.[item.permission as keyof typeof profile] === true;
+    // Admin only routes
+    if ((item as any).permission === 'admin_only') {
+      return profile?.role === 'admin';
+    }
+
+    // Feature-flagged routes
+    if ((item as any).feature) {
+      return profile?.features?.[(item as any).feature] === true;
+    }
+
+    // Standard permission routes
+    if (item.permission) {
+      return profile?.[item.permission as keyof typeof profile] === true;
+    }
+
+    return true;
   });
 
 
@@ -100,9 +122,9 @@ export function Sidebar() {
               key={item.id}
               onClick={() => {
                 setActiveCategory(item.id);
-                if (item.id === 'leads') {
+                if (item.href) {
                   setSubSidebarOpen(false);
-                  router.push('/leads');
+                  router.push(item.href);
                 }
               }}
               className={cn(

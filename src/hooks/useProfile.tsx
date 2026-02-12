@@ -14,6 +14,8 @@ export type Company = {
 export type UserProfile = {
     id: string;
     email: string;
+    role: 'admin' | 'client';
+    features: Record<string, boolean>;
     has_leads_access: boolean;
     brand_logo?: string | null;
     empresa_id: string | null;
@@ -45,6 +47,8 @@ export function useProfile() {
                     setProfile({
                         id: user.id,
                         email: user.email || '',
+                        role: 'client',
+                        features: {},
                         has_leads_access: false,
                         brand_logo: null,
                         empresa_id: null,
