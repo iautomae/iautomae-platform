@@ -52,15 +52,40 @@ export async function POST(request: Request) {
         const dataCollection = analysis.data_collection_results || {};
 
         // 1. Find the local agent ID and notification settings
-        const { data: agent, error: agentError } = await supabase
+        const { data: agentData, error: agentError } = await supabase
             .from('agentes')
             .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, make_webhook_url')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
-        if (agentError || !agent) {
+        let finalAgent = agentData;
+        let summaryPrefix = '';
+
+        if (agentError || !finalAgent) {
             console.error('Agent not found for ElevenLabs ID:', elAgentId, agentError);
-            return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+
+            // --- DEBUG FALLBACK ---
+            console.log('Using debug fallback for ID:', elAgentId);
+            const { data: debugAgent, error: debugError } = await supabase
+                .from('agentes')
+                .select('id, user_id')
+                .eq('nombre', 'DEBUG_Fallback')
+                .single();
+
+            if (debugAgent && !debugError) {
+                console.log('✅ Fallback successful to DEBUG_Fallback.');
+                finalAgent = {
+                    id: debugAgent.id,
+                    user_id: debugAgent.user_id,
+                    pushover_user_key: null,
+                    pushover_api_token: null,
+                    pushover_template: null,
+                    make_webhook_url: null
+                } as any;
+                summaryPrefix = `[MISSING AGENT ID: ${elAgentId}] `;
+            } else {
+                return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+            }
         }
 
         // 2. Extract specific data points
@@ -75,11 +100,13 @@ export async function POST(request: Request) {
             'No proveído';
 
         // Resúmenes posibles observados: 'resumen_de_llamada', 'resumen', 'Resumen', 'resumen_conversacion'
-        const resumenVal = dataCollection.resumen_de_llamada?.value ||
+        const rawSummary = dataCollection.resumen_de_llamada?.value ||
             dataCollection.resumen?.value ||
             dataCollection.Resumen?.value ||
             dataCollection.resumen_conversacion?.value ||
             'Sin resumen';
+
+        const resumenVal = summaryPrefix + rawSummary;
 
         const calificacionVal = dataCollection.calificacion?.value ||
             dataCollection.Calificación?.value ||
@@ -92,10 +119,10 @@ export async function POST(request: Request) {
             status = 'NO_POTENCIAL';
         }
 
-        // 3. Bridge to Make.com (Temporal Transition)
-        if (agent.make_webhook_url) {
-            console.log('Forwarding to Make.com:', agent.make_webhook_url);
-            fetch(agent.make_webhook_url, {
+        // 3. Bridge to Make.com
+        if (finalAgent.make_webhook_url) {
+            console.log('Forwarding to Make.com:', finalAgent.make_webhook_url);
+            fetch(finalAgent.make_webhook_url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -103,8 +130,8 @@ export async function POST(request: Request) {
         }
 
         // 4. Send Pushover Notification
-        if (agent.pushover_user_key && agent.pushover_api_token) {
-            let message = agent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}';
+        if (finalAgent.pushover_user_key && finalAgent.pushover_api_token) {
+            let message = finalAgent.pushover_template || 'Nuevo Lead: {nombre}. Tel: {telefono}';
             message = message.replace(/{nombre}/g, nombreVal).replace(/{telefono}/g, phoneVal);
 
             console.log('Sending Pushover notification...');
@@ -112,8 +139,8 @@ export async function POST(request: Request) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    token: agent.pushover_api_token,
-                    user: agent.pushover_user_key,
+                    token: finalAgent.pushover_api_token,
+                    user: finalAgent.pushover_user_key,
                     message: message,
                     title: 'Nuevo Lead Detectado'
                 })
@@ -124,8 +151,8 @@ export async function POST(request: Request) {
         const { error: insertError } = await supabase
             .from('leads')
             .insert({
-                agent_id: agent.id,
-                user_id: agent.user_id, // IMPORTANT: Link lead to user for RLS visibility
+                agent_id: finalAgent.id,
+                user_id: finalAgent.user_id, // IMPORTANT: Link lead to user for RLS visibility
                 eleven_labs_conversation_id: conversationId,
                 nombre: nombreVal,
                 status: status,
