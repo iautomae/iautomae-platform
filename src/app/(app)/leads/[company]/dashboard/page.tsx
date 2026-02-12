@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, Check, ArrowLeft, MessageSquare, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, Check, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { clsx, type ClassValue } from 'clsx';
@@ -263,14 +263,15 @@ export default function DynamicLeadsDashboard() {
             setDeleteConfirmation(null);
             setDeleteInput('');
             setInfoModal({ isOpen: true, type: 'success', message: 'Agente y sus datos eliminados correctamente.' });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Detailed deletion error:', error);
             setDeleteConfirmation(null);
             setDeleteInput('');
+            const errorMessage = error instanceof Error ? error.message : 'Error al eliminar el agente. Puede que tenga datos protegidos.';
             setInfoModal({
                 isOpen: true,
                 type: 'error',
-                message: error.message || 'Error al eliminar el agente. Puede que tenga datos protegidos.'
+                message: errorMessage
             });
         }
     };
@@ -1309,7 +1310,7 @@ export default function DynamicLeadsDashboard() {
                                         {/* Transcript Content */}
                                         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 relative">
                                             {selectedLead.transcript && selectedLead.transcript.length > 0 ? (
-                                                selectedLead.transcript.map((msg: any, idx: number) => (
+                                                selectedLead.transcript.map((msg: { role: string; message?: string; text?: string; time?: string }, idx: number) => (
                                                     <div key={idx} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
                                                         <div className={cn(
                                                             "px-3 py-2 rounded-lg text-xs max-w-[80%] shadow-sm",
