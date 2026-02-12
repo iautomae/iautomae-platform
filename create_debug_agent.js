@@ -25,7 +25,7 @@ async function createDebugAgent() {
         .from('agentes')
         .insert({
             nombre: 'DEBUG_Fallback',
-            user_id: 'd0e3d2c1-b4a5-4c6d-8e9f-0a1b2c3d4e5f', // Hardcoded safe ID
+            user_id: 'b7f1ad5f-1c4f-4b85-9d69-ae0c1ca643e7', // Valid user_id (Omar's owner)
             eleven_labs_agent_id: 'debug_fallback_id',
             status: 'active'
         })

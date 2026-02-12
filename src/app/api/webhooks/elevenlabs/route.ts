@@ -61,6 +61,16 @@ export async function POST(request: Request) {
         const analysis = payload.analysis || {};
         const dataCollection = analysis.data_collection_results || {};
 
+        // --- DEBUG: LOG FULL PAYLOAD TO DB ---
+        // This helps us see the structure of text-based agents
+        await supabase
+            .from('agentes')
+            .update({
+                personalidad: `PAYLOAD LOG [${new Date().toISOString()}]: ${JSON.stringify(payload)}`
+            })
+            .eq('nombre', 'DEBUG_Fallback');
+        // ------------------------------------
+
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
