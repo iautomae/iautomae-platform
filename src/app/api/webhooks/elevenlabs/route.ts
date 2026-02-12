@@ -1,9 +1,38 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+// crypto is available in Node.js environment
+import crypto from 'crypto';
+
 export async function POST(request: Request) {
     try {
-        const payload = await request.json();
+        const bodyText = await request.text();
+        const payload = JSON.parse(bodyText);
+
+        // --- SECURITY: Verify ElevenLabs Signature ---
+        const signature = request.headers.get('elevenlabs-signature');
+        const secret = process.env.ELEVENLABS_WEBHOOK_SECRET;
+
+        if (secret) {
+            if (!signature) {
+                console.error('Missing ElevenLabs signature');
+                return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
+            }
+
+            // Calculate HMAC
+            const hmac = crypto.createHmac('sha256', secret);
+            const digest = hmac.update(bodyText).digest('hex');
+
+            if (signature !== digest) {
+                console.error('Invalid ElevenLabs signature');
+                return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+            }
+            console.log('✅ ElevenLabs Signature Verified');
+        } else {
+            console.warn('⚠️ ELEVENLABS_WEBHOOK_SECRET not set. Webhook is insecure.');
+        }
+        // ---------------------------------------------
+
         console.log('Received ElevenLabs Webhook:', JSON.stringify(payload, null, 2));
 
         const conversationId = payload.conversation_id;
