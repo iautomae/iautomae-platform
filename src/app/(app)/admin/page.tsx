@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
 import { useRouter } from "next/navigation";
-import { Users, Shield, Settings, ExternalLink, Search, RefreshCw, Star } from "lucide-react";
+import { Shield, Settings, ExternalLink, Search, RefreshCw } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -23,14 +23,12 @@ interface ClientProfile {
     agent_count?: number;
 }
 
-interface ProfileRawResponse {
+interface ProfileQueryResult {
     id: string;
-    email: string;
-    role: string;
-    features: Record<string, boolean>;
-    brand_logo?: string;
-    created_at: string;
-    agentes: { count: number }[];
+    email: string | null;
+    role: string | null;
+    features: Record<string, boolean> | null;
+    brand_logo: string | null;
 }
 
 export default function SuperAdminDashboard() {
@@ -86,12 +84,12 @@ export default function SuperAdminDashboard() {
                 });
             }
 
-            const formatted: ClientProfile[] = (profilesData || []).map((p: any) => ({
+            const formatted: ClientProfile[] = (profilesData as unknown as ProfileQueryResult[] || []).map((p) => ({
                 id: p.id,
                 email: p.email || 'Sin email',
                 role: p.role || 'client',
                 features: p.features || {},
-                brand_logo: p.brand_logo,
+                brand_logo: p.brand_logo || undefined,
                 created_at: '', // Column missing in DB
                 agent_count: counts[p.id] || 0
             }));
