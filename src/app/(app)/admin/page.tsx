@@ -169,7 +169,7 @@ export default function SuperAdminDashboard() {
                 <div>
                     <div className="flex items-center gap-3 mb-1">
                         <Shield className="text-brand-primary w-6 h-6" />
-                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Panel Maestro</h1>
+                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Panel Maestro <span className="text-[10px] text-slate-400 font-mono ml-2">v2.2</span></h1>
                     </div>
                     <p className="text-slate-500 text-sm">Gestiona tus clientes, activa módulos y supervisa la red.</p>
                 </div>
