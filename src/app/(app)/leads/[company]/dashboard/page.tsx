@@ -108,8 +108,8 @@ export default function DynamicLeadsDashboard() {
                     const errJson = await res.json();
                     error = errJson.error;
                 }
-            } catch (e: any) {
-                error = e.message;
+            } catch (e: unknown) {
+                error = e instanceof Error ? e.message : String(e);
             }
         } else {
             const result = await supabase
