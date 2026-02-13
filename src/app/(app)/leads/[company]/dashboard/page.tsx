@@ -678,13 +678,6 @@ export default function DynamicLeadsDashboard() {
                             <>
                                 <button
                                     onClick={() => { setIsImportModalOpen(true); setImportStep('key'); setImportKey(''); setImportKeyError(''); }}
-                                    className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 hover:border-brand-primary hover:text-brand-primary"
-                                >
-                                    <Download size={16} />
-                                    Importar Agentes
-                                </button>
-                                <button
-                                    onClick={() => setIsCreateModalOpen(true)}
                                     className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
                                 >
                                     <Plus size={16} />
@@ -805,7 +798,7 @@ export default function DynamicLeadsDashboard() {
                             )}
                             {/* Add Agent Placeholder */}
                             <div
-                                onClick={() => setIsCreateModalOpen(true)}
+                                onClick={() => { setIsImportModalOpen(true); setImportStep('key'); setImportKey(''); setImportKeyError(''); }}
                                 className="border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center py-6 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group hover:border-brand-mint/50 min-h-[220px]"
                             >
                                 <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 group-hover:text-brand-mint group-hover:bg-brand-mint/5 transition-all mb-3">
