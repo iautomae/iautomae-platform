@@ -128,19 +128,22 @@ export default function SuperAdminDashboard() {
         c.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+
     if (profileLoading || isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+            <div className="flex flex-col items-center justify-center min-h-[400px]">
                 <RefreshCw className="w-8 h-8 text-brand-primary animate-spin mb-4" />
                 <p className="text-slate-500 font-medium">Cargando Panel Maestro...</p>
             </div>
         );
     }
 
+    if (!profile || profile.role !== "admin") return null;
+
     return (
-        <div className="min-h-screen bg-slate-50/50 p-8 ml-24">
+        <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
-            <header className="flex items-center justify-between mb-8">
+            <header className="flex items-center justify-between">
                 <div>
                     <div className="flex items-center gap-3 mb-1">
                         <Shield className="text-brand-primary w-6 h-6" />
@@ -162,7 +165,7 @@ export default function SuperAdminDashboard() {
             </header>
 
             {/* Clients Table */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden transform transition-all duration-500">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -182,7 +185,7 @@ export default function SuperAdminDashboard() {
                                                 {client.brand_logo ? (
                                                     <img src={client.brand_logo} alt="" className="w-full h-full object-cover" />
                                                 ) : (
-                                                    client.email.charAt(0).toUpperCase()
+                                                    (client.email || '?').charAt(0).toUpperCase()
                                                 )}
                                             </div>
                                             <div>
@@ -250,14 +253,12 @@ export default function SuperAdminDashboard() {
                         </tbody>
                     </table>
                 </div>
-                {
-                    filteredClients.length === 0 && (
-                        <div className="p-12 text-center">
-                            <p className="text-slate-400 text-sm">No se encontraron clientes que coincidan con la búsqueda.</p>
-                        </div>
-                    )
-                }
-            </div >
-        </div >
+                {filteredClients.length === 0 && (
+                    <div className="p-12 text-center">
+                        <p className="text-slate-400 text-sm">No se encontraron clientes que coincidan con la búsqueda.</p>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
