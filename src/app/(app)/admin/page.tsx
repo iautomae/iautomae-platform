@@ -267,7 +267,7 @@ export default function SuperAdminDashboard() {
                                                 <Settings size={14} />
                                             </button>
                                             <Link
-                                                href={`/leads/dashboard?view_as=${client.id}`}
+                                                href={`/leads/iautomae/dashboard?view_as=${client.id}`}
                                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary text-[10px] font-bold rounded-lg transition-all hover:text-white"
                                             >
                                                 <ExternalLink size={12} />
