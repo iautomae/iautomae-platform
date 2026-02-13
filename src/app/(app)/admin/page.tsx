@@ -62,18 +62,36 @@ export default function SuperAdminDashboard() {
     const fetchClients = async () => {
         setIsLoading(true);
         try {
-            const { data, error } = await supabase
+            // 1. Fetch Profiles (Basic data only to avoid failures)
+            const { data: profilesData, error: profilesError } = await supabase
                 .from("profiles")
-                .select("*, agentes(count)")
-                .order("created_at", { ascending: false });
+                .select("id, email, role, features, brand_logo");
 
-            if (error) throw error;
+            if (profilesError) throw profilesError;
 
-            const typedData = (data as unknown) as ProfileRawResponse[];
-            const formatted = typedData.map((p) => ({
-                ...p,
-                agent_count: p.agentes?.[0]?.count || 0
+            // 2. Fetch Agent counts manually if possible
+            const { data: agentsData, error: agentsError } = await supabase
+                .from("agentes")
+                .select("empresa_id");
+
+            const counts: Record<string, number> = {};
+            if (!agentsError && agentsData) {
+                agentsData.forEach(agent => {
+                    const id = agent.empresa_id;
+                    if (id) counts[id] = (counts[id] || 0) + 1;
+                });
+            }
+
+            const formatted: ClientProfile[] = (profilesData || []).map((p: any) => ({
+                id: p.id,
+                email: p.email || 'Sin email',
+                role: p.role || 'client',
+                features: p.features || {},
+                brand_logo: p.brand_logo,
+                created_at: '', // Column missing in DB
+                agent_count: counts[p.id] || 0
             }));
+
             setClients(formatted);
         } catch (err) {
             console.error("Error fetching clients:", err);
