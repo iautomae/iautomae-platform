@@ -228,6 +228,7 @@ export default function DynamicLeadsDashboard() {
     const [selectedImports, setSelectedImports] = useState<Set<string>>(new Set());
     const [isLoadingImports, setIsLoadingImports] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [creationProgress, setCreationProgress] = useState(0);
 
     // Pushover States
     const [isPushoverModalOpen, setIsPushoverModalOpen] = useState(false);
@@ -516,6 +517,16 @@ export default function DynamicLeadsDashboard() {
     const confirmImport = async () => {
         if (!user?.id || selectedImports.size === 0) return;
         setIsImporting(true);
+        setCreationProgress(0);
+
+        // Progress simulation interval
+        const progressInterval = setInterval(() => {
+            setCreationProgress(prev => {
+                if (prev >= 95) return prev;
+                const increment = Math.floor(Math.random() * 8) + 2;
+                return Math.min(prev + increment, 95);
+            });
+        }, 400);
 
         try {
             const toImport = importableAgents.filter(a => selectedImports.has(a.agent_id));
@@ -595,22 +606,25 @@ export default function DynamicLeadsDashboard() {
                 } else {
                     console.error('Failed to import agent via API');
                 }
-
-
             }
 
-            setAgents(prev => [...prev, ...newAgents]);
-            setIsImportModalOpen(false);
-            setImportStep('key');
-            setImportKey('');
-            setSelectedImports(new Set());
-            setImportableAgents([]);
-            setInfoModal({ isOpen: true, type: 'success', message: `¡${newAgents.length} agente(s) importado(s) con su configuración completa!` });
+            setCreationProgress(100);
+            setTimeout(() => {
+                setAgents(prev => [...prev, ...newAgents]);
+                setIsImportModalOpen(false);
+                setImportStep('key');
+                setImportKey('');
+                setSelectedImports(new Set());
+                setImportableAgents([]);
+                setInfoModal({ isOpen: true, type: 'success', message: 'Agente creado con éxito.' });
+            }, 500);
         } catch (err) {
             console.error('Import error:', err);
-            setInfoModal({ isOpen: true, type: 'error', message: 'Error al importar agentes.' });
+            setInfoModal({ isOpen: true, type: 'error', message: 'Error al crear el agente.' });
         } finally {
+            clearInterval(progressInterval);
             setIsImporting(false);
+            // Don't reset progress immediately so user can see 100%
         }
     };
 
@@ -1281,34 +1295,53 @@ export default function DynamicLeadsDashboard() {
                                             ) : (
                                                 <>
                                                     <div className="space-y-4">
-                                                        <div className="space-y-2">
-                                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre del Agente</label>
-                                                            <input
-                                                                type="text"
-                                                                value={newAgentName}
-                                                                onChange={(e) => setNewAgentName(e.target.value)}
-                                                                placeholder="Ej: Asistente de Ventas"
-                                                                autoFocus
-                                                                onKeyDown={(e) => e.key === 'Enter' && confirmImport()}
-                                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all font-inter"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-3">
-                                                        <button
-                                                            onClick={() => { setIsImportModalOpen(false); setImportStep('key'); }}
-                                                            className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
-                                                        >
-                                                            Cancelar
-                                                        </button>
-                                                        <button
-                                                            onClick={confirmImport}
-                                                            disabled={isImporting || !newAgentName.trim() || selectedImports.size === 0}
-                                                            className="flex-2 px-8 py-4 bg-brand-mint text-brand-dark rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-brand-mint/10 disabled:opacity-50 flex items-center justify-center gap-2"
-                                                        >
-                                                            {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                                                            Crear Ahora
-                                                        </button>
+                                                        {isImporting ? (
+                                                            <div className="flex flex-col items-center justify-center py-6 gap-5 w-full">
+                                                                <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden border border-gray-100 shadow-inner">
+                                                                    <div
+                                                                        className="bg-brand-mint h-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(44,219,155,0.4)]"
+                                                                        style={{ width: `${creationProgress}%` }}
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center gap-3">
+                                                                    <RefreshCw size={14} className="animate-spin text-brand-mint" />
+                                                                    <p className="text-[11px] text-gray-500 font-bold uppercase tracking-[0.2em]">
+                                                                        Creando Agente... <span className="text-brand-mint">{creationProgress}%</span>
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre del Agente</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={newAgentName}
+                                                                        onChange={(e) => setNewAgentName(e.target.value)}
+                                                                        placeholder="Ej: Asistente de Ventas"
+                                                                        autoFocus
+                                                                        onKeyDown={(e) => e.key === 'Enter' && confirmImport()}
+                                                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all font-inter"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex gap-3 mt-6">
+                                                                    <button
+                                                                        onClick={() => { setIsImportModalOpen(false); setImportStep('key'); }}
+                                                                        className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-100 transition-all"
+                                                                    >
+                                                                        Cancelar
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={confirmImport}
+                                                                        disabled={isImporting || !newAgentName.trim() || selectedImports.size === 0}
+                                                                        className="flex-2 px-8 py-4 bg-brand-mint text-brand-dark rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-brand-mint/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                                                    >
+                                                                        <Plus size={14} />
+                                                                        Crear Ahora
+                                                                    </button>
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </>
                                             )}
