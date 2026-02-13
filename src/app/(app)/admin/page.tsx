@@ -161,7 +161,7 @@ export default function SuperAdminDashboard() {
     if (!profile || profile.role !== "admin") return null;
 
     return (
-        <div className="min-h-screen bg-gray-100/30 animate-in fade-in duration-500">
+        <div className="min-h-screen bg-background animate-in fade-in duration-500">
             <div className="max-w-7xl mx-auto px-6 py-10 space-y-6">
                 {/* Header */}
                 <header className="flex items-center justify-between mb-4">

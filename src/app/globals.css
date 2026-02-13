@@ -14,7 +14,7 @@
   --brand-turquoise-dark: #0d9488;
   --brand-mint: var(--brand-turquoise);
   --brand-mint-dark: var(--brand-turquoise-dark);
-  --background: #f3f4f6;
+  --background: #E5E7EB;
   --foreground: #0f172a;
   --sidebar-bg: #ffffff;
   --card-bg: #ffffff;
@@ -33,7 +33,7 @@
   --color-brand-accent: #2CDB9B;
   --color-brand-warning: #f97316;
   --color-brand-dark: #003327;
-  --color-background: #f3f4f6;
+  --color-background: #E5E7EB;
   --color-sidebar: #ffffff;
   --color-card: #ffffff;
   --font-sans: var(--font-inter);
