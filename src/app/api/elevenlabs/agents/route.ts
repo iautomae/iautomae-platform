@@ -38,7 +38,7 @@ export async function GET() {
         const assignedIds = new Set(assignedAgents.map(a => a.eleven_labs_agent_id));
 
         // 3. Filter and Randomize
-        const availableAgents = elAgents.filter((a: any) => !assignedIds.has(a.agent_id));
+        const availableAgents = elAgents.filter((a: { agent_id: string }) => !assignedIds.has(a.agent_id));
 
         if (availableAgents.length === 0) {
             return NextResponse.json({

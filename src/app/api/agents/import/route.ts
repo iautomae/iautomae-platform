@@ -38,6 +38,26 @@ export async function POST(request: Request) {
                 }, { status: 403 });
             }
 
+            // --- Optional: Rename in ElevenLabs if a new name is provided ---
+            if (agent.name) {
+                try {
+                    const apiKey = process.env.ELEVEN_LABS_API_KEY;
+                    if (apiKey) {
+                        await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agent.eleven_labs_agent_id}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'xi-api-key': apiKey,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ name: agent.name })
+                        });
+                        console.log(`🏷️ Agent renamed in ElevenLabs to: ${agent.name}`);
+                    }
+                } catch (e) {
+                    console.error('Error renaming agent in ElevenLabs:', e);
+                }
+            }
+
             const existingAgentId = existingAgents[0].id;
             console.log(`⚠️ Agent ${agent.name} already exists for this user. Updating first instance (${existingAgentId})...`);
 
@@ -61,6 +81,26 @@ export async function POST(request: Request) {
             if (updateError) throw updateError;
             return NextResponse.json({ success: true, agent: updatedAgent, action: 'updated' });
         } else {
+            // --- Optional: Rename in ElevenLabs if a new name is provided ---
+            if (agent.name) {
+                try {
+                    const apiKey = process.env.ELEVEN_LABS_API_KEY;
+                    if (apiKey) {
+                        await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agent.eleven_labs_agent_id}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'xi-api-key': apiKey,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ name: agent.name })
+                        });
+                        console.log(`🏷️ Agent renamed in ElevenLabs to: ${agent.name}`);
+                    }
+                } catch (e) {
+                    console.error('Error renaming agent in ElevenLabs:', e);
+                }
+            }
+
             // Insert new agent
             const { data: newAgent, error: insertError } = await supabase
                 .from('agentes')

@@ -134,7 +134,7 @@ export default function DynamicLeadsDashboard() {
     // Side Panel State
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
     const [panelTab, setPanelTab] = useState<'SUMMARY' | 'CHAT'>('SUMMARY');
-
+    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', text: string }[]>([]);
 
     // Filter State
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'POTENCIAL' | 'NO_POTENCIAL'>('ALL');
@@ -316,6 +316,30 @@ export default function DynamicLeadsDashboard() {
         setDeleteConfirmation({ id: agent.id, name: agent.nombre || 'Agente sin nombre' });
         setDeleteInput(''); // Reset word check
     };
+
+    const fetchMessages = React.useCallback(async (leadId: string) => {
+        if (!targetUid) return;
+        const { data, error } = await supabase
+            .from('leads')
+            .select('chat_history')
+            .eq('id', leadId)
+            .eq('user_id', targetUid)
+            .single();
+
+        if (error) {
+            console.error('Error fetching chat history:', error);
+            return;
+        }
+
+        if (data?.chat_history) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const history = data.chat_history as any[];
+            setMessages(history.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                text: msg.message || msg.text || ''
+            })));
+        }
+    }, [targetUid]);
 
     const confirmDelete = async () => {
         if (!deleteConfirmation || deleteInput !== 'ELIMINAR') return;
@@ -534,7 +558,7 @@ export default function DynamicLeadsDashboard() {
                     body: JSON.stringify({
                         userId: targetUid,
                         agent: {
-                            name: elAgent.name || 'Agente Importado',
+                            name: newAgentName.trim() || elAgent.name || 'Agente Importado',
                             status: 'active',
                             personalidad: agentPersonality,
                             eleven_labs_agent_id: elAgent.agent_id,
@@ -1180,10 +1204,10 @@ export default function DynamicLeadsDashboard() {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-gray-900">
-                                                {importStep === 'key' ? 'Verificar Acceso' : 'Asignación de Agente'}
+                                                {importStep === 'key' ? 'Verificar Acceso' : 'Crea tu Nuevo Agente'}
                                             </h3>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                                                {importStep === 'key' ? 'Ingresa tu clave de importación' : 'Agente exclusivo reservado para tu empresa'}
+                                                {importStep === 'key' ? 'Ingresa tu clave de acceso' : 'Ingresa el nombre para tu nuevo asistente'}
                                             </p>
                                         </div>
                                     </div>
@@ -1250,33 +1274,24 @@ export default function DynamicLeadsDashboard() {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                                        {importableAgents.map((agent: any) => (
-                                                            <button
-                                                                key={agent.agent_id}
-                                                                onClick={() => toggleImportSelection(agent.agent_id)}
-                                                                className={cn(
-                                                                    "w-full flex items-center gap-4 p-4 rounded-2xl border transition-all text-left",
-                                                                    selectedImports.has(agent.agent_id)
-                                                                        ? "border-brand-mint bg-brand-mint/5"
-                                                                        : "border-gray-100 hover:border-gray-200 bg-white"
-                                                                )}
-                                                            >
-                                                                <div className={cn(
-                                                                    "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all flex-shrink-0",
-                                                                    selectedImports.has(agent.agent_id)
-                                                                        ? "border-brand-mint bg-brand-mint text-white"
-                                                                        : "border-gray-200"
-                                                                )}>
-                                                                    {selectedImports.has(agent.agent_id) && <Check size={14} />}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="font-bold text-gray-900 text-sm truncate">{agent.name || 'Sin nombre'}</p>
-                                                                    <p className="text-[10px] text-gray-400 font-mono truncate">{agent.agent_id}</p>
-                                                                </div>
-                                                            </button>
-                                                        ))}
+                                                    <div className="space-y-4">
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre del Agente</label>
+                                                            <input
+                                                                type="text"
+                                                                value={newAgentName}
+                                                                onChange={(e) => setNewAgentName(e.target.value)}
+                                                                placeholder="Ej: Asistente de Ventas"
+                                                                autoFocus
+                                                                onKeyDown={(e) => e.key === 'Enter' && confirmImport()}
+                                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all font-inter"
+                                                            />
+                                                        </div>
+                                                        <div className="bg-brand-mint/5 p-4 rounded-2xl border border-brand-mint/10">
+                                                            <p className="text-[10px] text-brand-mint font-bold uppercase tracking-widest text-center leading-relaxed">
+                                                                El sistema asignará automáticamente un<br />número y voz exclusiva para este perfil.
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                     <div className="flex gap-3">
                                                         <button
@@ -1287,11 +1302,11 @@ export default function DynamicLeadsDashboard() {
                                                         </button>
                                                         <button
                                                             onClick={confirmImport}
-                                                            disabled={isImporting || selectedImports.size === 0}
+                                                            disabled={isImporting || !newAgentName.trim() || selectedImports.size === 0}
                                                             className="flex-2 px-8 py-4 bg-brand-mint text-brand-dark rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-brand-mint/10 disabled:opacity-50 flex items-center justify-center gap-2"
                                                         >
-                                                            {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-                                                            Confirmar Asignación
+                                                            {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
+                                                            Crear Ahora
                                                         </button>
                                                     </div>
                                                 </>
@@ -1303,6 +1318,7 @@ export default function DynamicLeadsDashboard() {
                         </div>
                     )
                 }
+
                 {/* Unified Side Panel */}
                 {
                     selectedLead && (
@@ -1628,7 +1644,7 @@ export default function DynamicLeadsDashboard() {
                         </div>
                     )
                 }
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
