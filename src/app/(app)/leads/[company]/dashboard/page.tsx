@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, Check, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, Check, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -453,10 +453,11 @@ export default function DynamicLeadsDashboard() {
                 elAgents = data.agents;
             }
 
-            // Filter out agents already imported
-            const existingIds = new Set(agents.map(a => a.eleven_labs_agent_id).filter(Boolean));
-            const available = elAgents.filter(a => !existingIds.has(a.agent_id));
-            setImportableAgents(available);
+            // NEW: The API already filters assigned agents and returns only one random available one.
+            if (elAgents.length > 0) {
+                setSelectedImports(new Set([elAgents[0].agent_id]));
+            }
+            setImportableAgents(elAgents);
         } catch (err) {
             console.error('Error fetching ElevenLabs agents:', err);
             setInfoModal({ isOpen: true, type: 'error', message: 'Error al conectar con ElevenLabs.' });
@@ -1179,10 +1180,10 @@ export default function DynamicLeadsDashboard() {
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-gray-900">
-                                                {importStep === 'key' ? 'Verificar Acceso' : 'Seleccionar Agentes'}
+                                                {importStep === 'key' ? 'Verificar Acceso' : 'Asignación de Agente'}
                                             </h3>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                                                {importStep === 'key' ? 'Ingresa tu clave de importación' : `${importableAgents.length} agente(s) disponible(s)`}
+                                                {importStep === 'key' ? 'Ingresa tu clave de importación' : 'Agente exclusivo reservado para tu empresa'}
                                             </p>
                                         </div>
                                     </div>
@@ -1239,7 +1240,7 @@ export default function DynamicLeadsDashboard() {
                                             ) : importableAgents.length === 0 ? (
                                                 <div className="flex flex-col items-center justify-center py-8 gap-3">
                                                     <CheckCircle2 size={32} className="text-brand-mint" />
-                                                    <p className="text-sm text-gray-500 font-medium">Todos los agentes ya están importados</p>
+                                                    <p className="text-sm text-gray-500 font-medium text-center">No hay más agentes disponibles en este momento.<br /><span className="text-[10px] text-gray-400 uppercase">Contacta con soporte para ampliar tu pool.</span></p>
                                                     <button
                                                         onClick={() => setIsImportModalOpen(false)}
                                                         className="mt-4 px-8 py-3 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all"
@@ -1287,10 +1288,10 @@ export default function DynamicLeadsDashboard() {
                                                         <button
                                                             onClick={confirmImport}
                                                             disabled={isImporting || selectedImports.size === 0}
-                                                            className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
+                                                            className="flex-2 px-8 py-4 bg-brand-mint text-brand-dark rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-brand-mint/10 disabled:opacity-50 flex items-center justify-center gap-2"
                                                         >
-                                                            {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
-                                                            Importar ({selectedImports.size})
+                                                            {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                                                            Confirmar Asignación
                                                         </button>
                                                     </div>
                                                 </>

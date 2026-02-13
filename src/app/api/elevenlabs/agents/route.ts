@@ -1,4 +1,10 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase for backend check
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function GET() {
     const apiKey = process.env.ELEVEN_LABS_API_KEY;
@@ -8,10 +14,9 @@ export async function GET() {
     }
 
     try {
+        // 1. Fetch agents from ElevenLabs
         const response = await fetch('https://api.elevenlabs.io/v1/convai/agents', {
-            headers: {
-                'xi-api-key': apiKey
-            }
+            headers: { 'xi-api-key': apiKey }
         });
 
         if (!response.ok) {
@@ -19,8 +24,40 @@ export async function GET() {
             return NextResponse.json({ error: errorData.detail || 'Error from ElevenLabs' }, { status: response.status });
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        const elData = await response.json();
+        const elAgents = Array.isArray(elData) ? elData : (elData.agents || []);
+
+        // 2. Fetch assigned agents from our DB
+        const { data: assignedAgents, error: dbError } = await supabase
+            .from('agentes')
+            .select('eleven_labs_agent_id')
+            .not('eleven_labs_agent_id', 'is', null);
+
+        if (dbError) throw dbError;
+
+        const assignedIds = new Set(assignedAgents.map(a => a.eleven_labs_agent_id));
+
+        // 3. Filter and Randomize
+        const availableAgents = elAgents.filter((a: any) => !assignedIds.has(a.agent_id));
+
+        if (availableAgents.length === 0) {
+            return NextResponse.json({
+                error: 'No hay agentes disponibles en el pool en este momento.',
+                agents: []
+            }, { status: 404 });
+        }
+
+        // Pick ONE random
+        const randomIndex = Math.floor(Math.random() * availableAgents.length);
+        const selectedAgent = availableAgents[randomIndex];
+
+        // Return as an array of 1 to keep compatibility with frontend if needed, 
+        // or just the single object. I'll return the object but the frontend will handle it.
+        return NextResponse.json({
+            agents: [selectedAgent], // Keep array for UI compatibility
+            total_available: availableAgents.length
+        });
+
     } catch (error) {
         console.error('Proxy Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
