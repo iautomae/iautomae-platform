@@ -9,7 +9,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { action, targetUid, agentId, leadId, data } = body;
+        const { action, targetUid, agentId, data } = body;
 
         if (!action || !targetUid) {
             return NextResponse.json({ error: "Missing action or targetUid" }, { status: 400 });
@@ -82,8 +82,8 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error in impersonation mutation:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
     }
 }

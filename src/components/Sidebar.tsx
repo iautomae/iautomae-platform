@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Users,
@@ -88,9 +90,11 @@ export function Sidebar() {
           onClick={() => document.getElementById('logo-upload')?.click()}
           className="relative z-10 flex items-center gap-3 hover:opacity-80 transition-opacity w-fit"
         >
-          <img
+          <Image
             src={logo}
             alt="Logo"
+            width={40}
+            height={40}
             className="w-10 h-10 rounded-lg object-cover bg-white"
           />
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/logo-container:opacity-100 flex items-center justify-center transition-opacity rounded-lg backdrop-blur-[1px]">

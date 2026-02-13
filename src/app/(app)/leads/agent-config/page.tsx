@@ -168,13 +168,13 @@ export default function AgentConfigPage() {
                     if (res.ok) {
                         const json = await res.json();
                         // Find the specific agent
-                        data = json.agents.find((a: any) => a.id === agentId);
+                        data = json.agents.find((a: { id: string }) => a.id === agentId);
                     } else {
                         const errJson = await res.json();
                         error = errJson.error;
                     }
-                } catch (e: any) {
-                    error = e.message;
+                } catch (e: unknown) {
+                    error = e instanceof Error ? e.message : String(e);
                 }
             } else {
                 const result = await supabase

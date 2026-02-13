@@ -5,10 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     ChevronRight,
-    FileSpreadsheet,
-    History,
-    FileCode,
-    MessageSquare,
     LayoutGrid,
     Settings2,
     Bell,

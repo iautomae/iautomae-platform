@@ -148,7 +148,7 @@ export const NeuralNetworkBackground: React.FC<NeuralNetworkBackgroundProps> = (
             window.removeEventListener('mouseleave', handleMouseLeave);
             cancelAnimationFrame(animationFrameId);
         };
-    }, []);
+    }, [particleCount, connectionDistance, mouseRadius]);
 
     return (
         <canvas
