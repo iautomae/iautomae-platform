@@ -451,13 +451,7 @@ export default function DynamicLeadsDashboard() {
         }
     };
 
-    const handleVerifyImportKey = async () => {
-        const correctKey = process.env.NEXT_PUBLIC_IMPORT_KEY || 'iautomae2025';
-        if (importKey !== correctKey) {
-            setImportKeyError('Clave incorrecta. Inténtalo de nuevo.');
-            return;
-        }
-        setImportKeyError('');
+    const handleFetchAvailableAgents = async () => {
         setIsLoadingImports(true);
         setImportStep('select');
 
@@ -489,6 +483,25 @@ export default function DynamicLeadsDashboard() {
         } finally {
             setIsLoadingImports(false);
         }
+    };
+
+    const handleOpenCreateModal = () => {
+        setIsImportModalOpen(true);
+        setImportStep('select');
+        setImportKey('');
+        setImportKeyError('');
+        setNewAgentName('');
+        handleFetchAvailableAgents();
+    };
+
+    const handleVerifyImportKey = async () => {
+        const correctKey = process.env.NEXT_PUBLIC_IMPORT_KEY || 'iautomae2025';
+        if (importKey !== correctKey) {
+            setImportKeyError('Clave incorrecta. Inténtalo de nuevo.');
+            return;
+        }
+        setImportKeyError('');
+        handleFetchAvailableAgents();
     };
 
     const toggleImportSelection = (agentId: string) => {
@@ -677,7 +690,7 @@ export default function DynamicLeadsDashboard() {
                         {view === 'GALLERY' ? (
                             <>
                                 <button
-                                    onClick={() => { setIsImportModalOpen(true); setImportStep('key'); setImportKey(''); setImportKeyError(''); }}
+                                    onClick={handleOpenCreateModal}
                                     className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
                                 >
                                     <Plus size={16} />
@@ -798,7 +811,7 @@ export default function DynamicLeadsDashboard() {
                             )}
                             {/* Add Agent Placeholder */}
                             <div
-                                onClick={() => { setIsImportModalOpen(true); setImportStep('key'); setImportKey(''); setImportKeyError(''); }}
+                                onClick={handleOpenCreateModal}
                                 className="border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center py-6 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group hover:border-brand-mint/50 min-h-[220px]"
                             >
                                 <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 group-hover:text-brand-mint group-hover:bg-brand-mint/5 transition-all mb-3">
@@ -1279,11 +1292,6 @@ export default function DynamicLeadsDashboard() {
                                                                 onKeyDown={(e) => e.key === 'Enter' && confirmImport()}
                                                                 className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 focus:ring-2 focus:ring-brand-mint/20 focus:border-brand-mint outline-none text-gray-900 font-bold placeholder:text-gray-300 transition-all font-inter"
                                                             />
-                                                        </div>
-                                                        <div className="bg-brand-mint/5 p-4 rounded-2xl border border-brand-mint/10">
-                                                            <p className="text-[10px] text-brand-mint font-bold uppercase tracking-widest text-center leading-relaxed">
-                                                                El sistema asignará automáticamente un<br />número y voz exclusiva para este perfil.
-                                                            </p>
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-3">
