@@ -92,12 +92,35 @@ export default function DynamicLeadsDashboard() {
         }
 
         // setIsLoadingLeads(true);
-        const { data: leadData, error } = await supabase
-            .from('leads')
-            .select('*')
-            .eq('agent_id', activeAgentId) // Filter by active agent
-            .eq('user_id', targetUid)         // STRICT: Filter by target user
-            .order('created_at', { ascending: false });
+        let leadData, error;
+        const isImpersonating = isAdmin && viewAsUid;
+
+        if (isImpersonating) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch(`/api/admin/impersonate/leads?user_id=${targetUid}&agent_id=${activeAgentId}`, {
+                    headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    leadData = json.leads;
+                } else {
+                    const errJson = await res.json();
+                    error = errJson.error;
+                }
+            } catch (e: any) {
+                error = e.message;
+            }
+        } else {
+            const result = await supabase
+                .from('leads')
+                .select('*')
+                .eq('agent_id', activeAgentId) // Filter by active agent
+                .eq('user_id', targetUid)         // STRICT: Filter by target user
+                .order('created_at', { ascending: false });
+            leadData = result.data;
+            error = result.error;
+        }
 
         if (leadData && !error) {
             const formattedLeads: Lead[] = leadData.map((l: {
@@ -129,7 +152,7 @@ export default function DynamicLeadsDashboard() {
             console.error('Error fetching leads:', error);
         }
         // setIsLoadingLeads(false);
-    }, [user, activeAgentId, view]);
+    }, [user, activeAgentId, view, isAdmin, viewAsUid, targetUid]);
 
     // Side Panel State
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -204,20 +227,45 @@ export default function DynamicLeadsDashboard() {
         }
         async function loadAgents() {
             setIsLoading(true);
-            const { data, error } = await supabase
-                .from('agentes')
-                .select('*')
-                .eq('user_id', targetUid)
-                .order('created_at', { ascending: true });
+            let data, error;
+            const isImpersonating = isAdmin && viewAsUid;
+
+            if (isImpersonating) {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(`/api/admin/impersonate/agents?user_id=${targetUid}`, {
+                        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        data = json.agents;
+                    } else {
+                        const errJson = await res.json();
+                        error = errJson.error;
+                    }
+                } catch (e: any) {
+                    error = e.message;
+                }
+            } else {
+                const result = await supabase
+                    .from('agentes')
+                    .select('*')
+                    .eq('user_id', targetUid)
+                    .order('created_at', { ascending: true });
+                data = result.data;
+                error = result.error;
+            }
+
             if (data && !error) {
                 setAgents(data);
             } else {
                 setAgents([]);
+                if (error) console.error('Error fetching agents:', error);
             }
             setIsLoading(false);
         }
         loadAgents();
-    }, [targetUid]);
+    }, [targetUid, isAdmin, viewAsUid]);
 
     // Import Modal States
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -276,30 +324,49 @@ export default function DynamicLeadsDashboard() {
         if (!configuringAgent) return;
         setIsSavingPushover(true);
         try {
-            const { error } = await supabase
-                .from('agentes')
-                .update({
-                    pushover_user_key: pushoverUserKey,
-                    pushover_api_token: pushoverApiToken,
-                    pushover_template: generatedPushoverTemplate,
-                    pushover_title: pushoverTitle,
-                    pushover_notification_filter: pushoverFilter,
-                    make_webhook_url: makeWebhookUrl
-                })
-                .eq('id', configuringAgent.id);
+            const isImpersonating = isAdmin && viewAsUid;
+            const updateData = {
+                pushover_user_key: pushoverUserKey,
+                pushover_api_token: pushoverApiToken,
+                pushover_template: generatedPushoverTemplate,
+                pushover_title: pushoverTitle,
+                pushover_notification_filter: pushoverFilter,
+                make_webhook_url: makeWebhookUrl
+            };
 
-            if (error) throw error;
+            if (isImpersonating) {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch('/api/admin/impersonate/mutate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'SAVE_AGENT_CONFIG',
+                        targetUid,
+                        agentId: configuringAgent.id,
+                        data: updateData
+                    })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Server error');
+                }
+            } else {
+                const { error } = await supabase
+                    .from('agentes')
+                    .update(updateData)
+                    .eq('id', configuringAgent.id);
+
+                if (error) throw error;
+            }
 
             setAgents(prevAgents => prevAgents.map(a =>
                 a.id === configuringAgent.id
                     ? {
                         ...a,
-                        pushover_user_key: pushoverUserKey,
-                        pushover_api_token: pushoverApiToken,
-                        pushover_template: generatedPushoverTemplate,
-                        pushover_title: pushoverTitle,
-                        pushover_notification_filter: pushoverFilter,
-                        make_webhook_url: makeWebhookUrl
+                        ...updateData
                     }
                     : a
             ));
@@ -320,12 +387,40 @@ export default function DynamicLeadsDashboard() {
 
     const fetchMessages = React.useCallback(async (leadId: string) => {
         if (!targetUid) return;
-        const { data, error } = await supabase
-            .from('leads')
-            .select('chat_history')
-            .eq('id', leadId)
-            .eq('user_id', targetUid)
-            .single();
+
+        let data, error;
+        const isImpersonating = isAdmin && viewAsUid;
+
+        if (isImpersonating) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch(`/api/admin/impersonate/leads?user_id=${targetUid}&agent_id=${activeAgentId}`, {
+                    headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    // Find the specific lead in the batch or fetch it specifically. 
+                    // To keep it simple, since we already have leads in state, we can use that.
+                    // But if we want fresh history, we look at the result.
+                    const lead = json.leads.find((l: Lead) => l.id === leadId);
+                    data = lead;
+                } else {
+                    const err = await res.json();
+                    error = err.error;
+                }
+            } catch (e: any) {
+                error = e.message;
+            }
+        } else {
+            const result = await supabase
+                .from('leads')
+                .select('chat_history')
+                .eq('id', leadId)
+                .eq('user_id', targetUid)
+                .single();
+            data = result.data;
+            error = result.error;
+        }
 
         if (error) {
             console.error('Error fetching chat history:', error);
@@ -340,7 +435,7 @@ export default function DynamicLeadsDashboard() {
                 text: msg.message || msg.text || ''
             })));
         }
-    }, [targetUid]);
+    }, [targetUid, isAdmin, viewAsUid, activeAgentId]);
 
     const confirmDelete = async () => {
         if (!deleteConfirmation || deleteInput !== 'ELIMINAR') return;
@@ -348,44 +443,54 @@ export default function DynamicLeadsDashboard() {
 
         try {
             console.log(`🗑️ Starting deletion for agent ${nombre} (${id})...`);
+            const isImpersonating = isAdmin && viewAsUid;
 
-            // 1. Manually delete associated leads first
-            const { error: leadsError, count: leadsCount } = await supabase
-                .from('leads')
-                .delete({ count: 'exact' })
-                .eq('agent_id', id)
-                .eq('user_id', targetUid);
+            if (isImpersonating) {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch('/api/admin/impersonate/mutate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'DELETE_AGENT',
+                        targetUid,
+                        agentId: id
+                    })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Server error');
+                }
+            } else {
+                // 1. Manually delete associated leads first
+                const { error: leadsError, count: leadsCount } = await supabase
+                    .from('leads')
+                    .delete({ count: 'exact' })
+                    .eq('agent_id', id)
+                    .eq('user_id', targetUid);
 
-            if (leadsError) {
-                console.error('Error deleting leads:', leadsError);
-                throw new Error('No se pudieron eliminar los leads asociados.');
+                if (leadsError) {
+                    console.error('Error deleting leads:', leadsError);
+                    throw new Error('No se pudieron eliminar los leads asociados.');
+                }
+                console.log(`✅ Leads deleted: ${leadsCount}`);
+
+                // 2. Delete the agent
+                const { error: agentError } = await supabase
+                    .from('agentes')
+                    .delete()
+                    .eq('id', id)
+                    .eq('user_id', targetUid);
+
+                if (agentError) {
+                    console.error('Error deleting agent:', agentError);
+                    throw new Error('No se pudo eliminar el registro del agente.');
+                }
             }
-            console.log(`✅ Leads deleted: ${leadsCount}`);
 
-            // 2. Delete the agent
-            const { error: agentError } = await supabase
-                .from('agentes')
-                .delete()
-                .eq('id', id)
-                .eq('user_id', targetUid);
-
-            if (agentError) {
-                console.error('Error deleting agent:', agentError);
-                throw new Error('No se pudo eliminar el registro del agente.');
-            }
-
-            // 3. Double check deletion (Verification step)
-            const { data: verifyAgent } = await supabase
-                .from('agentes')
-                .select('id')
-                .eq('id', id)
-                .single();
-
-            if (verifyAgent) {
-                throw new Error('Error crítico: El agente aún aparece en la base de datos tras el borrado.');
-            }
-
-            console.log(`✅ Agent ${nombre} successfully deleted from backend.`);
+            console.log(`✅ Agent ${nombre} successfully deleted.`);
 
             setAgents(agents.filter(a => a.id !== id));
             setDeleteConfirmation(null);
@@ -395,7 +500,7 @@ export default function DynamicLeadsDashboard() {
             console.error('Detailed deletion error:', error);
             setDeleteConfirmation(null);
             setDeleteInput('');
-            const errorMessage = error instanceof Error ? error.message : 'Error al eliminar el agente. Puede que tenga datos protegidos.';
+            const errorMessage = error instanceof Error ? error.message : 'Error al eliminar el agente.';
             setInfoModal({
                 isOpen: true,
                 type: 'error',
@@ -406,16 +511,38 @@ export default function DynamicLeadsDashboard() {
 
     const toggleAgentStatus = async (agent: Agent) => {
         const newStatus = agent.status === 'active' ? 'inactive' : 'active';
-        const { error } = await supabase
-            .from('agentes')
-            .update({ status: newStatus })
-            .eq('id', agent.id);
+        try {
+            const isImpersonating = isAdmin && viewAsUid;
+            if (isImpersonating) {
+                const { data: { session } } = await supabase.auth.getSession();
+                const res = await fetch('/api/admin/impersonate/mutate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session?.access_token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'TOGGLE_AGENT_STATUS',
+                        targetUid,
+                        agentId: agent.id,
+                        data: { status: newStatus }
+                    })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Server error');
+                }
+            } else {
+                const { error } = await supabase
+                    .from('agentes')
+                    .update({ status: newStatus })
+                    .eq('id', agent.id);
+                if (error) throw error;
+            }
 
-        if (!error) {
             setAgents(agents.map(a => a.id === agent.id ? { ...a, status: newStatus } : a));
-        } else {
+        } catch (error) {
             console.error('Error updating status:', error);
-            // If the error is about missing column, we notify the user later
             setInfoModal({ isOpen: true, type: 'error', message: 'Error al actualizar el estado.' });
         }
     };
@@ -790,7 +917,7 @@ export default function DynamicLeadsDashboard() {
 
                                     <div className="flex gap-1.5 mt-auto">
                                         <Link
-                                            href={`/leads/agent-config?id=${agent.id}`}
+                                            href={`/leads/agent-config?id=${agent.id}${viewAsUid ? `&view_as=${viewAsUid}` : ''}`}
                                             className="flex-[0.8] bg-gray-50 text-gray-600 py-3 rounded-xl text-[8px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all text-center flex flex-col items-center justify-center gap-1 border border-gray-100 hover:border-brand-primary shadow-sm"
                                         >
                                             <Settings size={14} />
@@ -839,7 +966,7 @@ export default function DynamicLeadsDashboard() {
                             {/* Filter Buttons */}
                             <div className="flex items-center justify-between mb-4 shrink-0">
                                 {/* Filter Tabs with Counts - Defined Container */}
-                                <div className="flex bg-gray-200/50 p-1 rounded-xl shadow-sm border border-gray-100/50">
+                                <div className="flex bg-gray-300/60 p-1 rounded-xl shadow-sm border border-gray-100/30">
                                     <button
                                         onClick={() => { setFilterStatus('ALL'); setCurrentPage(1); }}
                                         className={cn(
@@ -870,7 +997,7 @@ export default function DynamicLeadsDashboard() {
                                 </div>
 
                                 {/* Placeholder Buttons */}
-                                <div className="flex bg-gray-100/50 p-1 rounded-xl">
+                                <div className="flex bg-gray-200/50 p-1 rounded-xl">
                                     {[1, 2, 3].map((num) => (
                                         <button
                                             key={num}

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 import { clsx, type ClassValue } from 'clsx';
@@ -74,6 +75,7 @@ Si el usuario indica ser cliente antiguo, tiene una queja o solicita hablar dire
 
 export default function AgentConfigPage() {
     const { user } = useAuth();
+    const { profile } = useProfile();
     const searchParams = useSearchParams();
     const agentId = searchParams.get('id');
 
@@ -100,6 +102,11 @@ export default function AgentConfigPage() {
     const [fileToDelete, setFileToDelete] = useState<number | null>(null);
     const [showDeleteNumberModal, setShowDeleteNumberModal] = useState(false);
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
+
+    // Impersonation State
+    const viewAsUid = searchParams.get('view_as');
+    const isAdmin = profile?.role === 'admin';
+    const targetUid = (isAdmin && viewAsUid) ? viewAsUid : user?.id;
 
     // Chat State
     // Chat State with SDK
@@ -144,16 +151,40 @@ export default function AgentConfigPage() {
 
     // Load Data
     React.useEffect(() => {
-        if (!user) return;
+        if (!user || !targetUid) return;
 
         async function loadAgent() {
             if (!agentId) return;
 
-            const { data, error } = await supabase
-                .from('agentes')
-                .select('*')
-                .eq('id', agentId)
-                .single();
+            let data, error;
+            const isImpersonating = isAdmin && viewAsUid;
+
+            if (isImpersonating) {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(`/api/admin/impersonate/agents?user_id=${targetUid}`, {
+                        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        // Find the specific agent
+                        data = json.agents.find((a: any) => a.id === agentId);
+                    } else {
+                        const errJson = await res.json();
+                        error = errJson.error;
+                    }
+                } catch (e: any) {
+                    error = e.message;
+                }
+            } else {
+                const result = await supabase
+                    .from('agentes')
+                    .select('*')
+                    .eq('id', agentId)
+                    .single();
+                data = result.data;
+                error = result.error;
+            }
 
             if (data && !error) {
                 setNombre(data.nombre || '');
@@ -163,18 +194,18 @@ export default function AgentConfigPage() {
                 setElevenLabsAgentId(data.eleven_labs_agent_id || '');
                 setAssociatedPhone(data.phone_number || null);
                 setAssociatedPhoneId(data.phone_number_id || null);
-                setAssociatedPhone(data.phone_number || null);
-                setAssociatedPhoneId(data.phone_number_id || null);
 
                 // Load persisted knowledge files
                 if (data.knowledge_files && Array.isArray(data.knowledge_files)) {
                     setFiles(data.knowledge_files);
                 }
+            } else if (error) {
+                console.error('Error loading agent:', error);
             }
         }
 
         loadAgent();
-    }, [user, agentId]);
+    }, [user, agentId, targetUid, isAdmin, viewAsUid]);
 
     const handleSave = async () => {
         if (!user) return;
@@ -251,14 +282,37 @@ export default function AgentConfigPage() {
             }
 
             if (agentId && agentId !== '1' && agentId !== '2') {
-                // Update existing agent (don't update user_id)
+                // Update existing agent
+                const isImpersonating = isAdmin && viewAsUid;
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { user_id, ...updateData } = agentData;
-                const { error: updateError } = await supabase
-                    .from('agentes')
-                    .update(updateData)
-                    .eq('id', agentId);
-                error = updateError;
+
+                if (isImpersonating) {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch('/api/admin/impersonate/mutate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`
+                        },
+                        body: JSON.stringify({
+                            action: 'SAVE_AGENT_CONFIG',
+                            targetUid,
+                            agentId,
+                            data: updateData
+                        })
+                    });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Server error');
+                    }
+                } else {
+                    const { error: updateError } = await supabase
+                        .from('agentes')
+                        .update(updateData)
+                        .eq('id', agentId);
+                    error = updateError;
+                }
             } else {
                 // Insert new agent
                 const { error: insertError } = await supabase
@@ -534,7 +588,7 @@ export default function AgentConfigPage() {
         <div className="max-w-7xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-6 pt-4">
             {/* Navigation Header */}
             <div className="flex items-center">
-                <Link href="/leads" className="flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors group">
+                <Link href={`/leads/iautomae/dashboard${viewAsUid ? `?view_as=${viewAsUid}` : ''}`} className="flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors group">
                     <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                     <span className="text-xs font-medium uppercase tracking-widest">Volver</span>
                 </Link>
