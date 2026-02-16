@@ -971,7 +971,7 @@ export default function DynamicLeadsDashboard() {
                                         <thead className="bg-white sticky top-0 z-10 shadow-sm">
                                             <tr>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-900 border-b border-gray-200 uppercase tracking-tight bg-gray-50/50 w-[100px]">Fecha</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[150px]">Nombre</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[220px]">Nombre</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[130px]">Teléfono</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50">Resumen Llamada</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[70px] text-center">Ver Chat</th>
@@ -988,7 +988,7 @@ export default function DynamicLeadsDashboard() {
                                                     <td className="px-4 py-1.5 border-b border-gray-100">
                                                         <div className="flex flex-col">
                                                             <span className="text-[10px] font-medium text-gray-700">
-                                                                {new Date(lead.date).toLocaleDateString()}
+                                                                {lead.date}
                                                             </span>
                                                             <span className="text-[9px] text-gray-400">
                                                                 {lead.time}
@@ -996,7 +996,7 @@ export default function DynamicLeadsDashboard() {
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100">
-                                                        <span className="text-xs font-medium text-gray-700 block truncate max-w-[150px]" title={lead.name}>
+                                                        <span className="text-xs font-medium text-gray-700 block truncate max-w-[220px]" title={lead.name}>
                                                             {lead.name}
                                                         </span>
                                                     </td>
