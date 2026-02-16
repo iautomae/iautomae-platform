@@ -288,7 +288,13 @@ export default function DynamicLeadsDashboard() {
     // Usage Modal State
     const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
     const [selectedAgentForUsage, setSelectedAgentForUsage] = useState<Agent | null>(null);
-    const [usageStats, setUsageStats] = useState({ total_tokens: 0, total_cost: 0, total_calls: 0 });
+    const [usageStats, setUsageStats] = useState<{
+        total_tokens: number;
+        total_cost: number;
+        total_calls: number;
+        daily_breakdown: { date: string; tokens: number; calls: number }[];
+    }>({ total_tokens: 0, total_cost: 0, total_calls: 0, daily_breakdown: [] });
+    const [usageFilter, setUsageFilter] = useState<'DAYS_7' | 'DAYS_30'>('DAYS_30');
     const [isLoadingUsage, setIsLoadingUsage] = useState(false);
 
     const fetchUsageStats = async (agent: Agent) => {
@@ -301,31 +307,58 @@ export default function DynamicLeadsDashboard() {
             // Note: In a real large-scale app, we would use an RPC function or a separate stats table
             const { data: leads, error } = await supabase
                 .from('leads')
-                .select('tokens_billed')
+                .select('created_at, tokens_billed')
                 .eq('agent_id', agent.id);
 
             if (error) throw error;
 
-            const totalTokens = leads?.reduce((sum, lead) => sum + (lead.tokens_billed || 0), 0) || 0;
-            // Cost calculation: (Total Tokens / 1000) * Cost Per Unit (e.g. 0.05 per 1k)
-            // But wait, the prompt implies "tokens_billed" * cost_per_unit directly? 
-            // Usually LLM pricing is per 1k tokens. Let's assume unit cost is per 1 Token for simplicity based on previous prompt context,
-            // OR standardized to 1k. 
-            // User said: "cuanto se está usando de los tokens... si eleven labs me cobra 0.03, yo cobrarle 0.06".
-            // Let's assume cost_per_unit is per 1000 tokens as is standard.
-            // Actually, let's keep it simple: Total Tokens * Unit Cost. 
-            // If unit cost is 0.05, that's expensive for 1 token. It's likely 0.05 per 1k.
-            // Let's hardcode a divider of 1000 for display if needed, or just show tokens.
-            // For now, let's just show Total Tokens and a "Estimated Cost" based on the agent's internal cost reference (if we had one for billing).
-            // The DB has `token_cost_per_unit`. Let's assume it's per 1000 tokens.
+            if (error) throw error;
 
-            const costPer1k = 0.05; // Default reference
-            const estimatedCost = (totalTokens / 1000) * costPer1k; // Simple ref
+            // Initialize aggregation map
+            const dailyData = new Map<string, { tokens: number; calls: number }>();
+            const todayStr = new Date().toISOString().split('T')[0];
+            let todayTokens = 0;
+            let todayCalls = 0;
+
+            // Fill map with empty data for last 30 days
+            for (let i = 0; i < 30; i++) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toISOString().split('T')[0];
+                dailyData.set(dateStr, { tokens: 0, calls: 0 });
+            }
+
+            // Aggregate actual data
+            leads?.forEach(lead => {
+                const dateStr = new Date(lead.created_at).toISOString().split('T')[0];
+                if (dailyData.has(dateStr)) {
+                    const current = dailyData.get(dateStr)!;
+                    current.tokens += (lead.tokens_billed || 0);
+                    current.calls += 1;
+                    dailyData.set(dateStr, current);
+                }
+
+                // Calculate Today's stats specifically
+                if (dateStr === todayStr) {
+                    todayTokens += (lead.tokens_billed || 0);
+                    todayCalls += 1;
+                }
+            });
+
+            // Convert to array and sort by date
+            const breakdown = Array.from(dailyData.entries())
+                .map(([date, stats]) => ({ date, ...stats }))
+                .sort((a, b) => a.date.localeCompare(b.date));
+
+            // Cost calculation: $0.30 per 1k tokens
+            const costPer1k = 0.30;
+            const estimatedCost = (todayTokens / 1000) * costPer1k;
 
             setUsageStats({
-                total_tokens: totalTokens,
+                total_tokens: todayTokens,
                 total_cost: estimatedCost,
-                total_calls: leads?.length || 0
+                total_calls: todayCalls,
+                daily_breakdown: breakdown
             });
 
         } catch (err) {
@@ -1824,74 +1857,224 @@ export default function DynamicLeadsDashboard() {
                     )
                 }
 
-                {/* Usage Statistics Modal */}
+                {/* Usage Statistics Modal - Redesigned */}
                 {
                     isUsageModalOpen && selectedAgentForUsage && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-                            <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
-                                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
-                                            <Activity size={20} />
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                            <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+                                {/* Header with Brand Gradient */}
+                                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-brand-primary-darker to-brand-primary text-white">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shadow-inner">
+                                            <Activity size={24} />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-gray-900 leading-tight">Estadísticas de Uso</h3>
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{selectedAgentForUsage.nombre}</p>
+                                            <h3 className="font-bold text-2xl leading-tight">Resumen de Uso</h3>
+                                            <p className="text-xs text-brand-accent font-bold uppercase tracking-widest opacity-90">{selectedAgentForUsage.nombre}</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setIsUsageModalOpen(false)}
-                                        className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                                        className="p-2 hover:bg-white/20 rounded-xl transition-colors text-white/80 hover:text-white"
                                     >
-                                        <X size={20} />
+                                        <X size={24} />
                                     </button>
                                 </div>
 
-                                <div className="p-8 space-y-6">
+                                <div className="p-8 space-y-8 overflow-y-auto">
                                     {isLoadingUsage ? (
-                                        <div className="flex flex-col items-center justify-center py-12 gap-4">
-                                            <RefreshCw size={24} className="animate-spin text-orange-500" />
-                                            <p className="text-xs font-medium text-gray-400">Calculando consumo...</p>
+                                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                            <RefreshCw size={32} className="animate-spin text-brand-primary" />
+                                            <p className="text-sm font-medium text-gray-400">Analizando consumo de tokens...</p>
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {/* Calls Card */}
-                                            <div className="col-span-2 bg-gray-50 rounded-2xl p-5 border border-gray-100 flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Total Llamadas</p>
-                                                    <p className="text-2xl font-black text-gray-900">{usageStats.total_calls}</p>
+                                        <>
+                                            {/* Summary Cards - TODAY */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                {/* Calls Card */}
+                                                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                                                    <div className="relative z-10 flex flex-col justify-between h-full gap-4">
+                                                        <div>
+                                                            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1 flex items-center gap-2">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                                                                Llamadas (Hoy)
+                                                            </p>
+                                                            <p className="text-4xl font-black text-gray-900">{usageStats.total_calls}</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-xs font-medium text-green-600 bg-green-50 w-fit px-2 py-1 rounded-full">
+                                                            <Activity size={12} />
+                                                            <span>Activo ahora</span>
+                                                        </div>
+                                                    </div>
+                                                    <Bot size={80} className="absolute -right-4 -bottom-4 text-gray-50 group-hover:text-gray-100 transition-colors" />
                                                 </div>
-                                                <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400">
-                                                    <Bot size={18} />
+
+                                                {/* Tokens Card */}
+                                                <div className="bg-brand-primary/5 rounded-2xl p-6 border border-brand-primary/10 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                                                    <div className="relative z-10 flex flex-col justify-between h-full gap-4">
+                                                        <div>
+                                                            <p className="text-[10px] uppercase font-bold text-brand-primary-dark tracking-widest mb-1 flex items-center gap-2">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-brand-primary-dark"></span>
+                                                                Tokens (Hoy)
+                                                            </p>
+                                                            <p className="text-4xl font-black text-brand-primary-darker">{usageStats.total_tokens.toLocaleString()}</p>
+                                                        </div>
+                                                        <div className="text-xs text-brand-primary-dark/70 font-medium">
+                                                            Facturados al cliente
+                                                        </div>
+                                                    </div>
+                                                    <Activity size={80} className="absolute -right-4 -bottom-4 text-brand-primary/10 group-hover:text-brand-primary/20 transition-colors" />
+                                                </div>
+
+                                                {/* Cost Card */}
+                                                <div className="bg-brand-dark rounded-2xl p-6 border border-brand-dark shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+                                                    <div className="relative z-10 flex flex-col justify-between h-full gap-4">
+                                                        <div>
+                                                            <p className="text-[10px] uppercase font-bold text-brand-accent/80 tracking-widest mb-1 flex items-center gap-2">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-brand-accent"></span>
+                                                                Costo Estimado (Hoy)
+                                                            </p>
+                                                            <p className="text-4xl font-black text-white">${usageStats.total_cost.toFixed(2)}</p>
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-[10px] font-medium text-brand-accent/80 bg-white/10 px-2 py-1 rounded-full backdrop-blur-sm">
+                                                                Ref: $0.30 / 1k
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute right-0 top-0 w-32 h-32 bg-brand-accent/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
                                                 </div>
                                             </div>
 
-                                            {/* Tokens Card */}
-                                            <div className="bg-orange-50 rounded-2xl p-5 border border-orange-100 flex flex-col justify-between h-32 relative overflow-hidden">
-                                                <div className="relative z-10">
-                                                    <p className="text-[10px] uppercase font-bold text-orange-400 tracking-widest mb-1">Tokens (Facturado)</p>
-                                                    <p className="text-2xl font-black text-orange-700">{usageStats.total_tokens.toLocaleString()}</p>
+                                            {/* Advanced Chart Section */}
+                                            <div className="bg-white border boundary-gray-100 rounded-3xl p-6 shadow-sm">
+                                                <div className="flex items-center justify-between mb-8">
+                                                    <div>
+                                                        <h4 className="font-bold text-gray-900 text-lg">Tendencia de Consumo</h4>
+                                                        <p className="text-xs text-gray-400 font-medium mt-1">Comparativa de tokens facturados por día</p>
+                                                    </div>
+                                                    <div className="flex bg-gray-100 p-1 rounded-xl">
+                                                        <button
+                                                            onClick={() => setUsageFilter('DAYS_7')}
+                                                            className={cn(
+                                                                "px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                                                                usageFilter === 'DAYS_7' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                                                            )}
+                                                        >
+                                                            7 Días
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setUsageFilter('DAYS_30')}
+                                                            className={cn(
+                                                                "px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                                                                usageFilter === 'DAYS_30' ? "bg-white text-gray-900 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                                                            )}
+                                                        >
+                                                            30 Días
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <Activity size={48} className="absolute -right-4 -bottom-4 text-orange-200/50" />
-                                            </div>
 
-                                            {/* Cost Card */}
-                                            <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100 flex flex-col justify-between h-32 relative overflow-hidden">
-                                                <div className="relative z-10">
-                                                    <p className="text-[10px] uppercase font-bold text-emerald-400 tracking-widest mb-1">Costo Estimado</p>
-                                                    <p className="text-2xl font-black text-emerald-700">${usageStats.total_cost.toFixed(2)}</p>
-                                                </div>
-                                                <div className="absolute right-3 bottom-3 text-[10px] font-medium text-emerald-600/60 bg-white/50 px-2 py-1 rounded-full">
-                                                    Ref: $0.05 / 1k
-                                                </div>
-                                            </div>
+                                                {/* SVG Chart */}
+                                                <div className="w-full h-64 relative">
+                                                    {(() => {
+                                                        const data = usageStats.daily_breakdown;
+                                                        const limit = usageFilter === 'DAYS_7' ? 7 : 30;
+                                                        const chartData = data.slice(-limit);
 
-                                            <div className="col-span-2 mt-2">
-                                                <p className="text-[10px] text-center text-gray-400 font-medium">
-                                                    * Los tokens mostrados incluyen el factor multiplicador configurado para este agente.
-                                                </p>
+                                                        if (chartData.length === 0) return <div className="h-full flex items-center justify-center text-gray-300 text-sm">Sin datos suficientes</div>;
+
+                                                        const maxTokens = Math.max(...chartData.map(d => d.tokens), 100); // Min 100 scale
+                                                        const height = 256; // h-64
+                                                        const width = 100; // percent
+
+                                                        // Helper to scale Y
+                                                        const getY = (val: number) => height - ((val / maxTokens) * height * 0.8) - 20; // 20px padding bottom, 0.8 scale to leave room top
+
+                                                        // Generate points for SVG path
+                                                        const points = chartData.map((d, i) => {
+                                                            const x = (i / (chartData.length - 1)) * 100; // percentage
+                                                            return `${x},${getY(d.tokens)}`;
+                                                        }).join(' ');
+
+                                                        // Generate area path (close to bottom)
+                                                        const areaPoints = `${points} 100,${height} 0,${height}`;
+
+                                                        return (
+                                                            <div className="relative w-full h-full">
+                                                                {/* Y-Axis Grid Lines */}
+                                                                <div className="absolute inset-0 flex flex-col justify-between text-[9px] text-gray-300 font-medium pointer-events-none pb-6">
+                                                                    <div className="border-b border-gray-50 border-dashed w-full flex items-end"><span>{Math.round(maxTokens)}</span></div>
+                                                                    <div className="border-b border-gray-50 border-dashed w-full flex items-end"><span>{Math.round(maxTokens * 0.75)}</span></div>
+                                                                    <div className="border-b border-gray-50 border-dashed w-full flex items-end"><span>{Math.round(maxTokens * 0.5)}</span></div>
+                                                                    <div className="border-b border-gray-50 border-dashed w-full flex items-end"><span>{Math.round(maxTokens * 0.25)}</span></div>
+                                                                    <div className="border-b border-gray-50 border-dashed w-full flex items-end"><span>0</span></div>
+                                                                </div>
+
+                                                                {/* Chart Draw */}
+                                                                <svg className="w-full h-full overflow-visible preserve-3d" preserveAspectRatio="none" viewBox={`0 0 100 ${height}`}>
+                                                                    <defs>
+                                                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                                                            <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.2" />
+                                                                            <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
+                                                                        </linearGradient>
+                                                                    </defs>
+
+                                                                    {/* Area Fill */}
+                                                                    <polygon points={areaPoints} fill="url(#chartGradient)" vectorEffect="non-scaling-stroke" />
+
+                                                                    {/* Stroke Line */}
+                                                                    <polyline
+                                                                        points={points}
+                                                                        fill="none"
+                                                                        stroke="#14b8a6"
+                                                                        strokeWidth="3"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        vectorEffect="non-scaling-stroke"
+                                                                        className="drop-shadow-sm"
+                                                                    />
+
+                                                                    {/* Data Points (Dots) */}
+                                                                    {chartData.map((d, i) => {
+                                                                        const x = (i / (chartData.length - 1)) * 100;
+                                                                        const y = getY(d.tokens);
+                                                                        return (
+                                                                            <circle
+                                                                                key={i}
+                                                                                cx={`${x}%`}
+                                                                                cy={y}
+                                                                                r="4"
+                                                                                fill="white"
+                                                                                stroke="#003327"
+                                                                                strokeWidth="2"
+                                                                                className="hover:r-6 hover:stroke-brand-accent transition-all duration-300 cursor-pointer"
+                                                                                vectorEffect="non-scaling-stroke"
+                                                                            >
+                                                                                <title>{`${d.date}: ${d.tokens.toLocaleString()} tokens`}</title>
+                                                                            </circle>
+                                                                        )
+                                                                    })}
+                                                                </svg>
+
+                                                                {/* X-Axis Labels */}
+                                                                <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[9px] text-gray-400 font-medium pt-2">
+                                                                    {chartData.map((d, i) => {
+                                                                        // Show filtered labels to avoid crowding
+                                                                        const showLabel = usageFilter === 'DAYS_7' || i % 4 === 0;
+                                                                        return (
+                                                                            <span key={i} className={showLabel ? 'opacity-100' : 'opacity-0'}>
+                                                                                {new Date(d.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                                                                            </span>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
                                             </div>
-                                        </div>
+                                        </>
                                     )}
                                 </div>
                             </div>
