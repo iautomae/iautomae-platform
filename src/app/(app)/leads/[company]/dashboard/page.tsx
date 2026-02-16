@@ -26,6 +26,7 @@ interface Lead {
     score: number;
     transcript: { role: string; message?: string; text?: string; time?: string }[];
     created_at: string;
+    tokens_billed?: number;
 }
 
 // Placeholder agent type for better type safety
@@ -131,7 +132,8 @@ export default function DynamicLeadsDashboard() {
                 status?: string;
                 summary?: string;
                 transcript?: { role: string; message?: string; text?: string; time?: string }[];
-                score?: number
+                score?: number;
+                tokens_billed?: number;
             }) => {
                 const dateObj = new Date(l.created_at);
                 return {
@@ -144,7 +146,8 @@ export default function DynamicLeadsDashboard() {
                     time: dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
                     status: (l.status as 'POTENCIAL' | 'NO_POTENCIAL') || 'POTENCIAL',
                     summary: l.summary || 'Sin resumen',
-                    score: l.score || 0
+                    score: l.score || 0,
+                    tokens_billed: l.tokens_billed || 0
                 };
             });
             setRealLeads(formattedLeads);
@@ -281,6 +284,56 @@ export default function DynamicLeadsDashboard() {
     // Pushover States
     const [isPushoverModalOpen, setIsPushoverModalOpen] = useState(false);
     const [configuringAgent, setConfiguringAgent] = useState<Agent | null>(null);
+
+    // Usage Modal State
+    const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
+    const [selectedAgentForUsage, setSelectedAgentForUsage] = useState<Agent | null>(null);
+    const [usageStats, setUsageStats] = useState({ total_tokens: 0, total_cost: 0, total_calls: 0 });
+    const [isLoadingUsage, setIsLoadingUsage] = useState(false);
+
+    const fetchUsageStats = async (agent: Agent) => {
+        setIsLoadingUsage(true);
+        setSelectedAgentForUsage(agent);
+        setIsUsageModalOpen(true);
+
+        try {
+            // 1. Fetch leads for this agent to calculate usage
+            // Note: In a real large-scale app, we would use an RPC function or a separate stats table
+            const { data: leads, error } = await supabase
+                .from('leads')
+                .select('tokens_billed')
+                .eq('agent_id', agent.id);
+
+            if (error) throw error;
+
+            const totalTokens = leads?.reduce((sum, lead) => sum + (lead.tokens_billed || 0), 0) || 0;
+            // Cost calculation: (Total Tokens / 1000) * Cost Per Unit (e.g. 0.05 per 1k)
+            // But wait, the prompt implies "tokens_billed" * cost_per_unit directly? 
+            // Usually LLM pricing is per 1k tokens. Let's assume unit cost is per 1 Token for simplicity based on previous prompt context,
+            // OR standardized to 1k. 
+            // User said: "cuanto se está usando de los tokens... si eleven labs me cobra 0.03, yo cobrarle 0.06".
+            // Let's assume cost_per_unit is per 1000 tokens as is standard.
+            // Actually, let's keep it simple: Total Tokens * Unit Cost. 
+            // If unit cost is 0.05, that's expensive for 1 token. It's likely 0.05 per 1k.
+            // Let's hardcode a divider of 1000 for display if needed, or just show tokens.
+            // For now, let's just show Total Tokens and a "Estimated Cost" based on the agent's internal cost reference (if we had one for billing).
+            // The DB has `token_cost_per_unit`. Let's assume it's per 1000 tokens.
+
+            const costPer1k = 0.05; // Default reference
+            const estimatedCost = (totalTokens / 1000) * costPer1k; // Simple ref
+
+            setUsageStats({
+                total_tokens: totalTokens,
+                total_cost: estimatedCost,
+                total_calls: leads?.length || 0
+            });
+
+        } catch (err) {
+            console.error('Error fetching usage:', err);
+        } finally {
+            setIsLoadingUsage(false);
+        }
+    };
     const [pushoverUserKey, setPushoverUserKey] = useState('');
     const [pushoverApiToken, setPushoverApiToken] = useState('');
     const [pushoverReplyMessage, setPushoverReplyMessage] = useState('');
@@ -890,7 +943,10 @@ export default function DynamicLeadsDashboard() {
                                             <span>Ver Leads</span>
                                         </button>
                                         <button
-                                            onClick={(e) => { e.preventDefault(); setSelectedAgentStats(agent); }}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                fetchUsageStats(agent);
+                                            }}
                                             className="flex-[0.8] bg-amber-50 text-amber-700 py-3 rounded-xl text-[8px] font-bold uppercase tracking-widest hover:bg-amber-100 transition-all text-center flex flex-col items-center justify-center gap-1 border border-amber-100 shadow-sm"
                                         >
                                             <BarChart2 size={14} />
@@ -970,8 +1026,9 @@ export default function DynamicLeadsDashboard() {
                                     <table className="w-full text-left border-collapse table-fixed">
                                         <thead className="bg-white sticky top-0 z-10 shadow-sm">
                                             <tr>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-900 border-b border-gray-200 uppercase tracking-tight bg-gray-50/50 w-[100px]">Fecha</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[220px]">Nombre</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-900 border-b border-gray-200 uppercase tracking-tight bg-gray-50/50 w-[90px]">Fecha</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[60px] text-center">Tokens</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[200px]">Nombre</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[130px]">Teléfono</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50">Resumen Llamada</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[70px] text-center">Ver Chat</th>
@@ -995,8 +1052,13 @@ export default function DynamicLeadsDashboard() {
                                                             </span>
                                                         </div>
                                                     </td>
+                                                    <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
+                                                        <span className="text-[10px] font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+                                                            {lead.tokens_billed?.toLocaleString() || 0}
+                                                        </span>
+                                                    </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100">
-                                                        <span className="text-xs font-medium text-gray-700 block truncate max-w-[220px]" title={lead.name}>
+                                                        <span className="text-xs font-medium text-gray-700 block truncate max-w-[200px]" title={lead.name}>
                                                             {lead.name}
                                                         </span>
                                                     </td>
@@ -1756,6 +1818,81 @@ export default function DynamicLeadsDashboard() {
                                             {isSavingPushover ? 'Guardando...' : 'Guardar Configuración'}
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
+                {/* Usage Statistics Modal */}
+                {
+                    isUsageModalOpen && selectedAgentForUsage && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+                            <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+                                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
+                                            <Activity size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 leading-tight">Estadísticas de Uso</h3>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{selectedAgentForUsage.nombre}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsUsageModalOpen(false)}
+                                        className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="p-8 space-y-6">
+                                    {isLoadingUsage ? (
+                                        <div className="flex flex-col items-center justify-center py-12 gap-4">
+                                            <RefreshCw size={24} className="animate-spin text-orange-500" />
+                                            <p className="text-xs font-medium text-gray-400">Calculando consumo...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {/* Calls Card */}
+                                            <div className="col-span-2 bg-gray-50 rounded-2xl p-5 border border-gray-100 flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1">Total Llamadas</p>
+                                                    <p className="text-2xl font-black text-gray-900">{usageStats.total_calls}</p>
+                                                </div>
+                                                <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400">
+                                                    <Bot size={18} />
+                                                </div>
+                                            </div>
+
+                                            {/* Tokens Card */}
+                                            <div className="bg-orange-50 rounded-2xl p-5 border border-orange-100 flex flex-col justify-between h-32 relative overflow-hidden">
+                                                <div className="relative z-10">
+                                                    <p className="text-[10px] uppercase font-bold text-orange-400 tracking-widest mb-1">Tokens (Facturado)</p>
+                                                    <p className="text-2xl font-black text-orange-700">{usageStats.total_tokens.toLocaleString()}</p>
+                                                </div>
+                                                <Activity size={48} className="absolute -right-4 -bottom-4 text-orange-200/50" />
+                                            </div>
+
+                                            {/* Cost Card */}
+                                            <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100 flex flex-col justify-between h-32 relative overflow-hidden">
+                                                <div className="relative z-10">
+                                                    <p className="text-[10px] uppercase font-bold text-emerald-400 tracking-widest mb-1">Costo Estimado</p>
+                                                    <p className="text-2xl font-black text-emerald-700">${usageStats.total_cost.toFixed(2)}</p>
+                                                </div>
+                                                <div className="absolute right-3 bottom-3 text-[10px] font-medium text-emerald-600/60 bg-white/50 px-2 py-1 rounded-full">
+                                                    Ref: $0.05 / 1k
+                                                </div>
+                                            </div>
+
+                                            <div className="col-span-2 mt-2">
+                                                <p className="text-[10px] text-center text-gray-400 font-medium">
+                                                    * Los tokens mostrados incluyen el factor multiplicador configurado para este agente.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

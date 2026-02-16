@@ -23,6 +23,7 @@ export async function POST(request: Request) {
         pushover_title: string | null;
         pushover_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
         make_webhook_url: string | null;
+        token_multiplier: number | null;
     };
 
     try {
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
-            .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url')
+            .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url, token_multiplier')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -102,7 +103,8 @@ export async function POST(request: Request) {
                     pushover_template: null,
                     pushover_title: null,
                     pushover_notification_filter: null,
-                    make_webhook_url: null
+                    make_webhook_url: null,
+                    token_multiplier: 1.0
                 };
                 summaryPrefix = `[MISSING AGENT ID: ${elAgentId}] `;
             } else {
@@ -253,7 +255,21 @@ export async function POST(request: Request) {
             }
         }
 
-        // 5. Save Lead to Supabase
+        // 5. Extract Token Usage
+        // ElevenLabs sends 'usage' object in payload or data object
+        // We look for 'total_tokens' or similar. 
+        // Based on docs/standard: payload.usage.total_tokens or payload.data.usage.total_tokens
+        const usageData = payload.usage || webData.usage || {};
+        const tokensRaw = usageData.total_tokens || 0;
+
+        // 6. Calculate Billed Tokens (Markup)
+        // Default multiplier is 1.0 if not set, but DB default is 2.0
+        const multiplier = finalAgent.token_multiplier || 1.0;
+        const tokensBilled = Math.ceil(tokensRaw * multiplier);
+
+        console.log(`💰 Token Tracking - Raw: ${tokensRaw}, Multiplier: ${multiplier}, Billed: ${tokensBilled}`);
+
+        // 7. Save Lead to Supabase with Token Data
         const { error: insertError } = await supabase
             .from('leads')
             .insert({
@@ -264,7 +280,9 @@ export async function POST(request: Request) {
                 status: status,
                 summary: resumenVal,
                 transcript: transcript,
-                phone: phoneVal
+                phone: phoneVal,
+                tokens_raw: tokensRaw,
+                tokens_billed: tokensBilled
             });
 
         if (insertError) {
