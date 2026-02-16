@@ -1897,7 +1897,7 @@ export default function DynamicLeadsDashboard() {
                                                         <div>
                                                             <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-1 flex items-center gap-2">
                                                                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
-                                                                Llamadas (Hoy)
+                                                                Conversaciones (Hoy)
                                                             </p>
                                                             <p className="text-4xl font-black text-gray-900">{usageStats.total_calls}</p>
                                                         </div>
