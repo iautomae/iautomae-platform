@@ -1906,7 +1906,7 @@ export default function DynamicLeadsDashboard() {
                                                             <span>Activo ahora</span>
                                                         </div>
                                                     </div>
-                                                    <Bot size={80} className="absolute -right-4 -bottom-4 text-gray-50 group-hover:text-gray-100 transition-colors" />
+                                                    <Bot size={64} className="absolute -right-2 -bottom-2 text-gray-50 group-hover:text-gray-100 transition-colors" />
                                                 </div>
 
                                                 {/* Tokens Card */}
@@ -1923,7 +1923,7 @@ export default function DynamicLeadsDashboard() {
                                                             Facturados al cliente
                                                         </div>
                                                     </div>
-                                                    <Activity size={80} className="absolute -right-4 -bottom-4 text-brand-primary/10 group-hover:text-brand-primary/20 transition-colors" />
+                                                    <Activity size={64} className="absolute -right-2 -bottom-2 text-brand-primary/10 group-hover:text-brand-primary/20 transition-colors" />
                                                 </div>
 
                                                 {/* Cost Card */}
@@ -1942,7 +1942,7 @@ export default function DynamicLeadsDashboard() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="absolute right-0 top-0 w-32 h-32 bg-brand-accent/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                                                    <div className="absolute right-0 top-0 w-24 h-24 bg-brand-accent/20 rounded-full blur-3xl -mr-8 -mt-8"></div>
                                                 </div>
                                             </div>
 
@@ -2036,26 +2036,26 @@ export default function DynamicLeadsDashboard() {
                                                                     />
 
                                                                     {/* Data Points (Dots) */}
-                                                                    {chartData.map((d, i) => {
-                                                                        const x = (i / (chartData.length - 1)) * 100;
-                                                                        const y = getY(d.tokens);
-                                                                        return (
-                                                                            <circle
-                                                                                key={i}
-                                                                                cx={`${x}%`}
-                                                                                cy={y}
-                                                                                r="4"
-                                                                                fill="white"
-                                                                                stroke="#003327"
-                                                                                strokeWidth="2"
-                                                                                className="hover:r-6 hover:stroke-brand-accent transition-all duration-300 cursor-pointer"
-                                                                                vectorEffect="non-scaling-stroke"
-                                                                            >
-                                                                                <title>{`${d.date}: ${d.tokens.toLocaleString()} tokens`}</title>
-                                                                            </circle>
-                                                                        )
-                                                                    })}
                                                                 </svg>
+
+                                                                {/* Data Points (HTML Dots to avoid SVG aspect ratio distortion) */}
+                                                                {chartData.map((d, i) => {
+                                                                    const x = (i / (chartData.length - 1)) * 100;
+                                                                    const y = getY(d.tokens);
+                                                                    return (
+                                                                        <div
+                                                                            key={i}
+                                                                            className="absolute w-3 h-3 bg-white border-2 border-brand-dark rounded-full hover:w-4 hover:h-4 hover:border-brand-accent transition-all duration-300 cursor-pointer z-10 flex items-center justify-center -translate-x-1/2 -translate-y-1/2 shadow-sm group"
+                                                                            style={{ left: `${x}%`, top: `${y}px` }}
+                                                                            title={`${d.date}: ${d.tokens.toLocaleString()} tokens`}
+                                                                        >
+                                                                            <div className="hidden group-hover:block absolute bottom-full mb-2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-20 pointer-events-none">
+                                                                                {new Date(d.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}: {d.tokens.toLocaleString()}
+                                                                            </div>
+                                                                        </div>
+                                                                    )
+                                                                })}
+
 
                                                                 {/* X-Axis Labels */}
                                                                 <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[9px] text-gray-400 font-medium pt-2">
