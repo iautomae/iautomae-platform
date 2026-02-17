@@ -24,7 +24,7 @@ async function checkLatestLead() {
         console.log(`👤 Nombre: ${lead.nombre || lead.name}`);
         console.log(`📞 Teléfono: ${lead.phone}`);
         console.log(`📝 Resumen: ${lead.summary}`);
-        console.log(`💰 Tokens Facturados: ${lead.tokens_billed}`);
+        console.log(`💎 Créditos Consumidos: ${lead.tokens_billed}`);
         console.log('--------------------------------------------------');
     } else {
         console.log('📭 No se encontraron leads todavía.');

@@ -290,12 +290,12 @@ export async function POST(request: Request) {
             }
         }
 
-        // 6. Calculate Billed Tokens (Markup)
-        // Default multiplier is 1.0 if not set, but DB default is 2.0
+        // 6. Calculate Billed Amount
+        // If we are tracking Credits (Cost), the multiplier might be 1.0 (pass-through) or a markup.
         const multiplier = finalAgent.token_multiplier || 1.0;
         const tokensBilled = Math.ceil(tokensRaw * multiplier);
 
-        console.log(`💰 Token Tracking - Raw: ${tokensRaw}, Multiplier: ${multiplier}, Billed: ${tokensBilled}`);
+        console.log(`💎 usage Tracking - Base: ${tokensRaw}, Multiplier: ${multiplier}, Final Billed: ${tokensBilled}`);
 
         // 7. Save Lead to Supabase with Token Data
         const { error: insertError } = await supabase
