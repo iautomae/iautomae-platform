@@ -146,7 +146,14 @@ async function syncData() {
 
                 // Extraction Logic (Same as Webhook)
                 const nombreVal = dataCollection.nombre?.value || dataCollection.Nombre?.value || dataCollection.nombre_cliente?.value || 'Desconocido';
-                const phoneVal = dataCollection.telefono?.value || dataCollection.teléfono?.value || 'No proveído';
+
+                // Phone: prioritize WhatsApp metadata, then data_collection
+                const whatsappPhone = fullConv.conversation_initiation_client_data?.dynamic_variables?.system__caller_id ||
+                    fullConv.metadata?.whatsapp?.whatsapp_user_id ||
+                    fullConv.metadata?.caller_id ||
+                    fullConv.metadata?.phone_number ||
+                    fullConv.conversation_initiation_client_data?.phone_number;
+                const phoneVal = whatsappPhone || dataCollection.telefono?.value || dataCollection.teléfono?.value || 'No proveído';
                 const resumenVal = dataCollection.resumen_de_llamada?.value || dataCollection.resumen?.value || dataCollection.Resumen?.value || dataCollection.resumen_conversacion?.value || 'Sin resumen';
                 const calificacionVal = dataCollection.calificacion?.value || dataCollection.Calificación?.value || dataCollection.calificación?.value || 'PENDIENTE';
 
@@ -169,7 +176,7 @@ async function syncData() {
                         transcript: transcript,
                         tokens_raw: Math.ceil(realCredits),      // Save Real Credits
                         tokens_billed: clientCredits,            // Save x2 Credits
-                        created_at: fullConv.start_time_unix ? new Date(fullConv.start_time_unix * 1000).toISOString() : new Date().toISOString()
+                        created_at: convSummary.start_time_unix_secs ? new Date(convSummary.start_time_unix_secs * 1000).toISOString() : new Date().toISOString()
                     }, { onConflict: 'eleven_labs_conversation_id' });
 
                 if (leadError) console.error(`      ❌ Error al guardar lead ${convSummary.conversation_id}:`, leadError.message);
