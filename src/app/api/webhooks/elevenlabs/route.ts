@@ -270,14 +270,20 @@ export async function POST(request: Request) {
                 const usageType = charging.llm_usage.irreversible_generation || charging.llm_usage.initiated_generation;
 
                 if (usageType && usageType.model_usage) {
-                    Object.values(usageType.model_usage).forEach((model: any) => {
+                    type ModelUsageDetail = {
+                        input?: { tokens?: number };
+                        output_total?: { tokens?: number };
+                    };
+
+                    Object.values(usageType.model_usage).forEach((model: unknown) => {
+                        const m = model as ModelUsageDetail;
                         // Sum input tokens
-                        if (model.input) {
-                            tokensRaw += (model.input.tokens || 0);
+                        if (m.input) {
+                            tokensRaw += (m.input.tokens || 0);
                         }
                         // Sum output tokens
-                        if (model.output_total) {
-                            tokensRaw += (model.output_total.tokens || 0);
+                        if (m.output_total) {
+                            tokensRaw += (m.output_total.tokens || 0);
                         }
                     });
                 }
