@@ -260,7 +260,29 @@ export async function POST(request: Request) {
         // We look for 'total_tokens' or similar. 
         // Based on docs/standard: payload.usage.total_tokens or payload.data.usage.total_tokens
         const usageData = payload.usage || webData.usage || {};
-        const tokensRaw = usageData.total_tokens || 0;
+        let tokensRaw = usageData.total_tokens || 0;
+
+        // NEW: If standard usage is empty, check metadata for billing info (ElevenLabs 2025 update)
+        if (tokensRaw === 0) {
+            const charging = payload.metadata?.charging || webData.metadata?.charging;
+            if (charging && charging.llm_usage) {
+                // We focus on irreversible_generation (completed generations) and initiated_generation
+                const usageType = charging.llm_usage.irreversible_generation || charging.llm_usage.initiated_generation;
+
+                if (usageType && usageType.model_usage) {
+                    Object.values(usageType.model_usage).forEach((model: any) => {
+                        // Sum input tokens
+                        if (model.input) {
+                            tokensRaw += (model.input.tokens || 0);
+                        }
+                        // Sum output tokens
+                        if (model.output_total) {
+                            tokensRaw += (model.output_total.tokens || 0);
+                        }
+                    });
+                }
+            }
+        }
 
         // 6. Calculate Billed Tokens (Markup)
         // Default multiplier is 1.0 if not set, but DB default is 2.0
