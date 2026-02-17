@@ -2,18 +2,18 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase for backend check
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-export async function GET() {
-    const apiKey = process.env.ELEVEN_LABS_API_KEY;
-
-    if (!apiKey) {
-        return NextResponse.json({ error: 'API Key not configured' }, { status: 500 });
-    }
+export async function GET(request: Request) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     try {
+        const apiKey = process.env.ELEVEN_LABS_API_KEY;
+
+        if (!apiKey) {
+            return NextResponse.json({ error: 'API Key not configured' }, { status: 500 });
+        }
+
         // 1. Fetch agents from ElevenLabs
         const response = await fetch('https://api.elevenlabs.io/v1/convai/agents', {
             headers: { 'xi-api-key': apiKey }

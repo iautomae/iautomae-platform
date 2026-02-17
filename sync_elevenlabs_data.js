@@ -16,6 +16,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function syncData() {
     try {
         console.log('🔄 Sincronizando datos con ElevenLabs...');
+        const COST_PER_CREDIT = 0.00022; // $22 / 100k credits
 
         // 1. Fetch Agents
         console.log('📡 Obteniendo Agentes de ElevenLabs...');
@@ -28,6 +29,7 @@ async function syncData() {
 
         for (const agent of agents) {
             console.log(`🔹 Procesando Agente: ${agent.name} (${agent.agent_id})`);
+
 
             // Upsert Agent into Supabase (Manual check to avoid constraint error)
             let localAgentId;
@@ -79,22 +81,68 @@ async function syncData() {
 
             // 2. Fetch History for this Agent
             console.log(`   📡 Obteniendo historial de llamadas para ${agent.name}...`);
-            const historyRes = await axios.get(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${agent.agent_id}`, {
+            const historyRes = await axios.get(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${agent.agent_id}&page_size=100`, {
                 headers: { 'xi-api-key': elevenLabsApiKey }
             });
 
             const conversations = historyRes.data.conversations;
-            console.log(`   ✅ ${conversations.length} conversaciones encontradas.`);
+            console.log(`   ✅ ${conversations.length} conversacione(s) encontrada(s).`);
 
-            for (const conv of conversations) {
-                // Determine details
-                // ElevenLabs API /conversations returns summary object. 
-                // We might need to fetch individual conversation details for transcript?
-                // Let's verify what data we have.
-                // Assuming basic data is there.
+            for (const convSummary of conversations) {
+                // Fetch FULL conversation details to get transcript cost
+                let fullConv = convSummary;
+                try {
+                    // small delay to be safe
+                    await new Promise(r => setTimeout(r, 200));
 
-                const analysis = conv.analysis || {};
+                    const detailRes = await axios.get(`https://api.elevenlabs.io/v1/convai/conversations/${convSummary.conversation_id}`, {
+                        headers: { 'xi-api-key': elevenLabsApiKey }
+                    });
+                    fullConv = detailRes.data;
+                } catch (detailErr) {
+                    console.error(`   ⚠️ No se pudo obtener detalle para ${convSummary.conversation_id}, usando resumen. Error: ${detailErr.message}`);
+                }
+
+                const analysis = fullConv.analysis || {};
                 const dataCollection = analysis.data_collection_results || {};
+                const transcript = fullConv.transcript || []; // Ensure Array
+
+                // --- COST CALCULATION ---
+                let totalCostUSD = 0;
+
+                if (Array.isArray(transcript)) {
+                    transcript.forEach(turn => {
+                        const llm = turn.llm_usage || {};
+                        const mu = llm.model_usage;
+                        if (mu) {
+                            // Sum cost from all models used in this turn
+                            Object.values(mu).forEach(modelStats => {
+                                totalCostUSD += (modelStats.input?.price || 0) +
+                                    (modelStats.output_total?.price || 0) +
+                                    (modelStats.input_cache_read?.price || 0) +
+                                    (modelStats.input_cache_write?.price || 0);
+                            });
+                        }
+                    });
+                }
+
+                // Fallback check: metadata.cost if available
+                if (totalCostUSD === 0 && fullConv.metadata?.cost) {
+                    // Check logic: if < 1 it's likely USD, if > 1 it's likely Credits
+                    if (fullConv.metadata.cost < 1) {
+                        totalCostUSD = fullConv.metadata.cost;
+                    } else {
+                        // It's credits, convert back to USD for formula consistency or just use as credits
+                        // If it's credits:
+                        const credits = fullConv.metadata.cost;
+                        totalCostUSD = credits * COST_PER_CREDIT;
+                    }
+                }
+
+                const realCredits = totalCostUSD / COST_PER_CREDIT;
+                const clientCredits = Math.ceil(realCredits * 2); // 2x Rule
+
+
 
                 // Extraction Logic (Same as Webhook)
                 const nombreVal = dataCollection.nombre?.value || dataCollection.Nombre?.value || dataCollection.nombre_cliente?.value || 'Desconocido';
@@ -112,18 +160,23 @@ async function syncData() {
                     .from('leads')
                     .upsert({
                         agent_id: localAgentId,
-                        eleven_labs_conversation_id: conv.conversation_id,
+                        eleven_labs_conversation_id: convSummary.conversation_id,
                         nombre: nombreVal,
                         phone: phoneVal,
                         summary: resumenVal,
                         status: status,
                         score: analysis.evaluation_criteria_results?.score,
-                        transcript: conv.transcript, // Might need to fetch separate endpoint if not in list
-                        created_at: conv.start_time_unix ? new Date(conv.start_time_unix * 1000).toISOString() : new Date().toISOString()
+                        transcript: transcript,
+                        tokens_raw: Math.ceil(realCredits),      // Save Real Credits
+                        tokens_billed: clientCredits,            // Save x2 Credits
+                        created_at: fullConv.start_time_unix ? new Date(fullConv.start_time_unix * 1000).toISOString() : new Date().toISOString()
                     }, { onConflict: 'eleven_labs_conversation_id' });
 
-                if (leadError) console.error(`      ❌ Error al guardar lead ${conv.conversation_id}:`, leadError.message);
-                else console.log(`      ✅ Lead guardado: ${nombreVal}`);
+                if (leadError) console.error(`      ❌ Error al guardar lead ${convSummary.conversation_id}:`, leadError.message);
+                else {
+                    // console.log(`      ✅ Lead guardado: ${nombreVal} | Credits: ${clientCredits}`); 
+                    // process.stdout.write('.'); // Minimize spam
+                }
             }
         }
 

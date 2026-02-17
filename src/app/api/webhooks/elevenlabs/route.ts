@@ -256,23 +256,53 @@ export async function POST(request: Request) {
         }
 
         // 5. Extract Token Usage -> NOW CREDITS (Cost)
-        // STRICT MODE: User only wants to see "Credits" (Cost), never raw LLM tokens.
-        // We look for 'cost' in metadata. If not found, we default to 0 to avoid showing 20k+ numbers.
+        // User wants "Credits" based on Cost ($22/100k).
+        // Logic: 
+        // 1. Try to find explicit cost in USD from transcript (most accurate).
+        // 2. Fallback to metadata.cost (checking if it's USD or Credits).
 
-        let tokensRaw = 0; // Represents CREDITS/COST
+        const COST_PER_CREDIT = 0.00022;
+        let totalCostUSD = 0;
 
-        // 1. Try to get Cost/Credits
-        // In ElevenLabs webhook, cost is usually in payload.metadata.cost
-        const cost = payload.metadata?.cost || webData.metadata?.cost;
-
-        if (cost !== undefined && cost !== null) {
-            tokensRaw = cost;
-            console.log(`💰 Usage Tracking: Found Cost/Credits: ${tokensRaw}`);
-        } else {
-            console.log(`⚠️ Usage Tracking: 'cost' field not found in metadata. Defaulting to 0 to avoid confusion with raw tokens.`);
-            // OPTIONAL: We could try to estimate credits based on duration if available, but 0 is safer than 20k.
-            tokensRaw = 0;
+        // A. Calculate from Transcript (Preferred for accuracy)
+        if (Array.isArray(transcript)) {
+            transcript.forEach((turn: any) => {
+                const llm = turn.llm_usage || {};
+                const mu = llm.model_usage;
+                if (mu) {
+                    Object.values(mu).forEach((modelStats: any) => {
+                        totalCostUSD += (modelStats.input?.price || 0) +
+                            (modelStats.output_total?.price || 0) +
+                            (modelStats.input_cache_read?.price || 0) +
+                            (modelStats.input_cache_write?.price || 0);
+                    });
+                }
+            });
         }
+
+        let tokensRaw = 0;
+
+        if (totalCostUSD > 0) {
+            tokensRaw = totalCostUSD / COST_PER_CREDIT;
+            console.log(`💰 Usage Tracking (Transcript): $${totalCostUSD.toFixed(6)} USD -> ${tokensRaw.toFixed(2)} Credits`);
+        } else {
+            // B. Fallback to metadata.cost
+            const metaCost = payload.metadata?.cost || webData.metadata?.cost;
+            if (metaCost !== undefined && metaCost !== null) {
+                // Heuristic: If cost is very low (< 0.5), it's likely USD. If high, likely Credits.
+                if (metaCost < 0.5) {
+                    tokensRaw = metaCost / COST_PER_CREDIT;
+                    console.log(`💰 Usage Tracking (Metadata USD): $${metaCost} -> ${tokensRaw.toFixed(2)} Credits`);
+                } else {
+                    tokensRaw = metaCost;
+                    console.log(`💰 Usage Tracking (Metadata Credits): ${tokensRaw} Credits`);
+                }
+            } else {
+                console.log(`⚠️ Usage Tracking: No cost data found. Defaulting to 0.`);
+                tokensRaw = 0;
+            }
+        }
+
 
         // 6. Calculate Billed Amount
         // If we are tracking Credits (Cost), the multiplier might be 1.0 (pass-through) or a markup.
