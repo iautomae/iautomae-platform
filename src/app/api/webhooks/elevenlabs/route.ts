@@ -255,39 +255,23 @@ export async function POST(request: Request) {
             }
         }
 
-        // 5. Extract Token Usage
-        // ElevenLabs sends 'usage' object in payload or data object
-        // We look for 'total_tokens' or similar. 
-        // Based on docs/standard: payload.usage.total_tokens or payload.data.usage.total_tokens
-        const usageData = payload.usage || webData.usage || {};
-        let tokensRaw = usageData.total_tokens || 0;
+        // 5. Extract Token Usage -> NOW CREDITS (Cost)
+        // STRICT MODE: User only wants to see "Credits" (Cost), never raw LLM tokens.
+        // We look for 'cost' in metadata. If not found, we default to 0 to avoid showing 20k+ numbers.
 
-        // NEW: If standard usage is empty, check metadata for billing info (ElevenLabs 2025 update)
-        if (tokensRaw === 0) {
-            const charging = payload.metadata?.charging || webData.metadata?.charging;
-            if (charging && charging.llm_usage) {
-                // We focus on irreversible_generation (completed generations) and initiated_generation
-                const usageType = charging.llm_usage.irreversible_generation || charging.llm_usage.initiated_generation;
+        let tokensRaw = 0; // Represents CREDITS/COST
 
-                if (usageType && usageType.model_usage) {
-                    type ModelUsageDetail = {
-                        input?: { tokens?: number };
-                        output_total?: { tokens?: number };
-                    };
+        // 1. Try to get Cost/Credits
+        // In ElevenLabs webhook, cost is usually in payload.metadata.cost
+        const cost = payload.metadata?.cost || webData.metadata?.cost;
 
-                    Object.values(usageType.model_usage).forEach((model: unknown) => {
-                        const m = model as ModelUsageDetail;
-                        // Sum input tokens
-                        if (m.input) {
-                            tokensRaw += (m.input.tokens || 0);
-                        }
-                        // Sum output tokens
-                        if (m.output_total) {
-                            tokensRaw += (m.output_total.tokens || 0);
-                        }
-                    });
-                }
-            }
+        if (cost !== undefined && cost !== null) {
+            tokensRaw = cost;
+            console.log(`💰 Usage Tracking: Found Cost/Credits: ${tokensRaw}`);
+        } else {
+            console.log(`⚠️ Usage Tracking: 'cost' field not found in metadata. Defaulting to 0 to avoid confusion with raw tokens.`);
+            // OPTIONAL: We could try to estimate credits based on duration if available, but 0 is safer than 20k.
+            tokensRaw = 0;
         }
 
         // 6. Calculate Billed Amount
