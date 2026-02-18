@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/nextjs';
 
 // crypto is available in Node.js environment
 import crypto from 'crypto';
@@ -329,6 +330,9 @@ export async function POST(request: Request) {
 
         if (insertError) {
             console.error('Error saving lead:', insertError);
+            Sentry.captureException(new Error(`Lead insert failed: ${insertError.message}`), {
+                extra: { insertError, elAgentId, conversationId, nombreVal, phoneVal }
+            });
 
             await supabase
                 .from('agentes')
@@ -344,6 +348,7 @@ export async function POST(request: Request) {
 
     } catch (error) {
         console.error('Webhook Error:', error);
+        Sentry.captureException(error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

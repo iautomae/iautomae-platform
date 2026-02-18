@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@elevenlabs/react": "^0.14.0",
+    "@sentry/nextjs": "^10.39.0",
     "@supabase/supabase-js": "^2.93.3",
     "axios": "^1.13.5",
     "clsx": "^2.1.1",

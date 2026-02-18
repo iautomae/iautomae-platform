@@ -1,3 +1,5 @@
+const { withSentryConfig } = require("@sentry/nextjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     eslint: {
@@ -8,4 +10,12 @@ const nextConfig = {
     },
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+    org: "iautomae",
+    project: "javascript-nextjs",
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
+    tunnelRoute: "/monitoring",
+    disableLogger: true,
+    automaticVercelMonitors: true,
+});
