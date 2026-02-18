@@ -323,7 +323,7 @@ export async function POST(request: Request) {
                 summary: resumenVal,
                 transcript: transcript,
                 phone: phoneVal,
-                tokens_raw: tokensRaw,
+                tokens_raw: Math.round(tokensRaw),
                 tokens_billed: tokensBilled
             });
 
