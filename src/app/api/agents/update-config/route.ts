@@ -20,10 +20,15 @@ export async function POST(request: Request) {
         const { data: updatedAgent, error: updateError } = await supabase
             .from('agentes')
             .update({
-                pushover_user_key: config.pushover_user_key || null,
-                pushover_user_key_2: config.pushover_user_key_2 || null,
-                pushover_user_key_3: config.pushover_user_key_3 || null,
-                pushover_api_token: config.pushover_api_token || null,
+                pushover_user_1_name: config.pushover_user_1_name || null,
+                pushover_user_1_key: config.pushover_user_1_key || null,
+                pushover_user_1_token: config.pushover_user_1_token || null,
+                pushover_user_2_name: config.pushover_user_2_name || null,
+                pushover_user_2_key: config.pushover_user_2_key || null,
+                pushover_user_2_token: config.pushover_user_2_token || null,
+                pushover_user_3_name: config.pushover_user_3_name || null,
+                pushover_user_3_key: config.pushover_user_3_key || null,
+                pushover_user_3_token: config.pushover_user_3_token || null,
                 pushover_template: config.pushover_template || null,
                 pushover_notification_filter: config.pushover_notification_filter || 'ALL',
                 pushover_title: config.pushover_title || null,

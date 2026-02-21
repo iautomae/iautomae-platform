@@ -41,10 +41,15 @@ interface Agent {
     description?: string;
     prompt?: string;
     eleven_labs_agent_id?: string;
-    pushover_user_key?: string;
-    pushover_user_key_2?: string;
-    pushover_user_key_3?: string;
-    pushover_api_token?: string;
+    pushover_user_1_name?: string;
+    pushover_user_1_key?: string;
+    pushover_user_1_token?: string;
+    pushover_user_2_name?: string;
+    pushover_user_2_key?: string;
+    pushover_user_2_token?: string;
+    pushover_user_3_name?: string;
+    pushover_user_3_key?: string;
+    pushover_user_3_token?: string;
     pushover_template?: string;
     pushover_title?: string;
     pushover_notification_filter?: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY';
@@ -372,14 +377,20 @@ export default function DynamicLeadsDashboard() {
             setIsLoadingUsage(false);
         }
     };
-    const [pushoverUserKey, setPushoverUserKey] = useState('');
-    const [pushoverUserKey2, setPushoverUserKey2] = useState('');
-    const [pushoverUserKey3, setPushoverUserKey3] = useState('');
-    const [pushoverApiToken, setPushoverApiToken] = useState('');
+    const [pushoverUser1Name, setPushoverUser1Name] = useState('');
+    const [pushoverUser1Key, setPushoverUser1Key] = useState('');
+    const [pushoverUser1Token, setPushoverUser1Token] = useState('');
+    const [pushoverUser2Name, setPushoverUser2Name] = useState('');
+    const [pushoverUser2Key, setPushoverUser2Key] = useState('');
+    const [pushoverUser2Token, setPushoverUser2Token] = useState('');
+    const [pushoverUser3Name, setPushoverUser3Name] = useState('');
+    const [pushoverUser3Key, setPushoverUser3Key] = useState('');
+    const [pushoverUser3Token, setPushoverUser3Token] = useState('');
     const [pushoverReplyMessage, setPushoverReplyMessage] = useState('');
     const [pushoverTitle, setPushoverTitle] = useState('');
     const [pushoverFilter, setPushoverFilter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL');
     const [makeWebhookUrl, setMakeWebhookUrl] = useState('');
+    const [activeAdvisorTab, setActiveAdvisorTab] = useState(1);
     const [isSavingPushover, setIsSavingPushover] = useState(false);
     const [isPushoverSectionOpen, setIsPushoverSectionOpen] = useState(false);
 
@@ -388,10 +399,15 @@ export default function DynamicLeadsDashboard() {
 
     // Derived state for unsaved changes in Pushover modal
     const hasUnsavedNotificationChanges = configuringAgent && (
-        pushoverUserKey !== (configuringAgent.pushover_user_key || '') ||
-        pushoverUserKey2 !== (configuringAgent.pushover_user_key_2 || '') ||
-        pushoverUserKey3 !== (configuringAgent.pushover_user_key_3 || '') ||
-        pushoverApiToken !== (configuringAgent.pushover_api_token || '') ||
+        pushoverUser1Name !== (configuringAgent.pushover_user_1_name || '') ||
+        pushoverUser1Key !== (configuringAgent.pushover_user_1_key || '') ||
+        pushoverUser1Token !== (configuringAgent.pushover_user_1_token || '') ||
+        pushoverUser2Name !== (configuringAgent.pushover_user_2_name || '') ||
+        pushoverUser2Key !== (configuringAgent.pushover_user_2_key || '') ||
+        pushoverUser2Token !== (configuringAgent.pushover_user_2_token || '') ||
+        pushoverUser3Name !== (configuringAgent.pushover_user_3_name || '') ||
+        pushoverUser3Key !== (configuringAgent.pushover_user_3_key || '') ||
+        pushoverUser3Token !== (configuringAgent.pushover_user_3_token || '') ||
         pushoverReplyMessage !== (configuringAgent.pushover_template?.match(/text=(.*)/)?.[1] ? decodeURIComponent(configuringAgent.pushover_template.match(/text=(.*)/)![1]) : '') ||
         pushoverTitle !== (configuringAgent.pushover_title || '') ||
         pushoverFilter !== (configuringAgent.pushover_notification_filter || 'ALL') ||
@@ -400,10 +416,15 @@ export default function DynamicLeadsDashboard() {
 
     const handleOpenPushover = (agent: Agent) => {
         setConfiguringAgent(agent);
-        setPushoverUserKey(agent.pushover_user_key || '');
-        setPushoverUserKey2(agent.pushover_user_key_2 || '');
-        setPushoverUserKey3(agent.pushover_user_key_3 || '');
-        setPushoverApiToken(agent.pushover_api_token || '');
+        setPushoverUser1Name(agent.pushover_user_1_name || '');
+        setPushoverUser1Key(agent.pushover_user_1_key || '');
+        setPushoverUser1Token(agent.pushover_user_1_token || '');
+        setPushoverUser2Name(agent.pushover_user_2_name || '');
+        setPushoverUser2Key(agent.pushover_user_2_key || '');
+        setPushoverUser2Token(agent.pushover_user_2_token || '');
+        setPushoverUser3Name(agent.pushover_user_3_name || '');
+        setPushoverUser3Key(agent.pushover_user_3_key || '');
+        setPushoverUser3Token(agent.pushover_user_3_token || '');
 
         // Extract message from existing template if it has a wa.me URL
         const msgMatch = agent.pushover_template?.match(/text=(.*)/);
@@ -423,10 +444,15 @@ export default function DynamicLeadsDashboard() {
         try {
             const isImpersonating = isAdmin && viewAsUid;
             const updateData = {
-                pushover_user_key: pushoverUserKey,
-                pushover_user_key_2: pushoverUserKey2,
-                pushover_user_key_3: pushoverUserKey3,
-                pushover_api_token: pushoverApiToken,
+                pushover_user_1_name: pushoverUser1Name,
+                pushover_user_1_key: pushoverUser1Key,
+                pushover_user_1_token: pushoverUser1Token,
+                pushover_user_2_name: pushoverUser2Name,
+                pushover_user_2_key: pushoverUser2Key,
+                pushover_user_2_token: pushoverUser2Token,
+                pushover_user_3_name: pushoverUser3Name,
+                pushover_user_3_key: pushoverUser3Key,
+                pushover_user_3_token: pushoverUser3Token,
                 pushover_template: generatedPushoverTemplate,
                 pushover_title: pushoverTitle,
                 pushover_notification_filter: pushoverFilter,
@@ -1748,44 +1774,58 @@ export default function DynamicLeadsDashboard() {
                                         {isPushoverSectionOpen && (
                                             <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                                                 <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key 1</label>
-                                                    <input
-                                                        type="text"
-                                                        value={pushoverUserKey}
-                                                        onChange={(e) => setPushoverUserKey(e.target.value)}
-                                                        placeholder="Ingresa tu User Key de Pushover"
-                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
-                                                    />
-                                                </div>
-                                                <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key 2 (Opcional)</label>
-                                                    <input
-                                                        type="text"
-                                                        value={pushoverUserKey2}
-                                                        onChange={(e) => setPushoverUserKey2(e.target.value)}
-                                                        placeholder="Segunda User Key para rotación"
-                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
-                                                    />
-                                                </div>
-                                                <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key 3 (Opcional)</label>
-                                                    <input
-                                                        type="text"
-                                                        value={pushoverUserKey3}
-                                                        onChange={(e) => setPushoverUserKey3(e.target.value)}
-                                                        placeholder="Tercera User Key para rotación"
-                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
-                                                    />
-                                                </div>
-                                                <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">API Token / App Token</label>
-                                                    <input
-                                                        type="password"
-                                                        value={pushoverApiToken}
-                                                        onChange={(e) => setPushoverApiToken(e.target.value)}
-                                                        placeholder="Ingresa tu App Token"
-                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
-                                                    />
+                                                    <div className="space-y-4">
+                                                        <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
+                                                            {[1, 2, 3].map((num) => (
+                                                                <button
+                                                                    key={num}
+                                                                    onClick={() => setActiveAdvisorTab(num)}
+                                                                    className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeAdvisorTab === num
+                                                                        ? 'bg-white text-brand-primary shadow-sm'
+                                                                        : 'text-gray-400 hover:text-gray-600'
+                                                                        }`}
+                                                                >
+                                                                    Asesor {num}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+
+                                                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                            <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre del Asesor {activeAdvisorTab}</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={activeAdvisorTab === 1 ? pushoverUser1Name : activeAdvisorTab === 2 ? pushoverUser2Name : pushoverUser3Name}
+                                                                    onChange={(e) => activeAdvisorTab === 1 ? setPushoverUser1Name(e.target.value) : activeAdvisorTab === 2 ? setPushoverUser2Name(e.target.value) : setPushoverUser3Name(e.target.value)}
+                                                                    placeholder={`Nombre del Asesor ${activeAdvisorTab}`}
+                                                                    className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all shadow-sm"
+                                                                />
+                                                            </div>
+
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={activeAdvisorTab === 1 ? pushoverUser1Key : activeAdvisorTab === 2 ? pushoverUser2Key : pushoverUser3Key}
+                                                                        onChange={(e) => activeAdvisorTab === 1 ? setPushoverUser1Key(e.target.value) : activeAdvisorTab === 2 ? setPushoverUser2Key(e.target.value) : setPushoverUser3Key(e.target.value)}
+                                                                        placeholder="User Key"
+                                                                        className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-xs text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">API Token</label>
+                                                                    <input
+                                                                        type="password"
+                                                                        value={activeAdvisorTab === 1 ? pushoverUser1Token : activeAdvisorTab === 2 ? pushoverUser2Token : pushoverUser3Token}
+                                                                        onChange={(e) => activeAdvisorTab === 1 ? setPushoverUser1Token(e.target.value) : activeAdvisorTab === 2 ? setPushoverUser2Token(e.target.value) : setPushoverUser3Token(e.target.value)}
+                                                                        placeholder="API Token"
+                                                                        className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-xs text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-3">
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtro de Notificaciones</label>

@@ -18,10 +18,15 @@ export async function POST(request: Request) {
     type AgentData = {
         id: string;
         user_id: string;
-        pushover_user_key: string | null;
-        pushover_user_key_2: string | null;
-        pushover_user_key_3: string | null;
-        pushover_api_token: string | null;
+        pushover_user_1_name: string | null;
+        pushover_user_1_key: string | null;
+        pushover_user_1_token: string | null;
+        pushover_user_2_name: string | null;
+        pushover_user_2_key: string | null;
+        pushover_user_2_token: string | null;
+        pushover_user_3_name: string | null;
+        pushover_user_3_key: string | null;
+        pushover_user_3_token: string | null;
         pushover_template: string | null;
         pushover_title: string | null;
         pushover_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
@@ -78,7 +83,7 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
-            .select('id, user_id, pushover_user_key, pushover_user_key_2, pushover_user_key_3, pushover_api_token, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url, token_multiplier')
+            .select('id, user_id, pushover_user_1_name, pushover_user_1_key, pushover_user_1_token, pushover_user_2_name, pushover_user_2_key, pushover_user_2_token, pushover_user_3_name, pushover_user_3_key, pushover_user_3_token, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url, token_multiplier')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -101,10 +106,15 @@ export async function POST(request: Request) {
                 finalAgent = {
                     id: debugAgent.id,
                     user_id: debugAgent.user_id,
-                    pushover_user_key: null,
-                    pushover_user_key_2: null,
-                    pushover_user_key_3: null,
-                    pushover_api_token: null,
+                    pushover_user_1_name: 'Asesor 1',
+                    pushover_user_1_key: null,
+                    pushover_user_1_token: null,
+                    pushover_user_2_name: null,
+                    pushover_user_2_key: null,
+                    pushover_user_2_token: null,
+                    pushover_user_3_name: null,
+                    pushover_user_3_key: null,
+                    pushover_user_3_token: null,
                     pushover_template: null,
                     pushover_title: null,
                     pushover_notification_filter: null,
@@ -213,8 +223,10 @@ export async function POST(request: Request) {
             }).catch(err => console.error('Make.com error:', err));
         }
 
-        // 4. Send Pushover Notification
-        if (finalAgent.pushover_user_key && finalAgent.pushover_api_token) {
+        // 4. Randomized Pushover Notification & Advisor Selection
+        let selectedAdvisorName: string | null = null;
+
+        if (finalAgent.pushover_user_1_key || finalAgent.pushover_user_2_key || finalAgent.pushover_user_3_key) {
             const filter = finalAgent.pushover_notification_filter || 'ALL';
             let shouldNotify = false;
 
@@ -222,52 +234,45 @@ export async function POST(request: Request) {
             else if (filter === 'POTENTIAL_ONLY' && status === 'POTENCIAL') shouldNotify = true;
             else if (filter === 'NO_POTENTIAL_ONLY' && status === 'NO_POTENCIAL') shouldNotify = true;
 
-            if (shouldNotify) {
-                const messageTemplate = finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
-                const messageTitle = finalAgent.pushover_title || 'Nuevo Lead Detectado';
+            // Collect active users
+            const activeUsers = [
+                { name: finalAgent.pushover_user_1_name, key: finalAgent.pushover_user_1_key, token: finalAgent.pushover_user_1_token },
+                { name: finalAgent.pushover_user_2_name, key: finalAgent.pushover_user_2_key, token: finalAgent.pushover_user_2_token },
+                { name: finalAgent.pushover_user_3_name, key: finalAgent.pushover_user_3_key, token: finalAgent.pushover_user_3_token }
+            ].filter(u => u.key && u.key.trim() !== '' && u.token && u.token.trim() !== '');
 
-                // Replace variables (both plain and URL-encoded for links)
-                let message = messageTemplate
-                    .replace(/{nombre}/g, nombreVal)
-                    .replace(/%7Bnombre%7D/g, encodeURIComponent(nombreVal))
-                    .replace(/{telefono}/g, phoneVal)
-                    .replace(/%7Btelefono%7D/g, encodeURIComponent(phoneVal))
-                    .replace(/{resumen}/g, resumenVal)
-                    .replace(/%7Bresumen%7D/g, encodeURIComponent(resumenVal));
+            if (activeUsers.length > 0) {
+                // Select random advisor
+                const luckyUser = activeUsers[Math.floor(Math.random() * activeUsers.length)];
+                selectedAdvisorName = luckyUser.name || 'Asesor Asignado';
 
-                // Convert markdown bold to HTML bold for Pushover
-                // Handles *text* -> <b>text</b>
-                message = message.replace(/\*(.*?)\*/g, '<b>$1</b>');
+                if (shouldNotify) {
+                    const messageTemplate = finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
+                    const messageTitle = finalAgent.pushover_title || 'Nuevo Lead Detectado';
 
-                // Convert newlines to <br> for HTML mode
-                message = message.replace(/\n/g, '<br>');
+                    let message = messageTemplate
+                        .replace(/{nombre}/g, nombreVal)
+                        .replace(/%7Bnombre%7D/g, encodeURIComponent(nombreVal))
+                        .replace(/{telefono}/g, phoneVal)
+                        .replace(/%7Btelefono%7D/g, encodeURIComponent(phoneVal))
+                        .replace(/{resumen}/g, resumenVal)
+                        .replace(/%7Bresumen%7D/g, encodeURIComponent(resumenVal));
 
-                // Auto-link URLs to ensure they are clickable in HTML mode
-                // This wraps anything starting with http/https in an <a> tag
-                message = message.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+                    message = message.replace(/\*(.*?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                    message = message.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
 
-                // Select a random user key from the available ones
-                const activeKeys = [
-                    finalAgent.pushover_user_key,
-                    finalAgent.pushover_user_key_2,
-                    finalAgent.pushover_user_key_3
-                ].filter(key => key && key.trim() !== '');
-
-                const targetUserKey = activeKeys.length > 0
-                    ? activeKeys[Math.floor(Math.random() * activeKeys.length)]
-                    : finalAgent.pushover_user_key;
-
-                fetch('https://api.pushover.net/1/messages.json', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: finalAgent.pushover_api_token,
-                        user: targetUserKey,
-                        message: message,
-                        title: messageTitle,
-                        html: 1 // Enable HTML parsing
-                    })
-                }).catch(err => console.error('Pushover error:', err));
+                    fetch('https://api.pushover.net/1/messages.json', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            token: luckyUser.token,
+                            user: luckyUser.key,
+                            message: message,
+                            title: messageTitle,
+                            html: 1
+                        })
+                    }).catch(err => console.error('Pushover error:', err));
+                }
             }
         }
 
@@ -340,7 +345,8 @@ export async function POST(request: Request) {
                 transcript: transcript,
                 phone: phoneVal,
                 tokens_raw: Math.round(tokensRaw),
-                tokens_billed: tokensBilled
+                tokens_billed: tokensBilled,
+                advisor_name: selectedAdvisorName
             });
 
         if (insertError) {
