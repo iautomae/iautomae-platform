@@ -9,19 +9,31 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const { leadId, advisorName } = body;
+        const {
+            leadId,
+            advisorName,
+            name,
+            status,
+            estado,
+            notas_seguimiento,
+            fecha_seguimiento
+        } = body;
 
         if (!leadId) {
             return NextResponse.json({ error: 'Missing leadId' }, { status: 400 });
         }
 
-        console.log(`Updating lead ${leadId} with advisor ${advisorName}...`);
+        const updateData: any = {};
+        if (advisorName !== undefined) updateData.advisor_name = advisorName || null;
+        if (name !== undefined) updateData.nombre = name;
+        if (status !== undefined) updateData.status = status;
+        if (estado !== undefined) updateData.estado = estado;
+        if (notas_seguimiento !== undefined) updateData.notas_seguimiento = notas_seguimiento;
+        if (fecha_seguimiento !== undefined) updateData.fecha_seguimiento = fecha_seguimiento || null;
 
         const { data: updatedLead, error: updateError } = await supabase
             .from('leads')
-            .update({
-                advisor_name: advisorName || null
-            })
+            .update(updateData)
             .eq('id', leadId)
             .select()
             .single();

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -28,6 +28,9 @@ interface Lead {
     created_at: string;
     tokens_billed?: number;
     advisor_name?: string;
+    estado?: 'X Contactar' | 'A futuro' | 'Agendar' | 'Venta Cerrada' | 'Descartado';
+    notas_seguimiento?: string;
+    fecha_seguimiento?: string;
 }
 
 // Placeholder agent type for better type safety
@@ -95,6 +98,9 @@ export default function DynamicLeadsDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAgentStats, setSelectedAgentStats] = useState<Agent | null>(null);
     const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
+    const [crmModalLead, setCrmModalLead] = useState<Lead | null>(null);
+    const [crmModalType, setCrmModalType] = useState<'INFO' | 'FOLLOW_UP' | null>(null);
+    const [isSavingLead, setIsSavingLead] = useState(false);
 
 
 
@@ -150,6 +156,9 @@ export default function DynamicLeadsDashboard() {
                 score?: number;
                 tokens_billed?: number;
                 advisor_name?: string;
+                estado?: string;
+                notas_seguimiento?: string;
+                fecha_seguimiento?: string;
             }) => {
                 const dateObj = new Date(l.created_at);
                 return {
@@ -164,7 +173,10 @@ export default function DynamicLeadsDashboard() {
                     summary: l.summary || 'Sin resumen',
                     score: l.score || 0,
                     tokens_billed: l.tokens_billed || 0,
-                    advisor_name: l.advisor_name || ''
+                    advisor_name: l.advisor_name || '',
+                    estado: (l.estado as any) || 'X Contactar',
+                    notas_seguimiento: l.notas_seguimiento || '',
+                    fecha_seguimiento: l.fecha_seguimiento || ''
                 };
             });
             setRealLeads(formattedLeads);
@@ -628,19 +640,27 @@ export default function DynamicLeadsDashboard() {
             setIsSavingPushover(false);
         }
     };
-    const handleUpdateAdvisor = async (leadId: string, advisorName: string) => {
+    const handleUpdateLead = async (leadId: string, updates: Partial<Lead>) => {
         // Update local state immediately for UX
-        setRealLeads(prev => prev.map(l => l.id === leadId ? { ...l, advisor_name: advisorName } : l));
+        setRealLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
 
         try {
-            const { error } = await supabase
-                .from('leads')
-                .update({ advisor_name: advisorName || null })
-                .eq('id', leadId);
+            const res = await fetch('/api/leads/update-lead', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    leadId,
+                    ...updates
+                })
+            });
 
-            if (error) throw error;
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Server error');
+            }
         } catch (error) {
-            console.error('Error updating advisor:', error);
+            console.error('Error updating lead:', error);
+            // setInfoModal({ isOpen: true, type: 'error', message: 'Error al actualizar el lead.' });
         }
     };
 
@@ -1244,10 +1264,11 @@ export default function DynamicLeadsDashboard() {
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[200px]">Nombre</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[130px]">Teléfono</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50">Resumen Llamada</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[70px] text-center">Ver Chat</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[120px] text-center">Calificación</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[100px] text-center">Asesor</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[80px]">Acciones</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[70px]">Ver Chat</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[120px]">Calificación</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[120px]">Estado Lead</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[100px]">Asesor</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[100px]">CRM</th>
                                             </tr >
                                         </thead >
                                         <tbody className="divide-y divide-gray-100">
@@ -1297,27 +1318,54 @@ export default function DynamicLeadsDashboard() {
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
                                                         <span className={cn(
-                                                            "w-24 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide inline-flex justify-center",
-                                                            lead.status === 'POTENCIAL'
-                                                                ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
-                                                                : "bg-red-100 text-red-700 border border-red-200"
+                                                            "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide inline-flex justify-center border w-[110px]",
+                                                            lead.status === 'POTENCIAL' ? "bg-emerald-100 text-emerald-600 border-emerald-200" : "bg-red-100 text-red-600 border-red-200"
                                                         )}>
-                                                            {lead.status === 'POTENCIAL' ? 'POTENCIAL' : 'NO POTENCIAL'}
+                                                            {lead.status === 'POTENCIAL' ? 'Potencial' : 'No Potencial'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center text-nowrap">
+                                                        <span className={cn(
+                                                            "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide inline-flex justify-center border w-[110px]",
+                                                            lead.estado === 'X Contactar' && "bg-gray-100 text-gray-500 border-gray-200",
+                                                            lead.estado === 'A futuro' && "bg-blue-100 text-blue-600 border-blue-200",
+                                                            lead.estado === 'Agendar' && "bg-purple-100 text-purple-600 border-purple-200",
+                                                            lead.estado === 'Venta Cerrada' && "bg-emerald-100 text-emerald-600 border-emerald-200",
+                                                            lead.estado === 'Descartado' && "bg-red-100 text-red-600 border-red-200"
+                                                        )}>
+                                                            {lead.estado || 'X Contactar'}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
                                                         <input
                                                             type="text"
                                                             value={lead.advisor_name || ''}
-                                                            onChange={(e) => handleUpdateAdvisor(lead.id, e.target.value)}
+                                                            onChange={(e) => handleUpdateLead(lead.id, { advisor_name: e.target.value })}
                                                             placeholder="—"
                                                             className="w-full bg-transparent text-[10px] font-bold text-gray-700 text-center border-b border-transparent focus:border-brand-primary outline-none py-1 hover:bg-gray-50 transition-all rounded"
                                                         />
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
-                                                        <div className="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-md transition-colors" title="Eliminar">
-                                                                <Trash2 size={12} />
+                                                        <div className="flex items-center justify-center gap-1.5">
+                                                            <button
+                                                                onClick={() => { setCrmModalLead(lead); setCrmModalType('INFO'); }}
+                                                                className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-brand-primary rounded-lg transition-all"
+                                                                title="Actualizar Info"
+                                                            >
+                                                                <UserCog size={13} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setCrmModalLead(lead); setCrmModalType('FOLLOW_UP'); }}
+                                                                className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-purple-600 rounded-lg transition-all"
+                                                                title="Gestión de Seguimiento"
+                                                            >
+                                                                <Calendar size={13} />
+                                                            </button>
+                                                            <button
+                                                                className="p-1.5 hover:bg-red-50 text-gray-300 hover:text-red-500 rounded-lg transition-all"
+                                                                title="Eliminar"
+                                                            >
+                                                                <Trash2 size={13} />
                                                             </button>
                                                         </div>
                                                     </td>
@@ -2403,6 +2451,209 @@ export default function DynamicLeadsDashboard() {
                         </div>
                     )
                 }
+
+                {/* --- CRM MODALS --- */}
+
+                {/* Actualizar Info Modal */}
+                {crmModalType === 'INFO' && crmModalLead && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300">
+                            <div className="bg-brand-dark p-6 text-white flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-brand-primary/20 rounded-xl text-brand-primary">
+                                        <UserCog size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg leading-tight uppercase tracking-tight">Actualizar Info</h3>
+                                        <p className="text-[10px] text-brand-primary font-bold opacity-80 uppercase tracking-widest">Información Básica del Lead</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setCrmModalType(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                {/* Opción 1: Nombre */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
+                                    <input
+                                        type="text"
+                                        defaultValue={crmModalLead.name}
+                                        id="edit-lead-name"
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
+                                    />
+                                </div>
+
+                                {/* Opción 2: Calificación */}
+                                <div className="flex items-center justify-between bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                            crmModalLead.status === 'POTENCIAL' ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"
+                                        )}>
+                                            <Activity size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-700 uppercase tracking-tight">Calificación</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{crmModalLead.status === 'POTENCIAL' ? 'Potencial' : 'No Potencial'}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setCrmModalLead({ ...crmModalLead, status: crmModalLead.status === 'POTENCIAL' ? 'NO_POTENCIAL' : 'POTENCIAL' })}
+                                        className={cn(
+                                            "w-12 h-6 rounded-full transition-all duration-300 relative",
+                                            crmModalLead.status === 'POTENCIAL' ? "bg-brand-primary" : "bg-gray-300"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm",
+                                            crmModalLead.status === 'POTENCIAL' ? "left-7" : "left-1"
+                                        )} />
+                                    </button>
+                                </div>
+
+                                {/* Opción 3: Asesor */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Asesor Asignado</label>
+                                    <input
+                                        type="text"
+                                        defaultValue={crmModalLead.advisor_name || ''}
+                                        id="edit-lead-advisor"
+                                        placeholder="Nombre del asesor..."
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
+                                    />
+                                </div>
+
+                                <div className="pt-2">
+                                    <button
+                                        onClick={async () => {
+                                            const name = (document.getElementById('edit-lead-name') as HTMLInputElement).value;
+                                            const advisor_name = (document.getElementById('edit-lead-advisor') as HTMLInputElement).value;
+                                            setIsSavingLead(true);
+                                            await handleUpdateLead(crmModalLead.id, {
+                                                name,
+                                                status: crmModalLead.status,
+                                                advisor_name
+                                            });
+                                            setIsSavingLead(false);
+                                            setCrmModalType(null);
+                                        }}
+                                        disabled={isSavingLead}
+                                        className="w-full bg-brand-primary text-brand-dark py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:shadow-lg hover:shadow-brand-primary/20 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {isSavingLead ? <RefreshCw size={16} className="animate-spin" /> : 'Guardar Cambios'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Gestión de Seguimiento Modal */}
+                {crmModalType === 'FOLLOW_UP' && crmModalLead && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300">
+                            <div className="bg-brand-dark p-6 text-white flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-brand-primary/20 rounded-xl text-brand-primary">
+                                        <Calendar size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg leading-tight uppercase tracking-tight">Gestión de Seguimiento</h3>
+                                        <p className="text-[10px] text-brand-primary font-bold opacity-80 uppercase tracking-widest">{crmModalLead.name}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setCrmModalType(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Estado de Seguimiento</label>
+                                        <select
+                                            value={crmModalLead.estado || 'X Contactar'}
+                                            onChange={(e) => setCrmModalLead({ ...crmModalLead, estado: e.target.value as any })}
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="X Contactar">X CONTACTAR</option>
+                                            <option value="A futuro">A FUTURO</option>
+                                            <option value="Agendar">AGENDAR</option>
+                                            <option value="Venta Cerrada">VENTA CERRADA</option>
+                                            <option value="Descartado">DESCARTADO</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Fecha Seguimiento</label>
+                                        <input
+                                            type="datetime-local"
+                                            defaultValue={crmModalLead.fecha_seguimiento ? new Date(crmModalLead.fecha_seguimiento).toISOString().slice(0, 16) : ''}
+                                            id="edit-lead-date"
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Detalle del Interés / Notas</label>
+                                    <textarea
+                                        defaultValue={crmModalLead.notas_seguimiento || ''}
+                                        id="edit-lead-notes"
+                                        rows={4}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all resize-none"
+                                        placeholder="Escribe notas relevantes para el seguimiento..."
+                                    />
+                                </div>
+
+                                {crmModalLead.estado === 'Agendar' && (
+                                    <div className="p-5 bg-purple-50 rounded-2xl border border-purple-100 flex items-center justify-between group animate-in slide-in-from-top-2 duration-300">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-purple-100 text-purple-600 rounded-xl">
+                                                <ExternalLink size={18} />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-purple-900 uppercase tracking-tight">Logística Agendamiento</p>
+                                                <p className="text-[10px] font-medium text-purple-600/80">Sincroniza con tu calendario de Google</p>
+                                            </div>
+                                        </div>
+                                        <a
+                                            href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`Llamada seguimiento: ${crmModalLead.name}`)}&details=${encodeURIComponent(`Lead: ${crmModalLead.name}\nTeléfono: ${crmModalLead.phone}\nResumen previo: ${crmModalLead.summary || 'Sin resumen'}\nNotas: ${crmModalLead.notas_seguimiento || 'Sin notas'}`)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-4 py-2 bg-purple-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-purple-700 transition-colors shadow-sm"
+                                        >
+                                            Google Calendar
+                                        </a>
+                                    </div>
+                                )}
+
+                                <div className="pt-2">
+                                    <button
+                                        onClick={async () => {
+                                            const notas = (document.getElementById('edit-lead-notes') as HTMLTextAreaElement).value;
+                                            const fecha = (document.getElementById('edit-lead-date') as HTMLInputElement).value;
+                                            setIsSavingLead(true);
+                                            await handleUpdateLead(crmModalLead.id, {
+                                                estado: crmModalLead.estado,
+                                                notas_seguimiento: notas,
+                                                fecha_seguimiento: fecha ? new Date(fecha).toISOString() : undefined
+                                            });
+                                            setIsSavingLead(false);
+                                            setCrmModalType(null);
+                                        }}
+                                        disabled={isSavingLead}
+                                        className="w-full bg-brand-dark text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {isSavingLead ? <RefreshCw size={16} className="animate-spin" /> : 'Actualizar Seguimiento'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div >
         </div >
     );
