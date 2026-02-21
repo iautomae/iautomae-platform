@@ -38,6 +38,7 @@ export async function POST(request: Request) {
                 pushover_template: config.pushover_template || null,
                 pushover_notification_filter: config.pushover_notification_filter || 'ALL',
                 pushover_title: config.pushover_title || null,
+                pushover_reply_message: config.pushover_reply_message || null,
                 make_webhook_url: config.make_webhook_url || null
             })
             .eq('id', agentId)

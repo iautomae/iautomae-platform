@@ -36,6 +36,7 @@ export async function POST(request: Request) {
         pushover_template: string | null;
         pushover_title: string | null;
         pushover_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
+        pushover_reply_message: string | null;
         make_webhook_url: string | null;
         token_multiplier: number | null;
     };
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
-            .select('id, user_id, pushover_user_1_name, pushover_user_1_key, pushover_user_1_token, pushover_user_1_active, pushover_user_1_template, pushover_user_2_name, pushover_user_2_key, pushover_user_2_token, pushover_user_2_active, pushover_user_2_template, pushover_user_3_name, pushover_user_3_key, pushover_user_3_token, pushover_user_3_active, pushover_user_3_template, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url, token_multiplier')
+            .select('id, user_id, pushover_user_1_name, pushover_user_1_key, pushover_user_1_token, pushover_user_1_active, pushover_user_1_template, pushover_user_2_name, pushover_user_2_key, pushover_user_2_token, pushover_user_2_active, pushover_user_2_template, pushover_user_3_name, pushover_user_3_key, pushover_user_3_token, pushover_user_3_active, pushover_user_3_template, pushover_template, pushover_title, pushover_notification_filter, pushover_reply_message, make_webhook_url, token_multiplier')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -130,6 +131,7 @@ export async function POST(request: Request) {
                     pushover_template: null,
                     pushover_title: null,
                     pushover_notification_filter: null,
+                    pushover_reply_message: null,
                     make_webhook_url: null,
                     token_multiplier: 1.0
                 };
@@ -148,10 +150,10 @@ export async function POST(request: Request) {
         let nombreVal = dataCollection.nombre?.value ||
             dataCollection.Nombre?.value ||
             dataCollection.nombre_cliente?.value ||
-            'Desconocido';
+            'SIN_NOMBRE';
 
         // Helper to format name to Title Case (e.g. "LUISIN" -> "Luisin", "juan perez" -> "Juan Perez")
-        if (nombreVal && nombreVal !== 'Desconocido') {
+        if (nombreVal && nombreVal !== 'Desconocido' && nombreVal !== 'SIN_NOMBRE') {
             nombreVal = nombreVal.toLowerCase().replace(/(?:^|\s)\S/g, function (a: string) { return a.toUpperCase(); });
         }
 
@@ -276,39 +278,46 @@ export async function POST(request: Request) {
                 u.active
             );
 
-            if (activeUsers.length > 0) {
-                // Select random advisor
+            if (activeUsers.length > 0 && shouldNotify) {
+                // Select random advisor ONLY IF notifying
                 const luckyUser = activeUsers[Math.floor(Math.random() * activeUsers.length)];
                 selectedAdvisorName = luckyUser.name || 'Asesor Asignado';
 
-                if (shouldNotify) {
-                    // Use user template if available, otherwise global fallback
-                    const messageTemplate = luckyUser.template || finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
-                    const messageTitle = finalAgent.pushover_title || 'Nuevo Lead Detectado';
+                // Use user template if available, otherwise global fallback
+                const messageTemplate = luckyUser.template || finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
+                const messageTitle = finalAgent.pushover_title || 'Nuevo Lead Detectado';
 
-                    let message = messageTemplate
-                        .replace(/{nombre}/g, nombreVal)
-                        .replace(/%7Bnombre%7D/g, encodeURIComponent(nombreVal))
-                        .replace(/{telefono}/g, phoneVal)
-                        .replace(/%7Btelefono%7D/g, encodeURIComponent(phoneVal))
-                        .replace(/{resumen}/g, resumenVal)
-                        .replace(/%7Bresumen%7D/g, encodeURIComponent(resumenVal));
+                // Construct WhatsApp Link
+                // Ensure phone is only digits
+                const cleanPhone = phoneVal.replace(/\D/g, '');
+                const waBase = `https://wa.me/${cleanPhone}`;
+                const rawReply = finalAgent.pushover_reply_message || 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.';
+                const personalizedReply = rawReply.replace(/{nombre}/g, nombreVal);
+                const waLink = `${waBase}?text=${encodeURIComponent(personalizedReply)}`;
 
-                    message = message.replace(/\*(.*?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-                    message = message.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+                let message = messageTemplate
+                    .replace(/{nombre}/g, nombreVal)
+                    .replace(/%7Bnombre%7D/g, encodeURIComponent(nombreVal))
+                    .replace(/{telefono}/g, phoneVal)
+                    .replace(/%7Btelefono%7D/g, encodeURIComponent(phoneVal))
+                    .replace(/{resumen}/g, resumenVal)
+                    .replace(/%7Bresumen%7D/g, encodeURIComponent(resumenVal))
+                    .replace(/{wa_link}/g, waLink);
 
-                    fetch('https://api.pushover.net/1/messages.json', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            token: luckyUser.token,
-                            user: luckyUser.key,
-                            message: message,
-                            title: messageTitle,
-                            html: 1
-                        })
-                    }).catch(err => console.error('Pushover error:', err));
-                }
+                message = message.replace(/\*(.*?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+                message = message.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+
+                fetch('https://api.pushover.net/1/messages.json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: luckyUser.token,
+                        user: luckyUser.key,
+                        message: message,
+                        title: messageTitle,
+                        html: 1
+                    })
+                }).catch(err => console.error('Pushover error:', err));
             }
         }
 

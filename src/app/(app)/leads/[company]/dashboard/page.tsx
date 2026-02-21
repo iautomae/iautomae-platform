@@ -58,6 +58,7 @@ interface Agent {
     pushover_user_3_template?: string;
     pushover_template?: string;
     pushover_title?: string;
+    pushover_reply_message?: string;
     pushover_notification_filter?: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY';
     make_webhook_url?: string;
     updated_at: string;
@@ -422,7 +423,7 @@ export default function DynamicLeadsDashboard() {
     };
 
     // Derived: Final template generated from components
-    const generatedPushoverTemplate = `Nombre: {nombre}\nResumen: {resumen}\n\n👉 Responder:\nhttps://wa.me/+{telefono}?text=${encodeURIComponent(pushoverReplyMessage)}`;
+    const generatedPushoverTemplate = `Nombre: {nombre}\nResumen: {resumen}\n\n👉 Responder:\n{wa_link}`;
 
     // Derived state for unsaved changes in Pushover modal
     const hasUnsavedNotificationChanges = configuringAgent && (
@@ -447,7 +448,8 @@ export default function DynamicLeadsDashboard() {
         pushoverUser2Template !== ((configuringAgent as any).pushover_user_2_template || '') ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pushoverUser3Template !== ((configuringAgent as any).pushover_user_3_template || '') ||
-        pushoverReplyMessage !== (configuringAgent.pushover_template?.match(/text=(.*)/)?.[1] ? decodeURIComponent(configuringAgent.pushover_template.match(/text=(.*)/)![1]) : '') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverReplyMessage !== ((configuringAgent as any).pushover_reply_message || (configuringAgent.pushover_template?.match(/text=(.*)/)?.[1] ? decodeURIComponent(configuringAgent.pushover_template.match(/text=(.*)/)![1]) : '')) ||
         pushoverTitle !== (configuringAgent.pushover_title || '') ||
         pushoverFilter !== (configuringAgent.pushover_notification_filter || 'ALL') ||
         makeWebhookUrl !== (configuringAgent.make_webhook_url || '')
@@ -474,11 +476,11 @@ export default function DynamicLeadsDashboard() {
         setPushoverUser2Template(a.pushover_user_2_template || '');
         setPushoverUser3Template(a.pushover_user_3_template || '');
 
-        // Extract message from existing template if it has a wa.me URL
-        const msgMatch = agent.pushover_template?.match(/text=(.*)/);
-        const initialMsg = msgMatch ? decodeURIComponent(msgMatch[1]) : `Hola {nombre}, bienvenido, recibimos tu solicitud e info, cuéntanos en qué podemos ayudarte.`;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const initialReply = a.pushover_reply_message ||
+            (agent.pushover_template?.match(/text=(.*)/)?.[1] ? decodeURIComponent(agent.pushover_template.match(/text=(.*)/)![1]) : 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.');
 
-        setPushoverReplyMessage(initialMsg);
+        setPushoverReplyMessage(initialReply);
         setPushoverTitle(agent.pushover_title || '');
         setPushoverFilter(agent.pushover_notification_filter || 'ALL');
         setMakeWebhookUrl(agent.make_webhook_url || '');
@@ -509,6 +511,7 @@ export default function DynamicLeadsDashboard() {
                 pushover_user_3_template: pushoverUser3Template,
                 pushover_template: generatedPushoverTemplate,
                 pushover_title: pushoverTitle,
+                pushover_reply_message: pushoverReplyMessage,
                 pushover_notification_filter: pushoverFilter,
                 make_webhook_url: makeWebhookUrl
             };
