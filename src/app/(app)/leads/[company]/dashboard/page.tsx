@@ -2029,7 +2029,11 @@ export default function DynamicLeadsDashboard() {
                                                         {['👋', '😊', '🤝', '🙌', '🔥', '✨', '🚀', '✅', '📞', '💬', '📍', '📩', '📱', '🎯'].map(emoji => (
                                                             <button
                                                                 key={emoji}
-                                                                onClick={() => setPushoverReplyMessage(prev => prev + emoji)}
+                                                                onClick={() => {
+                                                                    if (activeAdvisorTab === 1) setPushoverUser1Template(prev => prev + emoji);
+                                                                    else if (activeAdvisorTab === 2) setPushoverUser2Template(prev => prev + emoji);
+                                                                    else setPushoverUser3Template(prev => prev + emoji);
+                                                                }}
                                                                 className="w-8 h-8 flex items-center justify-center bg-white hover:bg-gray-100 rounded-lg text-base shadow-sm transition-all hover:scale-110 active:scale-90 border border-gray-100"
                                                             >
                                                                 {emoji}
