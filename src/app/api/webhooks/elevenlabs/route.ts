@@ -291,7 +291,8 @@ export async function POST(request: Request) {
                 // Ensure phone is only digits
                 const cleanPhone = phoneVal.replace(/\D/g, '');
                 const waBase = `https://wa.me/${cleanPhone}`;
-                const rawReply = finalAgent.pushover_reply_message || 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.';
+                // Use advisor-specific template if available, otherwise fallback to global reply message
+                const rawReply = luckyUser.template || finalAgent.pushover_reply_message || 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.';
                 const personalizedReply = rawReply.replace(/{nombre}/g, nombreVal);
                 const waLink = `${waBase}?text=${encodeURIComponent(personalizedReply)}`;
 

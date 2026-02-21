@@ -71,12 +71,16 @@ export async function POST(request: Request) {
 
         if (action === 'SAVE_AGENT_CONFIG') {
             if (!agentId || !data) return NextResponse.json({ error: "Missing data" }, { status: 400 });
+            console.log(`Saving config for agent ${agentId}, user ${targetUid}`);
             const { error } = await adminSupabase
                 .from('agentes')
                 .update(data)
                 .eq('id', agentId)
                 .eq('user_id', targetUid);
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase update error:', error);
+                throw error;
+            }
             return NextResponse.json({ success: true });
         }
 

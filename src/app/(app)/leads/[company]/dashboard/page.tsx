@@ -408,6 +408,7 @@ export default function DynamicLeadsDashboard() {
     const [pushoverUser1Template, setPushoverUser1Template] = useState('');
     const [pushoverUser2Template, setPushoverUser2Template] = useState('');
     const [pushoverUser3Template, setPushoverUser3Template] = useState('');
+    const [testPhoneNumber, setTestPhoneNumber] = useState('');
 
     const isPushoverConfigured = (activeAgentId: string | null) => {
         if (!activeAgentId) return false;
@@ -518,6 +519,12 @@ export default function DynamicLeadsDashboard() {
 
             if (isImpersonating) {
                 const { data: { session } } = await supabase.auth.getSession();
+                console.log('Admin Save Payload:', {
+                    action: 'SAVE_AGENT_CONFIG',
+                    targetUid,
+                    agentId: configuringAgent.id,
+                    data: updateData
+                });
                 const res = await fetch('/api/admin/impersonate/mutate', {
                     method: 'POST',
                     headers: {
@@ -533,9 +540,11 @@ export default function DynamicLeadsDashboard() {
                 });
                 if (!res.ok) {
                     const err = await res.json();
+                    console.error('Server side error:', err);
                     throw new Error(err.error || 'Server error');
                 }
             } else {
+                console.log('Direct Save Payload:', updateData);
                 const { error } = await supabase
                     .from('agentes')
                     .update(updateData)
@@ -1915,21 +1924,21 @@ export default function DynamicLeadsDashboard() {
                                                                         onClick={async () => {
                                                                             const key = activeAdvisorTab === 1 ? pushoverUser1Key : activeAdvisorTab === 2 ? pushoverUser2Key : pushoverUser3Key;
                                                                             const token = activeAdvisorTab === 1 ? pushoverUser1Token : activeAdvisorTab === 2 ? pushoverUser2Token : pushoverUser3Token;
-                                                                            const testPhone = activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template;
+                                                                            const advisorTemplate = activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template;
 
                                                                             if (!key || !token) {
                                                                                 setInfoModal({ isOpen: true, type: 'error', message: 'Configura Key y Token antes de probar.' });
                                                                                 return;
                                                                             }
-                                                                            if (!testPhone || testPhone.trim() === '') {
+                                                                            if (!testPhoneNumber || testPhoneNumber.trim() === '') {
                                                                                 setInfoModal({ isOpen: true, type: 'error', message: 'Indica un teléfono para la prueba.' });
                                                                                 return;
                                                                             }
 
                                                                             try {
-                                                                                const cleanPhone = testPhone.replace(/\D/g, '');
+                                                                                const cleanPhone = testPhoneNumber.replace(/\D/g, '');
                                                                                 const waBase = `https://wa.me/${cleanPhone}`;
-                                                                                const rawReply = (configuringAgent as any)?.pushover_reply_message || pushoverReplyMessage || 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.';
+                                                                                const rawReply = advisorTemplate || pushoverReplyMessage || 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.';
                                                                                 const personalizedReply = rawReply.replace(/{nombre}/g, 'Usuario de Prueba');
                                                                                 const waLink = `${waBase}?text=${encodeURIComponent(personalizedReply)}`;
 
@@ -1958,8 +1967,8 @@ export default function DynamicLeadsDashboard() {
                                                                     </button>
                                                                 </div>
                                                                 <textarea
-                                                                    value={activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template}
-                                                                    onChange={(e) => activeAdvisorTab === 1 ? setPushoverUser1Template(e.target.value) : activeAdvisorTab === 2 ? setPushoverUser2Template(e.target.value) : setPushoverUser3Template(e.target.value)}
+                                                                    value={testPhoneNumber}
+                                                                    onChange={(e) => setTestPhoneNumber(e.target.value)}
                                                                     placeholder="Ej: 521234567890 (Sin símbolos)"
                                                                     rows={1}
                                                                     className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-xs text-gray-900 font-bold transition-all"
@@ -2000,15 +2009,15 @@ export default function DynamicLeadsDashboard() {
 
                                                 <div className="space-y-4">
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Respuesta para el Cliente</label>
-                                                        <span className="text-[9px] text-blue-500 font-medium">Usa {"{nombre}"} para personalizar</span>
+                                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Plantilla de Notificación (Asesor {activeAdvisorTab})</label>
+                                                        <span className="text-[9px] text-blue-500 font-medium">Usa {"{nombre}"} para personalizar el mensaje de WhatsApp individual</span>
                                                     </div>
 
                                                     <div className="relative">
                                                         <textarea
-                                                            value={pushoverReplyMessage}
-                                                            onChange={(e) => setPushoverReplyMessage(e.target.value)}
-                                                            placeholder="Escribe el mensaje..."
+                                                            value={activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template}
+                                                            onChange={(e) => activeAdvisorTab === 1 ? setPushoverUser1Template(e.target.value) : activeAdvisorTab === 2 ? setPushoverUser2Template(e.target.value) : setPushoverUser3Template(e.target.value)}
+                                                            placeholder={`Escribe el mensaje para el Asesor ${activeAdvisorTab}...`}
                                                             rows={4}
                                                             className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all leading-relaxed"
                                                         />
