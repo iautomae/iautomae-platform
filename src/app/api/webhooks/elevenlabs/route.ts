@@ -45,6 +45,7 @@ export async function POST(request: Request) {
         pushover_reply_message: string | null;
         make_webhook_url: string | null;
         token_multiplier: number | null;
+        status: string | null;
     };
 
     try {
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
                 pushover_user_1_name, pushover_user_1_key, pushover_user_1_token, pushover_user_1_active, pushover_user_1_template, pushover_user_1_title, pushover_user_1_notification_filter,
                 pushover_user_2_name, pushover_user_2_key, pushover_user_2_token, pushover_user_2_active, pushover_user_2_template, pushover_user_2_title, pushover_user_2_notification_filter,
                 pushover_user_3_name, pushover_user_3_key, pushover_user_3_token, pushover_user_3_active, pushover_user_3_template, pushover_user_3_title, pushover_user_3_notification_filter,
-                pushover_template, pushover_title, pushover_notification_filter, pushover_reply_message, make_webhook_url, token_multiplier
+                pushover_template, pushover_title, pushover_notification_filter, pushover_reply_message, make_webhook_url, token_multiplier, status
             `)
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
@@ -152,7 +153,8 @@ export async function POST(request: Request) {
                     pushover_notification_filter: null,
                     pushover_reply_message: null,
                     make_webhook_url: null,
-                    token_multiplier: 1.0
+                    token_multiplier: 1.0,
+                    status: 'active'
                 };
                 summaryPrefix = `[MISSING AGENT ID: ${elAgentId}] `;
             } else {
@@ -259,7 +261,7 @@ export async function POST(request: Request) {
         // 4. Randomized Pushover Notification & Advisor Selection
         let selectedAdvisorName: string | null = null;
 
-        if (finalAgent.pushover_user_1_key || finalAgent.pushover_user_2_key || finalAgent.pushover_user_3_key) {
+        if (finalAgent.status === 'active' && (finalAgent.pushover_user_1_key || finalAgent.pushover_user_2_key || finalAgent.pushover_user_3_key)) {
             // Collect eligible users based on their INDEPENDENT filters
             const eligibleUsers = [
                 {
@@ -363,6 +365,8 @@ export async function POST(request: Request) {
             } else {
                 console.log('⏭️ No eligible advisors for this notification (Filters or Active status).');
             }
+        } else if (finalAgent.status !== 'active') {
+            console.log(`⏭️ Agent ${finalAgent.id} is INACTIVE. Skipping advisor assignment and Pushover notifications.`);
         }
 
         // 5. Extract Token Usage -> NOW CREDITS (Cost)

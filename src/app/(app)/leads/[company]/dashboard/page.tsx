@@ -757,8 +757,7 @@ export default function DynamicLeadsDashboard() {
                     .eq('id', agent.id);
                 if (error) throw error;
             }
-
-            setAgents(agents.map(a => a.id === agent.id ? { ...a, status: newStatus } : a));
+            setAgents(prevAgents => prevAgents.map(a => a.id === agent.id ? { ...a, status: newStatus } : a));
         } catch (error) {
             console.error('Error updating status:', error);
             setInfoModal({ isOpen: true, type: 'error', message: 'Error al actualizar el estado.' });
