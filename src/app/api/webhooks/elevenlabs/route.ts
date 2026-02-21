@@ -19,6 +19,8 @@ export async function POST(request: Request) {
         id: string;
         user_id: string;
         pushover_user_key: string | null;
+        pushover_user_key_2: string | null;
+        pushover_user_key_3: string | null;
         pushover_api_token: string | null;
         pushover_template: string | null;
         pushover_title: string | null;
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
-            .select('id, user_id, pushover_user_key, pushover_api_token, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url, token_multiplier')
+            .select('id, user_id, pushover_user_key, pushover_user_key_2, pushover_user_key_3, pushover_api_token, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url, token_multiplier')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -100,6 +102,8 @@ export async function POST(request: Request) {
                     id: debugAgent.id,
                     user_id: debugAgent.user_id,
                     pushover_user_key: null,
+                    pushover_user_key_2: null,
+                    pushover_user_key_3: null,
                     pushover_api_token: null,
                     pushover_template: null,
                     pushover_title: null,
@@ -242,12 +246,23 @@ export async function POST(request: Request) {
                 // This wraps anything starting with http/https in an <a> tag
                 message = message.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
 
+                // Select a random user key from the available ones
+                const activeKeys = [
+                    finalAgent.pushover_user_key,
+                    finalAgent.pushover_user_key_2,
+                    finalAgent.pushover_user_key_3
+                ].filter(key => key && key.trim() !== '');
+
+                const targetUserKey = activeKeys.length > 0
+                    ? activeKeys[Math.floor(Math.random() * activeKeys.length)]
+                    : finalAgent.pushover_user_key;
+
                 fetch('https://api.pushover.net/1/messages.json', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         token: finalAgent.pushover_api_token,
-                        user: finalAgent.pushover_user_key,
+                        user: targetUserKey,
                         message: message,
                         title: messageTitle,
                         html: 1 // Enable HTML parsing

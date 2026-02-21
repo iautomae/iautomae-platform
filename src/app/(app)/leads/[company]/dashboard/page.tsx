@@ -27,6 +27,7 @@ interface Lead {
     transcript: { role: string; message?: string; text?: string; time?: string }[];
     created_at: string;
     tokens_billed?: number;
+    advisor_name?: string;
 }
 
 // Placeholder agent type for better type safety
@@ -41,6 +42,8 @@ interface Agent {
     prompt?: string;
     eleven_labs_agent_id?: string;
     pushover_user_key?: string;
+    pushover_user_key_2?: string;
+    pushover_user_key_3?: string;
     pushover_api_token?: string;
     pushover_template?: string;
     pushover_title?: string;
@@ -134,6 +137,7 @@ export default function DynamicLeadsDashboard() {
                 transcript?: { role: string; message?: string; text?: string; time?: string }[];
                 score?: number;
                 tokens_billed?: number;
+                advisor_name?: string;
             }) => {
                 const dateObj = new Date(l.created_at);
                 return {
@@ -147,7 +151,8 @@ export default function DynamicLeadsDashboard() {
                     status: (l.status as 'POTENCIAL' | 'NO_POTENCIAL') || 'POTENCIAL',
                     summary: l.summary || 'Sin resumen',
                     score: l.score || 0,
-                    tokens_billed: l.tokens_billed || 0
+                    tokens_billed: l.tokens_billed || 0,
+                    advisor_name: l.advisor_name || ''
                 };
             });
             setRealLeads(formattedLeads);
@@ -368,6 +373,8 @@ export default function DynamicLeadsDashboard() {
         }
     };
     const [pushoverUserKey, setPushoverUserKey] = useState('');
+    const [pushoverUserKey2, setPushoverUserKey2] = useState('');
+    const [pushoverUserKey3, setPushoverUserKey3] = useState('');
     const [pushoverApiToken, setPushoverApiToken] = useState('');
     const [pushoverReplyMessage, setPushoverReplyMessage] = useState('');
     const [pushoverTitle, setPushoverTitle] = useState('');
@@ -382,6 +389,8 @@ export default function DynamicLeadsDashboard() {
     // Derived state for unsaved changes in Pushover modal
     const hasUnsavedNotificationChanges = configuringAgent && (
         pushoverUserKey !== (configuringAgent.pushover_user_key || '') ||
+        pushoverUserKey2 !== (configuringAgent.pushover_user_key_2 || '') ||
+        pushoverUserKey3 !== (configuringAgent.pushover_user_key_3 || '') ||
         pushoverApiToken !== (configuringAgent.pushover_api_token || '') ||
         pushoverReplyMessage !== (configuringAgent.pushover_template?.match(/text=(.*)/)?.[1] ? decodeURIComponent(configuringAgent.pushover_template.match(/text=(.*)/)![1]) : '') ||
         pushoverTitle !== (configuringAgent.pushover_title || '') ||
@@ -392,6 +401,8 @@ export default function DynamicLeadsDashboard() {
     const handleOpenPushover = (agent: Agent) => {
         setConfiguringAgent(agent);
         setPushoverUserKey(agent.pushover_user_key || '');
+        setPushoverUserKey2(agent.pushover_user_key_2 || '');
+        setPushoverUserKey3(agent.pushover_user_key_3 || '');
         setPushoverApiToken(agent.pushover_api_token || '');
 
         // Extract message from existing template if it has a wa.me URL
@@ -413,6 +424,8 @@ export default function DynamicLeadsDashboard() {
             const isImpersonating = isAdmin && viewAsUid;
             const updateData = {
                 pushover_user_key: pushoverUserKey,
+                pushover_user_key_2: pushoverUserKey2,
+                pushover_user_key_3: pushoverUserKey3,
                 pushover_api_token: pushoverApiToken,
                 pushover_template: generatedPushoverTemplate,
                 pushover_title: pushoverTitle,
@@ -463,6 +476,21 @@ export default function DynamicLeadsDashboard() {
             setInfoModal({ isOpen: true, type: 'error', message: 'Error al guardar la configuración de notificaciones.' });
         } finally {
             setIsSavingPushover(false);
+        }
+    };
+    const handleUpdateAdvisor = async (leadId: string, advisorName: string) => {
+        // Update local state immediately for UX
+        setRealLeads(prev => prev.map(l => l.id === leadId ? { ...l, advisor_name: advisorName } : l));
+
+        try {
+            const { error } = await supabase
+                .from('leads')
+                .update({ advisor_name: advisorName || null })
+                .eq('id', leadId);
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error updating advisor:', error);
         }
     };
 
@@ -1064,8 +1092,9 @@ export default function DynamicLeadsDashboard() {
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[200px]">Nombre</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[130px]">Teléfono</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50">Resumen Llamada</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[70px] text-center">Ver Chat</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[120px] text-center">Calificación</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[70px] text-center">Ver Chat</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[120px] text-center">Calificación</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[100px] text-center">Asesor</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[80px]">Acciones</th>
                                             </tr >
                                         </thead >
@@ -1123,6 +1152,15 @@ export default function DynamicLeadsDashboard() {
                                                         )}>
                                                             {lead.status === 'POTENCIAL' ? 'POTENCIAL' : 'NO POTENCIAL'}
                                                         </span>
+                                                    </td>
+                                                    <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
+                                                        <input
+                                                            type="text"
+                                                            value={lead.advisor_name || ''}
+                                                            onChange={(e) => handleUpdateAdvisor(lead.id, e.target.value)}
+                                                            placeholder="—"
+                                                            className="w-full bg-transparent text-[10px] font-bold text-gray-700 text-center border-b border-transparent focus:border-brand-primary outline-none py-1 hover:bg-gray-50 transition-all rounded"
+                                                        />
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
                                                         <div className="flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1710,12 +1748,32 @@ export default function DynamicLeadsDashboard() {
                                         {isPushoverSectionOpen && (
                                             <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                                                 <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key</label>
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key 1</label>
                                                     <input
                                                         type="text"
                                                         value={pushoverUserKey}
                                                         onChange={(e) => setPushoverUserKey(e.target.value)}
                                                         placeholder="Ingresa tu User Key de Pushover"
+                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
+                                                    />
+                                                </div>
+                                                <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key 2 (Opcional)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={pushoverUserKey2}
+                                                        onChange={(e) => setPushoverUserKey2(e.target.value)}
+                                                        placeholder="Segunda User Key para rotación"
+                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
+                                                    />
+                                                </div>
+                                                <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">User Key 3 (Opcional)</label>
+                                                    <input
+                                                        type="text"
+                                                        value={pushoverUserKey3}
+                                                        onChange={(e) => setPushoverUserKey3(e.target.value)}
+                                                        placeholder="Tercera User Key para rotación"
                                                         className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono shadow-sm"
                                                     />
                                                 </div>

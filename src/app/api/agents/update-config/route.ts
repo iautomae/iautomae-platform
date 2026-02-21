@@ -21,6 +21,8 @@ export async function POST(request: Request) {
             .from('agentes')
             .update({
                 pushover_user_key: config.pushover_user_key || null,
+                pushover_user_key_2: config.pushover_user_key_2 || null,
+                pushover_user_key_3: config.pushover_user_key_3 || null,
                 pushover_api_token: config.pushover_api_token || null,
                 pushover_template: config.pushover_template || null,
                 pushover_notification_filter: config.pushover_notification_filter || 'ALL',
