@@ -23,16 +23,22 @@ export async function POST(request: Request) {
         pushover_user_1_token: string | null;
         pushover_user_1_active: boolean | null;
         pushover_user_1_template: string | null;
+        pushover_user_1_title: string | null;
+        pushover_user_1_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
         pushover_user_2_name: string | null;
         pushover_user_2_key: string | null;
         pushover_user_2_token: string | null;
         pushover_user_2_active: boolean | null;
         pushover_user_2_template: string | null;
+        pushover_user_2_title: string | null;
+        pushover_user_2_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
         pushover_user_3_name: string | null;
         pushover_user_3_key: string | null;
         pushover_user_3_token: string | null;
         pushover_user_3_active: boolean | null;
         pushover_user_3_template: string | null;
+        pushover_user_3_title: string | null;
+        pushover_user_3_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
         pushover_template: string | null;
         pushover_title: string | null;
         pushover_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
@@ -90,7 +96,14 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
-            .select('id, user_id, pushover_user_1_name, pushover_user_1_key, pushover_user_1_token, pushover_user_1_active, pushover_user_1_template, pushover_user_2_name, pushover_user_2_key, pushover_user_2_token, pushover_user_2_active, pushover_user_2_template, pushover_user_3_name, pushover_user_3_key, pushover_user_3_token, pushover_user_3_active, pushover_user_3_template, pushover_template, pushover_title, pushover_notification_filter, pushover_reply_message, make_webhook_url, token_multiplier')
+            .select(`
+                id, 
+                user_id, 
+                pushover_user_1_name, pushover_user_1_key, pushover_user_1_token, pushover_user_1_active, pushover_user_1_template, pushover_user_1_title, pushover_user_1_notification_filter,
+                pushover_user_2_name, pushover_user_2_key, pushover_user_2_token, pushover_user_2_active, pushover_user_2_template, pushover_user_2_title, pushover_user_2_notification_filter,
+                pushover_user_3_name, pushover_user_3_key, pushover_user_3_token, pushover_user_3_active, pushover_user_3_template, pushover_user_3_title, pushover_user_3_notification_filter,
+                pushover_template, pushover_title, pushover_notification_filter, pushover_reply_message, make_webhook_url, token_multiplier
+            `)
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -118,16 +131,22 @@ export async function POST(request: Request) {
                     pushover_user_1_token: null,
                     pushover_user_1_active: true,
                     pushover_user_1_template: null,
+                    pushover_user_1_title: null,
+                    pushover_user_1_notification_filter: 'ALL',
                     pushover_user_2_name: null,
                     pushover_user_2_key: null,
                     pushover_user_2_token: null,
                     pushover_user_2_active: true,
                     pushover_user_2_template: null,
+                    pushover_user_2_title: null,
+                    pushover_user_2_notification_filter: 'ALL',
                     pushover_user_3_name: null,
                     pushover_user_3_key: null,
                     pushover_user_3_token: null,
                     pushover_user_3_active: true,
                     pushover_user_3_template: null,
+                    pushover_user_3_title: null,
+                    pushover_user_3_notification_filter: 'ALL',
                     pushover_template: null,
                     pushover_title: null,
                     pushover_notification_filter: null,
@@ -241,57 +260,62 @@ export async function POST(request: Request) {
         let selectedAdvisorName: string | null = null;
 
         if (finalAgent.pushover_user_1_key || finalAgent.pushover_user_2_key || finalAgent.pushover_user_3_key) {
-            const filter = finalAgent.pushover_notification_filter || 'ALL';
-            let shouldNotify = false;
-
-            if (filter === 'ALL') shouldNotify = true;
-            else if (filter === 'POTENTIAL_ONLY' && status === 'POTENCIAL') shouldNotify = true;
-            else if (filter === 'NO_POTENTIAL_ONLY' && status === 'NO_POTENCIAL') shouldNotify = true;
-
-            // Collect active users
-            const activeUsers = [
+            // Collect eligible users based on their INDEPENDENT filters
+            const eligibleUsers = [
                 {
                     name: finalAgent.pushover_user_1_name,
                     key: finalAgent.pushover_user_1_key,
                     token: finalAgent.pushover_user_1_token,
                     active: finalAgent.pushover_user_1_active ?? true,
-                    template: finalAgent.pushover_user_1_template
+                    template: finalAgent.pushover_user_1_template,
+                    title: finalAgent.pushover_user_1_title,
+                    filter: finalAgent.pushover_user_1_notification_filter || finalAgent.pushover_notification_filter || 'ALL'
                 },
                 {
                     name: finalAgent.pushover_user_2_name,
                     key: finalAgent.pushover_user_2_key,
                     token: finalAgent.pushover_user_2_token,
                     active: finalAgent.pushover_user_2_active ?? true,
-                    template: finalAgent.pushover_user_2_template
+                    template: finalAgent.pushover_user_2_template,
+                    title: finalAgent.pushover_user_2_title,
+                    filter: finalAgent.pushover_user_2_notification_filter || finalAgent.pushover_notification_filter || 'ALL'
                 },
                 {
                     name: finalAgent.pushover_user_3_name,
                     key: finalAgent.pushover_user_3_key,
                     token: finalAgent.pushover_user_3_token,
                     active: finalAgent.pushover_user_3_active ?? true,
-                    template: finalAgent.pushover_user_3_template
+                    template: finalAgent.pushover_user_3_template,
+                    title: finalAgent.pushover_user_3_title,
+                    filter: finalAgent.pushover_user_3_notification_filter || finalAgent.pushover_notification_filter || 'ALL'
                 }
-            ].filter(u =>
-                u.key &&
-                u.key.trim() !== '' &&
-                u.token && u.token.trim() !== '' &&
-                u.active
-            );
+            ].filter(u => {
+                const hasCreds = u.key && u.key.trim() !== '' && u.token && u.token.trim() !== '';
+                if (!hasCreds || !u.active) return false;
 
-            if (activeUsers.length > 0 && shouldNotify) {
-                // Select random advisor ONLY IF notifying
-                const luckyUser = activeUsers[Math.floor(Math.random() * activeUsers.length)];
+                // Check independent filter
+                if (u.filter === 'ALL') return true;
+                if (u.filter === 'POTENTIAL_ONLY' && status === 'POTENCIAL') return true;
+                if (u.filter === 'NO_POTENTIAL_ONLY' && status === 'NO_POTENCIAL') return true;
+
+                return false;
+            });
+
+            console.log(`Eligible Advisors Count: ${eligibleUsers.length} for status: ${status}`);
+
+            if (eligibleUsers.length > 0) {
+                // Select random advisor from eligible ones
+                const luckyUser = eligibleUsers[Math.floor(Math.random() * eligibleUsers.length)];
                 selectedAdvisorName = luckyUser.name || 'Asesor Asignado';
 
-                // Use user template if available, otherwise global fallback
+                // Use advisor specific title if available, fallback to agent title, fallback to default
+                const messageTitle = luckyUser.title || finalAgent.pushover_title || 'Nuevo Lead Detectado';
                 const messageTemplate = luckyUser.template || finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
-                const messageTitle = finalAgent.pushover_title || 'Nuevo Lead Detectado';
 
                 // Construct WhatsApp Link
-                // Ensure phone is only digits
                 const cleanPhone = phoneVal.replace(/\D/g, '');
                 const waBase = `https://wa.me/${cleanPhone}`;
-                // Use advisor-specific template if available, otherwise fallback to global reply message
+                // Priority: Advisor Template -> Global Reply Message -> Default
                 const rawReply = luckyUser.template ?? finalAgent.pushover_reply_message ?? '';
                 const personalizedReply = rawReply.replace(/{nombre}/g, nombreVal);
 
@@ -311,17 +335,33 @@ export async function POST(request: Request) {
                 message = message.replace(/\*(.*?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
                 message = message.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
 
-                fetch('https://api.pushover.net/1/messages.json', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: luckyUser.token,
-                        user: luckyUser.key,
-                        message: message,
-                        title: messageTitle,
-                        html: 1
-                    })
-                }).catch(err => console.error('Pushover error:', err));
+                console.log(`Sending Pushover to ${luckyUser.name} (${luckyUser.key?.substring(0, 5)}...) - Title: ${messageTitle}`);
+
+                try {
+                    const pushoverRes = await fetch('https://api.pushover.net/1/messages.json', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            token: luckyUser.token,
+                            user: luckyUser.key,
+                            message: message,
+                            title: messageTitle,
+                            html: 1
+                        })
+                    });
+
+                    const pushoverData = await pushoverRes.json();
+                    if (!pushoverRes.ok) {
+                        console.error('❌ Pushover API Error:', pushoverData);
+                    } else {
+                        console.log('✅ Pushover Sent Successfully:', pushoverData);
+                    }
+                } catch (pushoverErr) {
+                    console.error('❌ Pushover Fetch Error:', pushoverErr);
+                    Sentry.captureException(pushoverErr);
+                }
+            } else {
+                console.log('⏭️ No eligible advisors for this notification (Filters or Active status).');
             }
         }
 

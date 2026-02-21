@@ -298,9 +298,6 @@ export default function DynamicLeadsDashboard() {
     const [isImporting, setIsImporting] = useState(false);
     const [creationProgress, setCreationProgress] = useState(0);
 
-    // Pushover States
-    const [isPushoverModalOpen, setIsPushoverModalOpen] = useState(false);
-    const [configuringAgent, setConfiguringAgent] = useState<Agent | null>(null);
 
     // Usage Modal State
     const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
@@ -384,35 +381,50 @@ export default function DynamicLeadsDashboard() {
             setIsLoadingUsage(false);
         }
     };
+    // --- Pushover States ---
+    const [isPushoverModalOpen, setIsPushoverModalOpen] = useState(false);
+    const [configuringAgent, setConfiguringAgent] = useState<Agent | null>(null);
+
+    // Per-Advisor Settings (ALL Independent now)
     const [pushoverUser1Name, setPushoverUser1Name] = useState('');
     const [pushoverUser1Key, setPushoverUser1Key] = useState('');
     const [pushoverUser1Token, setPushoverUser1Token] = useState('');
+    const [pushoverUser1Active, setPushoverUser1Active] = useState(true);
+    const [pushoverUser1Template, setPushoverUser1Template] = useState('');
+    const [pushoverUser1Title, setPushoverUser1Title] = useState('');
+    const [pushoverUser1Filter, setPushoverUser1Filter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL');
+    const [pushoverUser1TestPhone, setPushoverUser1TestPhone] = useState('');
+
     const [pushoverUser2Name, setPushoverUser2Name] = useState('');
     const [pushoverUser2Key, setPushoverUser2Key] = useState('');
     const [pushoverUser2Token, setPushoverUser2Token] = useState('');
+    const [pushoverUser2Active, setPushoverUser2Active] = useState(true);
+    const [pushoverUser2Template, setPushoverUser2Template] = useState('');
+    const [pushoverUser2Title, setPushoverUser2Title] = useState('');
+    const [pushoverUser2Filter, setPushoverUser2Filter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL');
+    const [pushoverUser2TestPhone, setPushoverUser2TestPhone] = useState('');
+
     const [pushoverUser3Name, setPushoverUser3Name] = useState('');
     const [pushoverUser3Key, setPushoverUser3Key] = useState('');
     const [pushoverUser3Token, setPushoverUser3Token] = useState('');
+    const [pushoverUser3Active, setPushoverUser3Active] = useState(true);
+    const [pushoverUser3Template, setPushoverUser3Template] = useState('');
+    const [pushoverUser3Title, setPushoverUser3Title] = useState('');
+    const [pushoverUser3Filter, setPushoverUser3Filter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL');
+    const [pushoverUser3TestPhone, setPushoverUser3TestPhone] = useState('');
+
+    // Shared UI UI States for Pushover Modal
     const [pushoverReplyMessage, setPushoverReplyMessage] = useState('');
-    const [pushoverTitle, setPushoverTitle] = useState('');
-    const [pushoverFilter, setPushoverFilter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL');
+    const [pushoverTitle, setPushoverTitle] = useState(''); // Fallback title
+    const [pushoverFilter, setPushoverFilter] = useState<'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY'>('ALL'); // Fallback filter
     const [makeWebhookUrl, setMakeWebhookUrl] = useState('');
     const [activeAdvisorTab, setActiveAdvisorTab] = useState(1);
     const [isSavingPushover, setIsSavingPushover] = useState(false);
     const [isPushoverSectionOpen, setIsPushoverSectionOpen] = useState(false);
 
-    // New Pushover States
-    const [pushoverUser1Active, setPushoverUser1Active] = useState(true);
-    const [pushoverUser2Active, setPushoverUser2Active] = useState(true);
-    const [pushoverUser3Active, setPushoverUser3Active] = useState(true);
-    const [pushoverUser1Template, setPushoverUser1Template] = useState('');
-    const [pushoverUser2Template, setPushoverUser2Template] = useState('');
-    const [pushoverUser3Template, setPushoverUser3Template] = useState('');
-    const [testPhoneNumber, setTestPhoneNumber] = useState('');
-
-    const isPushoverConfigured = (activeAgentId: string | null) => {
-        if (!activeAgentId) return false;
-        const agent = agents.find(a => a.id === activeAgentId);
+    const isPushoverConfigured = (agentId: string | null) => {
+        if (!agentId) return false;
+        const agent = agents.find(a => a.id === agentId);
         if (!agent) return false;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const a = agent as any;
@@ -422,6 +434,8 @@ export default function DynamicLeadsDashboard() {
             (agent.pushover_user_3_key && agent.pushover_user_3_token && (a.pushover_user_3_active ?? true))
         );
     };
+
+    const isLeadsSectionOpen = true; // Placeholder for UI logic
 
     // Derived: Final template generated from components
     const generatedPushoverTemplate = `Nombre: {nombre}\nResumen: {resumen}\n\n👉 Responder:\n{wa_link}`;
@@ -446,9 +460,30 @@ export default function DynamicLeadsDashboard() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pushoverUser1Template !== ((configuringAgent as any).pushover_user_1_template || '') ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser1Title !== ((configuringAgent as any).pushover_user_1_title || '') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser1Filter !== ((configuringAgent as any).pushover_user_1_notification_filter || 'ALL') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser1TestPhone !== ((configuringAgent as any).pushover_user_1_test_phone || '') ||
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pushoverUser2Template !== ((configuringAgent as any).pushover_user_2_template || '') ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser2Title !== ((configuringAgent as any).pushover_user_2_title || '') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser2Filter !== ((configuringAgent as any).pushover_user_2_notification_filter || 'ALL') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser2TestPhone !== ((configuringAgent as any).pushover_user_2_test_phone || '') ||
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pushoverUser3Template !== ((configuringAgent as any).pushover_user_3_template || '') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser3Title !== ((configuringAgent as any).pushover_user_3_title || '') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser3Filter !== ((configuringAgent as any).pushover_user_3_notification_filter || 'ALL') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser3TestPhone !== ((configuringAgent as any).pushover_user_3_test_phone || '') ||
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         pushoverReplyMessage !== ((configuringAgent as any).pushover_reply_message || (configuringAgent.pushover_template?.match(/text=(.*)/)?.[1] ? decodeURIComponent(configuringAgent.pushover_template.match(/text=(.*)/)![1]) : '')) ||
         pushoverTitle !== (configuringAgent.pushover_title || '') ||
@@ -474,8 +509,19 @@ export default function DynamicLeadsDashboard() {
         setPushoverUser2Active(a.pushover_user_2_active ?? true);
         setPushoverUser3Active(a.pushover_user_3_active ?? true);
         setPushoverUser1Template(a.pushover_user_1_template || '');
+        setPushoverUser1Title(a.pushover_user_1_title || '');
+        setPushoverUser1Filter(a.pushover_user_1_notification_filter || 'ALL');
+        setPushoverUser1TestPhone(a.pushover_user_1_test_phone || '');
+
         setPushoverUser2Template(a.pushover_user_2_template || '');
+        setPushoverUser2Title(a.pushover_user_2_title || '');
+        setPushoverUser2Filter(a.pushover_user_2_notification_filter || 'ALL');
+        setPushoverUser2TestPhone(a.pushover_user_2_test_phone || '');
+
         setPushoverUser3Template(a.pushover_user_3_template || '');
+        setPushoverUser3Title(a.pushover_user_3_title || '');
+        setPushoverUser3Filter(a.pushover_user_3_notification_filter || 'ALL');
+        setPushoverUser3TestPhone(a.pushover_user_3_test_phone || '');
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const initialReply = a.pushover_reply_message ||
@@ -498,18 +544,30 @@ export default function DynamicLeadsDashboard() {
                 pushover_user_1_name: pushoverUser1Name,
                 pushover_user_1_key: pushoverUser1Key,
                 pushover_user_1_token: pushoverUser1Token,
+                pushover_user_1_active: pushoverUser1Active,
+                pushover_user_1_template: pushoverUser1Template,
+                pushover_user_1_title: pushoverUser1Title,
+                pushover_user_1_notification_filter: pushoverUser1Filter,
+                pushover_user_1_test_phone: pushoverUser1TestPhone,
+
                 pushover_user_2_name: pushoverUser2Name,
                 pushover_user_2_key: pushoverUser2Key,
                 pushover_user_2_token: pushoverUser2Token,
+                pushover_user_2_active: pushoverUser2Active,
+                pushover_user_2_template: pushoverUser2Template,
+                pushover_user_2_title: pushoverUser2Title,
+                pushover_user_2_notification_filter: pushoverUser2Filter,
+                pushover_user_2_test_phone: pushoverUser2TestPhone,
+
                 pushover_user_3_name: pushoverUser3Name,
                 pushover_user_3_key: pushoverUser3Key,
                 pushover_user_3_token: pushoverUser3Token,
-                pushover_user_1_active: pushoverUser1Active,
-                pushover_user_2_active: pushoverUser2Active,
                 pushover_user_3_active: pushoverUser3Active,
-                pushover_user_1_template: pushoverUser1Template,
-                pushover_user_2_template: pushoverUser2Template,
                 pushover_user_3_template: pushoverUser3Template,
+                pushover_user_3_title: pushoverUser3Title,
+                pushover_user_3_notification_filter: pushoverUser3Filter,
+                pushover_user_3_test_phone: pushoverUser3TestPhone,
+
                 pushover_template: generatedPushoverTemplate,
                 pushover_title: pushoverTitle,
                 pushover_reply_message: pushoverReplyMessage,
@@ -1924,19 +1982,20 @@ export default function DynamicLeadsDashboard() {
                                                                         onClick={async () => {
                                                                             const key = activeAdvisorTab === 1 ? pushoverUser1Key : activeAdvisorTab === 2 ? pushoverUser2Key : pushoverUser3Key;
                                                                             const token = activeAdvisorTab === 1 ? pushoverUser1Token : activeAdvisorTab === 2 ? pushoverUser2Token : pushoverUser3Token;
+                                                                            const testPhone = activeAdvisorTab === 1 ? pushoverUser1TestPhone : activeAdvisorTab === 2 ? pushoverUser2TestPhone : pushoverUser3TestPhone;
                                                                             const advisorTemplate = activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template;
 
                                                                             if (!key || !token) {
                                                                                 setInfoModal({ isOpen: true, type: 'error', message: 'Configura Key y Token antes de probar.' });
                                                                                 return;
                                                                             }
-                                                                            if (!testPhoneNumber || testPhoneNumber.trim() === '') {
+                                                                            if (!testPhone || testPhone.trim() === '') {
                                                                                 setInfoModal({ isOpen: true, type: 'error', message: 'Indica un teléfono para la prueba.' });
                                                                                 return;
                                                                             }
 
                                                                             try {
-                                                                                const cleanPhone = testPhoneNumber.replace(/\D/g, '');
+                                                                                const cleanPhone = testPhone.replace(/\D/g, '');
                                                                                 const waBase = `https://wa.me/${cleanPhone}`;
                                                                                 const rawReply = advisorTemplate ?? pushoverReplyMessage ?? '';
                                                                                 const personalizedReply = rawReply.replace(/{nombre}/g, 'Usuario de Prueba');
@@ -1952,7 +2011,7 @@ export default function DynamicLeadsDashboard() {
                                                                                     body: JSON.stringify({
                                                                                         key,
                                                                                         token,
-                                                                                        title: pushoverTitle || 'Prueba de Notificación',
+                                                                                        title: (activeAdvisorTab === 1 ? pushoverUser1Title : activeAdvisorTab === 2 ? pushoverUser2Title : pushoverUser3Title) || 'Prueba de Notificación',
                                                                                         message: testMessage
                                                                                     })
                                                                                 });
@@ -1969,8 +2028,8 @@ export default function DynamicLeadsDashboard() {
                                                                     </button>
                                                                 </div>
                                                                 <textarea
-                                                                    value={testPhoneNumber}
-                                                                    onChange={(e) => setTestPhoneNumber(e.target.value)}
+                                                                    value={activeAdvisorTab === 1 ? pushoverUser1TestPhone : activeAdvisorTab === 2 ? pushoverUser2TestPhone : pushoverUser3TestPhone}
+                                                                    onChange={(e) => activeAdvisorTab === 1 ? setPushoverUser1TestPhone(e.target.value) : activeAdvisorTab === 2 ? setPushoverUser2TestPhone(e.target.value) : setPushoverUser3TestPhone(e.target.value)}
                                                                     placeholder="Ej: 521234567890 (Sin símbolos)"
                                                                     rows={1}
                                                                     className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-xs text-gray-900 font-bold transition-all"
@@ -1981,11 +2040,16 @@ export default function DynamicLeadsDashboard() {
                                                 </div>
 
                                                 <div className="space-y-3">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtro de Notificaciones</label>
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtro de Notificaciones (Asesor {activeAdvisorTab})</label>
                                                     <div className="relative">
                                                         <select
-                                                            value={pushoverFilter}
-                                                            onChange={(e) => setPushoverFilter(e.target.value as 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY')}
+                                                            value={activeAdvisorTab === 1 ? pushoverUser1Filter : activeAdvisorTab === 2 ? pushoverUser2Filter : pushoverUser3Filter}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value as 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY';
+                                                                if (activeAdvisorTab === 1) setPushoverUser1Filter(val);
+                                                                else if (activeAdvisorTab === 2) setPushoverUser2Filter(val);
+                                                                else setPushoverUser3Filter(val);
+                                                            }}
                                                             className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium transition-all appearance-none cursor-pointer"
                                                         >
                                                             <option value="ALL">Notificar Todos los Leads</option>
@@ -1999,11 +2063,15 @@ export default function DynamicLeadsDashboard() {
                                                 </div>
 
                                                 <div className="space-y-3">
-                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Título de Notificación</label>
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Título de Notificación (Asesor {activeAdvisorTab})</label>
                                                     <input
                                                         type="text"
-                                                        value={pushoverTitle}
-                                                        onChange={(e) => setPushoverTitle(e.target.value)}
+                                                        value={activeAdvisorTab === 1 ? pushoverUser1Title : activeAdvisorTab === 2 ? pushoverUser2Title : pushoverUser3Title}
+                                                        onChange={(e) => {
+                                                            if (activeAdvisorTab === 1) setPushoverUser1Title(e.target.value);
+                                                            else if (activeAdvisorTab === 2) setPushoverUser2Title(e.target.value);
+                                                            else setPushoverUser3Title(e.target.value);
+                                                        }}
                                                         placeholder="Ej: Nuevo Lead Detectado"
                                                         className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 px-5 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-sm text-gray-900 font-medium placeholder:text-gray-300 transition-all font-mono"
                                                     />
