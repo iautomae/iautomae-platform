@@ -1265,9 +1265,9 @@ export default function DynamicLeadsDashboard() {
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50 w-[130px]">Teléfono</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 uppercase tracking-tight bg-gray-50/50">Resumen Llamada</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[70px]">Ver Chat</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[120px]">Calificación</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[120px]">Estado Lead</th>
-                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[100px]">Asesor</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[140px]">Calificación</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[140px]">Estado Lead</th>
+                                                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[120px]">Asesor</th>
                                                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 border-b border-l border-gray-100 text-center uppercase tracking-tight bg-gray-50/50 w-[100px]">CRM</th>
                                             </tr >
                                         </thead >
@@ -1318,32 +1318,30 @@ export default function DynamicLeadsDashboard() {
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
                                                         <span className={cn(
-                                                            "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide inline-flex justify-center border w-[110px]",
+                                                            "px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wide inline-flex justify-center border w-[110px]",
                                                             lead.status === 'POTENCIAL' ? "bg-emerald-100 text-emerald-600 border-emerald-200" : "bg-red-100 text-red-600 border-red-200"
                                                         )}>
                                                             {lead.status === 'POTENCIAL' ? 'Potencial' : 'No Potencial'}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center text-nowrap">
-                                                        <span className={cn(
-                                                            "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide inline-flex justify-center border w-[110px]",
-                                                            lead.estado === 'X Contactar' && "bg-gray-100 text-gray-500 border-gray-200",
-                                                            lead.estado === 'A futuro' && "bg-blue-100 text-blue-600 border-blue-200",
-                                                            lead.estado === 'Agendar' && "bg-purple-100 text-purple-600 border-purple-200",
-                                                            lead.estado === 'Venta Cerrada' && "bg-emerald-100 text-emerald-600 border-emerald-200",
-                                                            lead.estado === 'Descartado' && "bg-red-100 text-red-600 border-red-200"
-                                                        )}>
-                                                            {lead.estado || 'X Contactar'}
-                                                        </span>
+                                                        {lead.status === 'POTENCIAL' && (
+                                                            <span className={cn(
+                                                                "px-3 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wide inline-flex justify-center border w-[110px]",
+                                                                lead.estado === 'X Contactar' && "bg-gray-100 text-gray-500 border-gray-200",
+                                                                lead.estado === 'A futuro' && "bg-blue-100 text-blue-600 border-blue-200",
+                                                                lead.estado === 'Agendar' && "bg-purple-100 text-purple-600 border-purple-200",
+                                                                lead.estado === 'Venta Cerrada' && "bg-emerald-100 text-emerald-600 border-emerald-200",
+                                                                lead.estado === 'Descartado' && "bg-red-100 text-red-600 border-red-200"
+                                                            )}>
+                                                                {lead.estado || 'X Contactar'}
+                                                            </span>
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
-                                                        <input
-                                                            type="text"
-                                                            value={lead.advisor_name || ''}
-                                                            onChange={(e) => handleUpdateLead(lead.id, { advisor_name: e.target.value })}
-                                                            placeholder="—"
-                                                            className="w-full bg-transparent text-[10px] font-bold text-gray-700 text-center border-b border-transparent focus:border-brand-primary outline-none py-1 hover:bg-gray-50 transition-all rounded"
-                                                        />
+                                                        <span className="text-[10px] font-bold text-gray-700">
+                                                            {lead.advisor_name || '—'}
+                                                        </span>
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
                                                         <div className="flex items-center justify-center gap-1.5">
