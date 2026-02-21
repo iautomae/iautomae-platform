@@ -1910,20 +1910,31 @@ export default function DynamicLeadsDashboard() {
 
                                                             <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
                                                                 <div className="flex items-center justify-between mb-2">
-                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Plantilla Específica (Opcional)</label>
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Teléfono para Prueba (Obligatorio)</label>
                                                                     <button
                                                                         onClick={async () => {
                                                                             const key = activeAdvisorTab === 1 ? pushoverUser1Key : activeAdvisorTab === 2 ? pushoverUser2Key : pushoverUser3Key;
                                                                             const token = activeAdvisorTab === 1 ? pushoverUser1Token : activeAdvisorTab === 2 ? pushoverUser2Token : pushoverUser3Token;
-                                                                            const template = activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template;
-                                                                            const finalTemplate = template || pushoverReplyMessage;
+                                                                            const testPhone = activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template;
 
                                                                             if (!key || !token) {
                                                                                 setInfoModal({ isOpen: true, type: 'error', message: 'Configura Key y Token antes de probar.' });
                                                                                 return;
                                                                             }
+                                                                            if (!testPhone || testPhone.trim() === '') {
+                                                                                setInfoModal({ isOpen: true, type: 'error', message: 'Indica un teléfono para la prueba.' });
+                                                                                return;
+                                                                            }
 
                                                                             try {
+                                                                                const cleanPhone = testPhone.replace(/\D/g, '');
+                                                                                const waBase = `https://wa.me/${cleanPhone}`;
+                                                                                const rawReply = (configuringAgent as any)?.pushover_reply_message || pushoverReplyMessage || 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.';
+                                                                                const personalizedReply = rawReply.replace(/{nombre}/g, 'Usuario de Prueba');
+                                                                                const waLink = `${waBase}?text=${encodeURIComponent(personalizedReply)}`;
+
+                                                                                const testMessage = `Nombre: <b>Usuario de Prueba</b><br>Resumen: <b>Mensaje de comprobación de configuración.</b><br><br>👉 Responder:<br><a href="${waLink}">${waLink}</a>`;
+
                                                                                 const res = await fetch('/api/pushover/test', {
                                                                                     method: 'POST',
                                                                                     headers: { 'Content-Type': 'application/json' },
@@ -1931,7 +1942,7 @@ export default function DynamicLeadsDashboard() {
                                                                                         key,
                                                                                         token,
                                                                                         title: pushoverTitle || 'Prueba de Notificación',
-                                                                                        message: finalTemplate.replace('{nombre}', 'Usuario de Prueba') || 'Esta es una prueba de Pushover.'
+                                                                                        message: testMessage
                                                                                     })
                                                                                 });
                                                                                 if (res.ok) setInfoModal({ isOpen: true, type: 'success', message: '¡Push de prueba enviado!' });
@@ -1949,14 +1960,15 @@ export default function DynamicLeadsDashboard() {
                                                                 <textarea
                                                                     value={activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template}
                                                                     onChange={(e) => activeAdvisorTab === 1 ? setPushoverUser1Template(e.target.value) : activeAdvisorTab === 2 ? setPushoverUser2Template(e.target.value) : setPushoverUser3Template(e.target.value)}
-                                                                    placeholder="Dejar vacío para usar la global..."
-                                                                    rows={2}
-                                                                    className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-xs text-gray-900 font-medium transition-all"
+                                                                    placeholder="Ej: 521234567890 (Sin símbolos)"
+                                                                    rows={1}
+                                                                    className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-xs text-gray-900 font-bold transition-all"
                                                                 />
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
+
                                                 <div className="space-y-3">
                                                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Filtro de Notificaciones</label>
                                                     <div className="relative">

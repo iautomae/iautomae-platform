@@ -19,6 +19,7 @@ export async function POST(request: Request) {
                 user: key,
                 title: title || 'Pushover Test',
                 message: message,
+                html: 1,
             }),
         });
 
