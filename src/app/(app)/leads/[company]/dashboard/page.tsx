@@ -1938,9 +1938,11 @@ export default function DynamicLeadsDashboard() {
                                                                             try {
                                                                                 const cleanPhone = testPhoneNumber.replace(/\D/g, '');
                                                                                 const waBase = `https://wa.me/${cleanPhone}`;
-                                                                                const rawReply = advisorTemplate || pushoverReplyMessage || 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.';
+                                                                                const rawReply = advisorTemplate ?? pushoverReplyMessage ?? '';
                                                                                 const personalizedReply = rawReply.replace(/{nombre}/g, 'Usuario de Prueba');
-                                                                                const waLink = `${waBase}?text=${encodeURIComponent(personalizedReply)}`;
+                                                                                const waLink = personalizedReply.trim()
+                                                                                    ? `${waBase}?text=${encodeURIComponent(personalizedReply)}`
+                                                                                    : waBase;
 
                                                                                 const testMessage = `Nombre: <b>Usuario de Prueba</b><br>Resumen: <b>Mensaje de comprobación de configuración.</b><br><br>👉 Responder:<br><a href="${waLink}">${waLink}</a>`;
 

@@ -292,9 +292,12 @@ export async function POST(request: Request) {
                 const cleanPhone = phoneVal.replace(/\D/g, '');
                 const waBase = `https://wa.me/${cleanPhone}`;
                 // Use advisor-specific template if available, otherwise fallback to global reply message
-                const rawReply = luckyUser.template || finalAgent.pushover_reply_message || 'Hola {nombre}, mi nombre es Luis Franco de Escolta. Acabo de ver tu interés y me gustaría ayudarte.';
+                const rawReply = luckyUser.template ?? finalAgent.pushover_reply_message ?? '';
                 const personalizedReply = rawReply.replace(/{nombre}/g, nombreVal);
-                const waLink = `${waBase}?text=${encodeURIComponent(personalizedReply)}`;
+
+                const waLink = personalizedReply.trim()
+                    ? `${waBase}?text=${encodeURIComponent(personalizedReply)}`
+                    : waBase;
 
                 let message = messageTemplate
                     .replace(/{nombre}/g, nombreVal)
