@@ -21,12 +21,18 @@ export async function POST(request: Request) {
         pushover_user_1_name: string | null;
         pushover_user_1_key: string | null;
         pushover_user_1_token: string | null;
+        pushover_user_1_active: boolean | null;
+        pushover_user_1_template: string | null;
         pushover_user_2_name: string | null;
         pushover_user_2_key: string | null;
         pushover_user_2_token: string | null;
+        pushover_user_2_active: boolean | null;
+        pushover_user_2_template: string | null;
         pushover_user_3_name: string | null;
         pushover_user_3_key: string | null;
         pushover_user_3_token: string | null;
+        pushover_user_3_active: boolean | null;
+        pushover_user_3_template: string | null;
         pushover_template: string | null;
         pushover_title: string | null;
         pushover_notification_filter: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY' | null;
@@ -83,7 +89,7 @@ export async function POST(request: Request) {
         // 1. Find the local agent ID and notification settings
         const { data: agentData, error: agentError } = await supabase
             .from('agentes')
-            .select('id, user_id, pushover_user_1_name, pushover_user_1_key, pushover_user_1_token, pushover_user_2_name, pushover_user_2_key, pushover_user_2_token, pushover_user_3_name, pushover_user_3_key, pushover_user_3_token, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url, token_multiplier')
+            .select('id, user_id, pushover_user_1_name, pushover_user_1_key, pushover_user_1_token, pushover_user_1_active, pushover_user_1_template, pushover_user_2_name, pushover_user_2_key, pushover_user_2_token, pushover_user_2_active, pushover_user_2_template, pushover_user_3_name, pushover_user_3_key, pushover_user_3_token, pushover_user_3_active, pushover_user_3_template, pushover_template, pushover_title, pushover_notification_filter, make_webhook_url, token_multiplier')
             .eq('eleven_labs_agent_id', elAgentId)
             .single();
 
@@ -109,12 +115,18 @@ export async function POST(request: Request) {
                     pushover_user_1_name: 'Asesor 1',
                     pushover_user_1_key: null,
                     pushover_user_1_token: null,
+                    pushover_user_1_active: true,
+                    pushover_user_1_template: null,
                     pushover_user_2_name: null,
                     pushover_user_2_key: null,
                     pushover_user_2_token: null,
+                    pushover_user_2_active: true,
+                    pushover_user_2_template: null,
                     pushover_user_3_name: null,
                     pushover_user_3_key: null,
                     pushover_user_3_token: null,
+                    pushover_user_3_active: true,
+                    pushover_user_3_template: null,
                     pushover_template: null,
                     pushover_title: null,
                     pushover_notification_filter: null,
@@ -236,10 +248,33 @@ export async function POST(request: Request) {
 
             // Collect active users
             const activeUsers = [
-                { name: finalAgent.pushover_user_1_name, key: finalAgent.pushover_user_1_key, token: finalAgent.pushover_user_1_token },
-                { name: finalAgent.pushover_user_2_name, key: finalAgent.pushover_user_2_key, token: finalAgent.pushover_user_2_token },
-                { name: finalAgent.pushover_user_3_name, key: finalAgent.pushover_user_3_key, token: finalAgent.pushover_user_3_token }
-            ].filter(u => u.key && u.key.trim() !== '' && u.token && u.token.trim() !== '');
+                {
+                    name: finalAgent.pushover_user_1_name,
+                    key: finalAgent.pushover_user_1_key,
+                    token: finalAgent.pushover_user_1_token,
+                    active: finalAgent.pushover_user_1_active ?? true,
+                    template: finalAgent.pushover_user_1_template
+                },
+                {
+                    name: finalAgent.pushover_user_2_name,
+                    key: finalAgent.pushover_user_2_key,
+                    token: finalAgent.pushover_user_2_token,
+                    active: finalAgent.pushover_user_2_active ?? true,
+                    template: finalAgent.pushover_user_2_template
+                },
+                {
+                    name: finalAgent.pushover_user_3_name,
+                    key: finalAgent.pushover_user_3_key,
+                    token: finalAgent.pushover_user_3_token,
+                    active: finalAgent.pushover_user_3_active ?? true,
+                    template: finalAgent.pushover_user_3_template
+                }
+            ].filter(u =>
+                u.key &&
+                u.key.trim() !== '' &&
+                u.token && u.token.trim() !== '' &&
+                u.active
+            );
 
             if (activeUsers.length > 0) {
                 // Select random advisor
@@ -247,7 +282,8 @@ export async function POST(request: Request) {
                 selectedAdvisorName = luckyUser.name || 'Asesor Asignado';
 
                 if (shouldNotify) {
-                    const messageTemplate = finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
+                    // Use user template if available, otherwise global fallback
+                    const messageTemplate = luckyUser.template || finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
                     const messageTitle = finalAgent.pushover_title || 'Nuevo Lead Detectado';
 
                     let message = messageTemplate
@@ -287,11 +323,11 @@ export async function POST(request: Request) {
 
         // A. Calculate from Transcript (Preferred for accuracy)
         if (Array.isArray(transcript)) {
-            transcript.forEach((turn: any) => {
+            transcript.forEach((turn: { llm_usage?: { model_usage?: Record<string, { input?: { price: number }; output_total?: { price: number }; input_cache_read?: { price: number }; input_cache_write?: { price: number } }> } }) => {
                 const llm = turn.llm_usage || {};
                 const mu = llm.model_usage;
                 if (mu) {
-                    Object.values(mu).forEach((modelStats: any) => {
+                    Object.values(mu).forEach((modelStats) => {
                         totalCostUSD += (modelStats.input?.price || 0) +
                             (modelStats.output_total?.price || 0) +
                             (modelStats.input_cache_read?.price || 0) +

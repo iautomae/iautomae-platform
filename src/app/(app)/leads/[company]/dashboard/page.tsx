@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -44,12 +44,18 @@ interface Agent {
     pushover_user_1_name?: string;
     pushover_user_1_key?: string;
     pushover_user_1_token?: string;
+    pushover_user_1_active?: boolean;
+    pushover_user_1_template?: string;
     pushover_user_2_name?: string;
     pushover_user_2_key?: string;
     pushover_user_2_token?: string;
+    pushover_user_2_active?: boolean;
+    pushover_user_2_template?: string;
     pushover_user_3_name?: string;
     pushover_user_3_key?: string;
     pushover_user_3_token?: string;
+    pushover_user_3_active?: boolean;
+    pushover_user_3_template?: string;
     pushover_template?: string;
     pushover_title?: string;
     pushover_notification_filter?: 'ALL' | 'POTENTIAL_ONLY' | 'NO_POTENTIAL_ONLY';
@@ -394,6 +400,27 @@ export default function DynamicLeadsDashboard() {
     const [isSavingPushover, setIsSavingPushover] = useState(false);
     const [isPushoverSectionOpen, setIsPushoverSectionOpen] = useState(false);
 
+    // New Pushover States
+    const [pushoverUser1Active, setPushoverUser1Active] = useState(true);
+    const [pushoverUser2Active, setPushoverUser2Active] = useState(true);
+    const [pushoverUser3Active, setPushoverUser3Active] = useState(true);
+    const [pushoverUser1Template, setPushoverUser1Template] = useState('');
+    const [pushoverUser2Template, setPushoverUser2Template] = useState('');
+    const [pushoverUser3Template, setPushoverUser3Template] = useState('');
+
+    const isPushoverConfigured = (activeAgentId: string | null) => {
+        if (!activeAgentId) return false;
+        const agent = agents.find(a => a.id === activeAgentId);
+        if (!agent) return false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const a = agent as any;
+        return (
+            (agent.pushover_user_1_key && agent.pushover_user_1_token && (a.pushover_user_1_active ?? true)) ||
+            (agent.pushover_user_2_key && agent.pushover_user_2_token && (a.pushover_user_2_active ?? true)) ||
+            (agent.pushover_user_3_key && agent.pushover_user_3_token && (a.pushover_user_3_active ?? true))
+        );
+    };
+
     // Derived: Final template generated from components
     const generatedPushoverTemplate = `Nombre: {nombre}\nResumen: {resumen}\n\n👉 Responder:\nhttps://wa.me/+{telefono}?text=${encodeURIComponent(pushoverReplyMessage)}`;
 
@@ -408,6 +435,18 @@ export default function DynamicLeadsDashboard() {
         pushoverUser3Name !== (configuringAgent.pushover_user_3_name || '') ||
         pushoverUser3Key !== (configuringAgent.pushover_user_3_key || '') ||
         pushoverUser3Token !== (configuringAgent.pushover_user_3_token || '') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser1Active !== ((configuringAgent as any).pushover_user_1_active ?? true) ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser2Active !== ((configuringAgent as any).pushover_user_2_active ?? true) ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser3Active !== ((configuringAgent as any).pushover_user_3_active ?? true) ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser1Template !== ((configuringAgent as any).pushover_user_1_template || '') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser2Template !== ((configuringAgent as any).pushover_user_2_template || '') ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pushoverUser3Template !== ((configuringAgent as any).pushover_user_3_template || '') ||
         pushoverReplyMessage !== (configuringAgent.pushover_template?.match(/text=(.*)/)?.[1] ? decodeURIComponent(configuringAgent.pushover_template.match(/text=(.*)/)![1]) : '') ||
         pushoverTitle !== (configuringAgent.pushover_title || '') ||
         pushoverFilter !== (configuringAgent.pushover_notification_filter || 'ALL') ||
@@ -425,6 +464,15 @@ export default function DynamicLeadsDashboard() {
         setPushoverUser3Name(agent.pushover_user_3_name || '');
         setPushoverUser3Key(agent.pushover_user_3_key || '');
         setPushoverUser3Token(agent.pushover_user_3_token || '');
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const a = agent as any;
+        setPushoverUser1Active(a.pushover_user_1_active ?? true);
+        setPushoverUser2Active(a.pushover_user_2_active ?? true);
+        setPushoverUser3Active(a.pushover_user_3_active ?? true);
+        setPushoverUser1Template(a.pushover_user_1_template || '');
+        setPushoverUser2Template(a.pushover_user_2_template || '');
+        setPushoverUser3Template(a.pushover_user_3_template || '');
 
         // Extract message from existing template if it has a wa.me URL
         const msgMatch = agent.pushover_template?.match(/text=(.*)/);
@@ -453,6 +501,12 @@ export default function DynamicLeadsDashboard() {
                 pushover_user_3_name: pushoverUser3Name,
                 pushover_user_3_key: pushoverUser3Key,
                 pushover_user_3_token: pushoverUser3Token,
+                pushover_user_1_active: pushoverUser1Active,
+                pushover_user_2_active: pushoverUser2Active,
+                pushover_user_3_active: pushoverUser3Active,
+                pushover_user_1_template: pushoverUser1Template,
+                pushover_user_2_template: pushoverUser2Template,
+                pushover_user_3_template: pushoverUser3Template,
                 pushover_template: generatedPushoverTemplate,
                 pushover_title: pushoverTitle,
                 pushover_notification_filter: pushoverFilter,
@@ -925,15 +979,13 @@ export default function DynamicLeadsDashboard() {
                     </div>
                     <div className="flex gap-3">
                         {view === 'GALLERY' ? (
-                            <>
-                                <button
-                                    onClick={handleOpenCreateModal}
-                                    className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
-                                >
-                                    <Plus size={16} />
-                                    Crear Agente
-                                </button>
-                            </>
+                            <button
+                                onClick={handleOpenCreateModal}
+                                className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
+                            >
+                                <Plus size={16} />
+                                Crear Agente
+                            </button>
                         ) : (
                             <button
                                 onClick={() => {
@@ -945,10 +997,15 @@ export default function DynamicLeadsDashboard() {
                                         setInfoModal({ isOpen: true, type: 'error', message: 'No hay agentes para configurar.' });
                                     }
                                 }}
-                                className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 hover:border-brand-primary hover:text-brand-primary shadow-sm"
+                                className={cn(
+                                    "px-6 py-2.5 border rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 shadow-sm",
+                                    isPushoverConfigured(activeAgentId)
+                                        ? "bg-brand-primary/10 border-brand-primary text-brand-primary"
+                                        : "bg-white border-gray-200 text-gray-700 hover:border-brand-primary hover:text-brand-primary"
+                                )}
                             >
                                 <Bell size={16} />
-                                Configurar Notificaciones
+                                Configurar Notificaciones {isPushoverConfigured(activeAgentId) && <Check size={14} className="ml-1" />}
                             </button>
                         )}
                     </div>
@@ -1791,6 +1848,29 @@ export default function DynamicLeadsDashboard() {
                                                         </div>
 
                                                         <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                            <div className="flex items-center justify-between bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                                <div className="flex flex-col gap-1">
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Activar Asesor {activeAdvisorTab}</label>
+                                                                    <span className="text-[9px] text-gray-400 font-medium">Habilitar/deshabilitar notificaciones para este usuario.</span>
+                                                                </div>
+                                                                <div
+                                                                    onClick={() => {
+                                                                        if (activeAdvisorTab === 1) setPushoverUser1Active(!pushoverUser1Active);
+                                                                        else if (activeAdvisorTab === 2) setPushoverUser2Active(!pushoverUser2Active);
+                                                                        else setPushoverUser3Active(!pushoverUser3Active);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "w-11 h-6 rounded-full relative transition-all cursor-pointer shadow-inner flex items-center px-1",
+                                                                        (activeAdvisorTab === 1 ? pushoverUser1Active : activeAdvisorTab === 2 ? pushoverUser2Active : pushoverUser3Active) ? "bg-brand-primary/20" : "bg-gray-100 border border-gray-200"
+                                                                    )}
+                                                                >
+                                                                    <div className={cn(
+                                                                        "w-4 h-4 rounded-full shadow-md transition-all duration-300",
+                                                                        (activeAdvisorTab === 1 ? pushoverUser1Active : activeAdvisorTab === 2 ? pushoverUser2Active : pushoverUser3Active) ? "translate-x-5 bg-brand-primary" : "translate-x-0 bg-gray-400"
+                                                                    )} />
+                                                                </div>
+                                                            </div>
+
                                                             <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
                                                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre del Asesor {activeAdvisorTab}</label>
                                                                 <input
@@ -1823,6 +1903,53 @@ export default function DynamicLeadsDashboard() {
                                                                         className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-xs text-gray-900 font-bold placeholder:text-gray-300 transition-all font-mono"
                                                                     />
                                                                 </div>
+                                                            </div>
+
+                                                            <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Plantilla Específica (Opcional)</label>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            const key = activeAdvisorTab === 1 ? pushoverUser1Key : activeAdvisorTab === 2 ? pushoverUser2Key : pushoverUser3Key;
+                                                                            const token = activeAdvisorTab === 1 ? pushoverUser1Token : activeAdvisorTab === 2 ? pushoverUser2Token : pushoverUser3Token;
+                                                                            const template = activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template;
+                                                                            const finalTemplate = template || pushoverReplyMessage;
+
+                                                                            if (!key || !token) {
+                                                                                setInfoModal({ isOpen: true, type: 'error', message: 'Configura Key y Token antes de probar.' });
+                                                                                return;
+                                                                            }
+
+                                                                            try {
+                                                                                const res = await fetch('/api/pushover/test', {
+                                                                                    method: 'POST',
+                                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                                    body: JSON.stringify({
+                                                                                        key,
+                                                                                        token,
+                                                                                        title: pushoverTitle || 'Prueba de Notificación',
+                                                                                        message: finalTemplate.replace('{nombre}', 'Usuario de Prueba') || 'Esta es una prueba de Pushover.'
+                                                                                    })
+                                                                                });
+                                                                                if (res.ok) setInfoModal({ isOpen: true, type: 'success', message: '¡Push de prueba enviado!' });
+                                                                                else throw new Error('Error en el envío');
+                                                                            } catch (err) {
+                                                                                setInfoModal({ isOpen: true, type: 'error', message: 'Error al enviar el push de prueba.' });
+                                                                            }
+                                                                        }}
+                                                                        className="px-3 py-1 bg-brand-primary text-white text-[9px] font-bold uppercase rounded-lg hover:brightness-110 flex items-center gap-1.5 transition-all active:scale-95"
+                                                                    >
+                                                                        <Rocket size={10} />
+                                                                        🚀 Probar
+                                                                    </button>
+                                                                </div>
+                                                                <textarea
+                                                                    value={activeAdvisorTab === 1 ? pushoverUser1Template : activeAdvisorTab === 2 ? pushoverUser2Template : pushoverUser3Template}
+                                                                    onChange={(e) => activeAdvisorTab === 1 ? setPushoverUser1Template(e.target.value) : activeAdvisorTab === 2 ? setPushoverUser2Template(e.target.value) : setPushoverUser3Template(e.target.value)}
+                                                                    placeholder="Dejar vacío para usar la global..."
+                                                                    rows={2}
+                                                                    className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none text-xs text-gray-900 font-medium transition-all"
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>
