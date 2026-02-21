@@ -312,30 +312,20 @@ export async function POST(request: Request) {
 
                 // Use advisor specific title if available, fallback to agent title, fallback to default
                 const messageTitle = luckyUser.title || finalAgent.pushover_title || 'Nuevo Lead Detectado';
-                const messageTemplate = luckyUser.template || finalAgent.pushover_template || 'Nuevo Lead: *{nombre}*. Tel: {telefono}.';
 
                 // Construct WhatsApp Link
                 const cleanPhone = phoneVal.replace(/\D/g, '');
                 const waBase = `https://wa.me/${cleanPhone}`;
-                // Priority: Advisor Template -> Global Reply Message -> Default
-                const rawReply = luckyUser.template ?? finalAgent.pushover_reply_message ?? '';
+                // Priority: Advisor Template -> Global Reply Message -> Global Legacy Template -> Default
+                const rawReply = luckyUser.template || finalAgent.pushover_reply_message || finalAgent.pushover_template || '';
                 const personalizedReply = rawReply.replace(/{nombre}/g, nombreVal);
 
                 const waLink = personalizedReply.trim()
                     ? `${waBase}?text=${encodeURIComponent(personalizedReply)}`
                     : waBase;
 
-                let message = messageTemplate
-                    .replace(/{nombre}/g, nombreVal)
-                    .replace(/%7Bnombre%7D/g, encodeURIComponent(nombreVal))
-                    .replace(/{telefono}/g, phoneVal)
-                    .replace(/%7Btelefono%7D/g, encodeURIComponent(phoneVal))
-                    .replace(/{resumen}/g, resumenVal)
-                    .replace(/%7Bresumen%7D/g, encodeURIComponent(resumenVal))
-                    .replace(/{wa_link}/g, waLink);
-
-                message = message.replace(/\*(.*?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-                message = message.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+                // Construct the actual Push Notification Body
+                const message = `Nombre: <b>${nombreVal}</b><br>Teléfono: <b>${phoneVal}</b><br>Resumen: <b>${resumenVal || 'Sin resumen'}</b><br><br>👉 Responder:<br><a href="${waLink}">${waLink}</a>`;
 
                 console.log(`Sending Pushover to ${luckyUser.name} (${luckyUser.key?.substring(0, 5)}...) - Title: ${messageTitle}`);
 
