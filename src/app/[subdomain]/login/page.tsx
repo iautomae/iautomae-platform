@@ -86,12 +86,8 @@ function LoginContent({ subdomain }: { subdomain: string }) {
             <div className="min-h-screen flex items-center justify-center bg-white p-4">
                 <div className="w-full max-w-sm text-center space-y-8">
                     <div className="flex justify-center mb-6">
-                        {logoUrl ? (
+                        {logoUrl && (
                             <img src={logoUrl} alt={companyName} className="h-16 object-contain" />
-                        ) : (
-                            <div className="h-16 w-16 bg-black rounded-xl flex items-center justify-center">
-                                <span className="text-white text-xl font-bold">{companyName.charAt(0)}</span>
-                            </div>
                         )}
                     </div>
 
@@ -153,10 +149,6 @@ function LoginContent({ subdomain }: { subdomain: string }) {
             <div className="absolute inset-0 z-0">
                 <NebulaBackground />
             </div>
-            <div
-                className="absolute inset-0 z-0 mix-blend-color opacity-20 pointer-events-none"
-                style={{ backgroundColor: primaryColor }}
-            />
             <div className="relative z-10 w-full max-w-md mx-auto p-4 md:p-8 animate-in fade-in zoom-in-95 duration-700">
                 {/* Rediseño de la tarjeta: Efecto Glassmorphism más claro, premium y elegante */}
                 <div className="w-full space-y-8 bg-white/10 backdrop-blur-xl p-8 md:p-10 rounded-[2rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] border border-white/20 relative overflow-hidden">
@@ -220,13 +212,13 @@ function LoginContent({ subdomain }: { subdomain: string }) {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full mt-4 py-3.5 px-4 rounded-xl text-black font-bold border border-white/10 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 hover:brightness-110 shadow-[0_0_15px_rgba(0,0,0,0.2)] hover:shadow-lg"
+                            className="w-full mt-4 py-3.5 px-4 rounded-xl text-white font-bold border border-white/10 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 hover:brightness-110 shadow-[0_0_15px_rgba(0,0,0,0.2)] hover:shadow-lg"
                             style={{
                                 backgroundColor: primaryColor,
-                                textShadow: '0 1px 2px rgba(255,255,255,0.2)'
+                                textShadow: '0 1px 2px rgba(0,0,0,0.2)'
                             }}
                         >
-                            {isLoading ? 'Conectando...' : 'Entrar al portal'}
+                            {isLoading ? 'Conectando...' : 'Iniciar sesión'}
                         </button>
                     </form>
                 </div>

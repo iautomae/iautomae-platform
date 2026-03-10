@@ -92,12 +92,8 @@ export default function SetPasswordPage({
             <div className="w-full max-w-sm text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
 
                 <div className="flex justify-center mb-6">
-                    {logoUrl ? (
+                    {logoUrl && (
                         <img src={logoUrl} alt={companyName} className="h-16 object-contain" />
-                    ) : (
-                        <div className="h-16 w-16 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}>
-                            <span className="text-xl font-bold">{companyName.charAt(0)}</span>
-                        </div>
                     )}
                 </div>
 
