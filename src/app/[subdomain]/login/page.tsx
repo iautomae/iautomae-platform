@@ -151,9 +151,9 @@ function LoginContent({ subdomain }: { subdomain: string }) {
             </div>
             <div className="relative z-10 w-full max-w-md mx-auto p-4 md:p-8 animate-in fade-in zoom-in-95 duration-700">
                 {/* Rediseño de la tarjeta: Efecto Glassmorphism más claro, premium y elegante */}
-                <div className="w-full space-y-8 bg-white/10 backdrop-blur-xl p-8 md:p-10 rounded-[2rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] border border-white/20 relative overflow-hidden">
+                <div className="w-full space-y-8 bg-black/40 backdrop-blur-xl p-8 md:p-10 rounded-[2rem] shadow-[0_8px_32px_0_rgba(0,0,0,0.5)] border border-white/10 relative overflow-hidden">
                     {/* Brillo interno sutil arriba */}
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
 
                     <div className="text-center space-y-6 relative z-10">
                         {logoUrl && (
@@ -162,8 +162,8 @@ function LoginContent({ subdomain }: { subdomain: string }) {
                             </div>
                         )}
                         <div>
-                            <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-sm">Iniciar sesión</h2>
-                            <p className="mt-2 text-sm text-slate-300 font-medium">Panel administrativo de <span className="text-white">{companyName}</span></p>
+                            <h2 className="text-3xl font-bold tracking-tight !text-white drop-shadow-sm" style={{ color: '#ffffff' }}>Iniciar sesión</h2>
+                            <p className="mt-2 text-sm text-slate-300 font-medium">Panel administrativo de <span className="!text-white" style={{ color: '#ffffff' }}>{companyName}</span></p>
                         </div>
                     </div>
 
