@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import {
     Users,
-    RefreshCw,
+    LoaderCircle,
     Pencil,
     ArrowLeft,
     Save,
@@ -17,7 +17,6 @@ import {
     Camera,
     MinusCircle,
     Send,
-    Loader2,
     MessageSquare,
     RotateCcw,
     Trash2
@@ -837,7 +836,7 @@ export default function AgentConfigPage() {
                                                         className="p-2.5 hover:bg-brand-turquoise/10 text-brand-turquoise rounded-xl transition-all"
                                                         title="Refrescar conexión"
                                                     >
-                                                        <RefreshCw size={18} className={isSyncing ? "animate-spin" : ""} />
+                                                        <LoaderCircle size={18} className={isSyncing ? "animate-spin" : ""} />
                                                     </button>
                                                     <button
                                                         onClick={handleDeleteNumber}
@@ -875,7 +874,7 @@ export default function AgentConfigPage() {
                                                 disabled={isSyncing}
                                                 className="text-[10px] text-gray-400 font-bold uppercase tracking-widest hover:text-brand-turquoise transition-colors flex items-center justify-center gap-2 mx-auto pt-2"
                                             >
-                                                <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
+                                                <LoaderCircle size={12} className={isSyncing ? "animate-spin" : ""} />
                                                 <span>Si ya lo vinculaste, pulsa aquí para refrescar</span>
                                             </button>
                                         </div>
@@ -954,7 +953,7 @@ export default function AgentConfigPage() {
                                     : "bg-brand-primary shadow-brand-primary/20"
                             )}
                         >
-                            {isSaving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                            {isSaving ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}
                             {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                         </button>
                     </div>
@@ -1098,7 +1097,7 @@ export default function AgentConfigPage() {
                             {conversation.status === 'connecting' && (
                                 <div className="flex justify-start">
                                     <div className="bg-white border border-gray-100 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm flex items-center gap-2">
-                                        <Loader2 size={14} className="animate-spin text-brand-turquoise" />
+                                        <LoaderCircle size={14} className="animate-spin text-brand-turquoise" />
                                         <span className="text-xs text-gray-400">Conectando...</span>
                                     </div>
                                 </div>

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Clock, AlertCircle, CheckCircle2, Loader2, Eye, Edit2, ExternalLink, Trash2 } from 'lucide-react';
+import { FileText, Clock, AlertCircle, CheckCircle2, LoaderCircle, Eye, Edit2, ExternalLink, Trash2 } from 'lucide-react';
 import { DataTable, DataTableHeader } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -111,7 +111,7 @@ export function TramitesTableBase({ tramites, onRefresh, hideStatusColumn = fals
 
         const StageBadge = ({ label, status }: { label: string, status: string }) => {
             if (status === 'COMPLETADO') return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-100/80 px-2 py-1 rounded-md border border-emerald-200"><CheckCircle2 size={12} /> {label}</span>;
-            if (status === 'EN_PROCESO') return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-100/80 px-2 py-1 rounded-md border border-blue-200"><Loader2 size={12} className="animate-spin" /> {label}</span>;
+            if (status === 'EN_PROCESO') return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-100/80 px-2 py-1 rounded-md border border-blue-200"><LoaderCircle size={12} className="animate-spin" /> {label}</span>;
             if (status === 'NO_REQUIERE') return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-200 line-through" title="No contratado/Ya tiene"><CheckCircle2 size={12} className="opacity-0 w-0 h-0" /> {label}</span>;
             return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-md border border-gray-200"><Clock size={12} /> {label}</span>; // PENDIENTE
         };
@@ -140,7 +140,7 @@ export function TramitesTableBase({ tramites, onRefresh, hideStatusColumn = fals
     const getStatusConfig = (status: string) => {
         switch (status) {
             case 'PENDIENTE': return { color: 'bg-gray-100 text-gray-500 border-gray-200', icon: Clock, label: 'Pendiente' };
-            case 'EN_PROCESO': return { color: 'bg-blue-100 text-blue-600 border-blue-200', icon: Loader2, label: 'En Proceso' };
+            case 'EN_PROCESO': return { color: 'bg-blue-100 text-blue-600 border-blue-200', icon: LoaderCircle, label: 'En Proceso' };
             case 'OBSERVADO': return { color: 'bg-amber-100 text-amber-600 border-amber-200', icon: AlertCircle, label: 'Observado' };
             case 'FINALIZADO': return { color: 'bg-emerald-100 text-emerald-600 border-emerald-200', icon: CheckCircle2, label: 'Finalizado' };
             default: return { color: 'bg-gray-100 text-gray-500 border-gray-200', icon: FileText, label: status };

@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Receipt,
   ClipboardList,
+  Layers,
   type LucideIcon
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -46,7 +47,12 @@ const PRIMARY_MENU: MenuItem[] = [
   { id: 'terminados', icon: CheckCircle, label: 'Terminados', href: '/terminados' },
   { id: 'finanzas', icon: Receipt, label: 'Finanzas', href: '/finanzas' },
   { id: 'requerimientos', icon: ClipboardList, label: 'Requerimientos', href: '/requerimientos' },
-  { id: 'admin', icon: Shield, label: 'Panel Maestro', href: '/admin', permission: 'admin_only' },
+];
+
+// Menú exclusivo para el Super Admin (dueño de la plataforma)
+const ADMIN_MENU: MenuItem[] = [
+  { id: 'admin', icon: Users, label: 'Usuarios', href: '/admin' },
+  { id: 'plataformas', icon: Layers, label: 'Plataformas', href: '/admin/plataformas' },
 ];
 
 export function Sidebar() {
@@ -70,25 +76,23 @@ export function Sidebar() {
 
   if (loading || !user || pathname === '/login' || pathname === '/pending-approval') return null;
 
-  // Filter menu based on permissions AND features
-  const visibleMenu = PRIMARY_MENU.filter(item => {
-    // Admin only routes
-    if (item.permission === 'admin_only') {
-      return profile?.role === 'admin';
-    }
+  // Si es admin (dueño de la plataforma), mostrar solo menú de admin
+  // Si es usuario normal, mostrar el menú de módulos filtrado por permisos
+  const visibleMenu = profile?.role === 'admin'
+    ? ADMIN_MENU
+    : PRIMARY_MENU.filter(item => {
+      // Feature-flagged routes
+      if (item.feature) {
+        return profile?.features?.[item.feature] === true;
+      }
 
-    // Feature-flagged routes
-    if (item.feature) {
-      return profile?.features?.[item.feature] === true;
-    }
+      // Standard permission routes
+      if (item.permission) {
+        return profile?.[item.permission as keyof typeof profile] === true;
+      }
 
-    // Standard permission routes
-    if (item.permission) {
-      return profile?.[item.permission as keyof typeof profile] === true;
-    }
-
-    return true;
-  });
+      return true;
+    });
 
 
   return (

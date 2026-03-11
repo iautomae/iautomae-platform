@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, Plus } from 'lucide-react';
+import { LoaderCircle, Plus } from 'lucide-react';
 import { NuevoTramiteModal } from '@/components/tramites/NuevoTramiteModal';
 import { supabase } from '@/lib/supabase';
 import { FilterTabs } from '@/components/ui/FilterTabs';
@@ -109,7 +109,7 @@ export default function TramitesPage() {
     if (isLoading) {
         return (
             <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="animate-spin text-brand-primary" size={48} />
+                <LoaderCircle className="animate-spin text-brand-primary" size={48} />
             </div>
         );
     }

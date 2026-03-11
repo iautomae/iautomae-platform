@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, ArrowLeft, FileText, CheckCircle2, Clock, AlertCircle, Upload, DollarSign, Calendar, History, Trash2, Save } from 'lucide-react';
+import { LoaderCircle, ArrowLeft, FileText, CheckCircle2, Clock, AlertCircle, Upload, DollarSign, Calendar, History, Trash2, Save } from 'lucide-react';
 import { Database } from '@/types/database.types';
 
 type Tramite = Database['public']['Tables']['tramites']['Row'];
@@ -150,7 +150,7 @@ export default function TramiteDetallePage({ params }: { params: Promise<{ id: s
     if (isLoading || !tramite) {
         return (
             <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="animate-spin text-brand-primary" size={48} />
+                <LoaderCircle className="animate-spin text-brand-primary" size={48} />
             </div>
         );
     }
@@ -194,7 +194,7 @@ export default function TramiteDetallePage({ params }: { params: Promise<{ id: s
                         disabled={isSaving}
                         className="flex items-center gap-2 bg-brand-primary text-white px-5 py-2.5 rounded-xl hover:bg-brand-primary/90 transition-colors text-sm font-semibold shadow-sm"
                     >
-                        {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        {isSaving ? <LoaderCircle size={16} className="animate-spin" /> : <Save size={16} />}
                         Guardar Cambios
                     </button>
                 </div>

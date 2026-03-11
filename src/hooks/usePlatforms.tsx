@@ -1,0 +1,88 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import {
+    FileText, Users, Briefcase, Shirt, Heart, Globe, Zap, Package, Layers
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+export interface Platform {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;      // lucide icon name stored in DB
+    color: string;      // color key: "blue", "emerald", etc.
+    is_active: boolean;
+    created_at: string;
+}
+
+// Map icon names to actual Lucide components
+const ICON_MAP: Record<string, LucideIcon> = {
+    FileText, Users, Briefcase, Shirt, Heart, Globe, Zap, Package, Layers,
+};
+
+// Map color names to Tailwind classes
+const COLOR_MAP: Record<string, { text: string; bg: string; border: string }> = {
+    blue: { text: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
+    emerald: { text: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+    purple: { text: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
+    amber: { text: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" },
+    rose: { text: "text-rose-600", bg: "bg-rose-50", border: "border-rose-200" },
+    cyan: { text: "text-cyan-600", bg: "bg-cyan-50", border: "border-cyan-200" },
+    indigo: { text: "text-indigo-600", bg: "bg-indigo-50", border: "border-indigo-200" },
+    orange: { text: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
+};
+
+export function getIconComponent(iconName: string): LucideIcon {
+    return ICON_MAP[iconName] || Layers;
+}
+
+export function getColorClasses(colorName: string) {
+    return COLOR_MAP[colorName] || COLOR_MAP.blue;
+}
+
+export function usePlatforms() {
+    const [platforms, setPlatforms] = useState<Platform[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchPlatforms = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await fetch('/api/admin/platforms');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error al cargar plataformas');
+            setPlatforms(data.platforms || []);
+        } catch (err: any) {
+            console.error('usePlatforms fetch error:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchPlatforms();
+    }, [fetchPlatforms]);
+
+    const createPlatform = async (name: string, description: string): Promise<Platform | null> => {
+        try {
+            const res = await fetch('/api/admin/platforms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Error al crear plataforma');
+
+            // Refresh list
+            await fetchPlatforms();
+            return data.platform;
+        } catch (err: any) {
+            throw err;
+        }
+    };
+
+    return { platforms, loading, error, createPlatform, refetch: fetchPlatforms };
+}

@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation';
 import {
     Lock,
     ArrowRight,
-    Mail,
-    Loader2,
     ShieldCheck,
     CheckCircle2,
     History,
     Eye,
-    EyeOff
+    EyeOff,
+    LoaderCircle,
+    Mail
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -101,7 +101,7 @@ export default function SetPasswordPage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center p-4">
-                <Loader2 className="text-brand-turquoise animate-spin" size={40} />
+                <LoaderCircle className="text-brand-turquoise animate-spin" size={40} />
             </div>
         );
     }
@@ -219,7 +219,7 @@ export default function SetPasswordPage() {
                             disabled={updating}
                             className="w-full py-4 mt-2 rounded-xl bg-brand-turquoise text-white text-sm font-bold shadow-md hover:bg-brand-turquoise/90 flex items-center justify-center gap-2 group transition-all disabled:opacity-50"
                         >
-                            {updating ? <Loader2 className="animate-spin" size={20} /> : (
+                            {updating ? <LoaderCircle className="animate-spin" size={20} /> : (
                                 <>
                                     {isRecovery ? 'RESTABLECER CONTRASEÑA' : 'ACTIVAR MI CUENTA'}
                                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -237,7 +237,7 @@ export default function SetPasswordPage() {
                             {isRecovery ? 'Tu contraseña ha sido restablecida con éxito.' : 'Tu cuenta ha sido activada correctamente.'} Redirigiendo al inicio de sesión...
                         </p>
                         <div className="flex justify-center pt-2">
-                            <Loader2 className="text-green-500 animate-spin" size={24} />
+                            <LoaderCircle className="text-green-500 animate-spin" size={24} />
                         </div>
                     </div>
                 )}

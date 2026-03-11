@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
 import { useRouter } from "next/navigation";
-import { Shield, Settings, ExternalLink, Search, RefreshCw, UserPlus, X, Trash2, MoreVertical, Users } from "lucide-react";
+import { Shield, Settings, ExternalLink, Search, LoaderCircle, UserPlus, X, Trash2, MoreVertical, Users, CheckCircle2, AlertCircle } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -27,7 +27,7 @@ interface ClientProfile {
 }
 
 interface ProfileQueryResult {
-    id: string;
+    id: string; // Tenant ID
     email: string | null;
     role: string | null;
     features: Record<string, boolean> | null;
@@ -46,16 +46,21 @@ export default function SuperAdminDashboard() {
     const [searchTerm, setSearchTerm] = useState("");
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-    // Team Modal state
-    const [selectedTenant, setSelectedTenant] = useState<{ id: string, name: string } | null>(null);
-    const [tenantUsers, setTenantUsers] = useState<ClientProfile[]>([]);
-    const [isFetchingTeam, setIsFetchingTeam] = useState(false);
-    const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
-
     // Modal state
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteForm, setInviteForm] = useState({ companyName: '', email: '', role: 'admin' });
     const [isInviting, setIsInviting] = useState(false);
+
+    // Toast state
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    // Auto-dismiss toast
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
 
     // Feature definitions
     const AVAILABLE_FEATURES = [
@@ -83,72 +88,46 @@ export default function SuperAdminDashboard() {
     const fetchClients = async () => {
         setIsLoading(true);
         try {
-            console.log("Admin Panel: Fetching all users...");
+            console.log("Admin Panel: Fetching all tenants...");
 
-            // 1. Fetch ALL profiles (no role filter)
-            const { data: profilesData, error: profilesError } = await supabase
-                .from("profiles")
-                .select("id, email, role, features, has_leads_access, brand_logo, tenant_id, tenants(nombre, branding_complete)");
+            // 1. Fetch ALL tenants and their profiles
+            const { data: tenantsData, error: tenantsError } = await supabase
+                .from("tenants")
+                .select("id, nombre, branding_complete, created_at, profiles(id, email, role)")
+                .order("created_at", { ascending: false });
 
-            if (profilesError) {
-                console.error("Profiles Query Error:", profilesError);
-                throw profilesError;
+            if (tenantsError) {
+                console.error("Tenants Query Error:", tenantsError);
+                throw tenantsError;
             }
 
-            // 2. Only exclude the current logged-in super admin
-            const formatted: ClientProfile[] = (profilesData as unknown as ProfileQueryResult[] || [])
-                .filter(p => p.id !== profile?.id) // Solo ocultar mi propio perfil
-                .map((p) => ({
-                    id: p.id,
-                    email: p.email || 'Sin email',
-                    role: p.role || 'client',
-                    features: p.features || {},
-                    has_leads_access: p.has_leads_access || false,
-                    brand_logo: p.brand_logo || undefined,
-                    created_at: '',
-                    companyName: p.tenants?.nombre || 'Sin Empresa',
-                    tenant_id: p.tenant_id || '',
-                    branding_complete: p.tenants?.branding_complete
-                }));
+            // 2. Map tenants to ClientProfile
+            const formatted: ClientProfile[] = (tenantsData || [])
+                .filter(t => t.id !== profile?.tenant_id) // Ocultar el tenant del super admin
+                .map((t: any) => {
+                    const profiles = Array.isArray(t.profiles) ? t.profiles : [];
+                    // Encontrar el admin principal de esta empresa
+                    const mainAdmin = profiles.find((p: any) => p.role === 'admin') || profiles[0] || {};
+
+                    return {
+                        id: mainAdmin.id || t.id, // ID del admin para impersonate
+                        email: mainAdmin.email || 'Sin usuario asignado',
+                        role: mainAdmin.role || 'client',
+                        features: {},
+                        has_leads_access: true,
+                        brand_logo: undefined,
+                        created_at: t.created_at,
+                        companyName: t.nombre || 'Sin Empresa',
+                        tenant_id: t.id,
+                        branding_complete: t.branding_complete
+                    };
+                });
 
             setClients(formatted);
         } catch (err) {
             console.error("DEBUG: fetchClients failed", err);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const viewTeam = async (tenantId: string, companyName: string) => {
-        setSelectedTenant({ id: tenantId, name: companyName });
-        setIsTeamModalOpen(true);
-        setIsFetchingTeam(true);
-        try {
-            const { data, error } = await supabase
-                .from("profiles")
-                .select("id, email, role, features, has_leads_access, brand_logo, tenant_id, tenants(nombre)")
-                .eq("tenant_id", tenantId)
-                .order("role", { ascending: true });
-
-            if (error) throw error;
-
-            const formatted: ClientProfile[] = (data as unknown as ProfileQueryResult[] || []).map((p) => ({
-                id: p.id,
-                email: p.email || 'Sin email',
-                role: p.role || 'client',
-                features: p.features || {},
-                has_leads_access: p.has_leads_access || false,
-                brand_logo: p.brand_logo || undefined,
-                created_at: '',
-                companyName: p.tenants?.nombre || 'Empresa Desconocida',
-                tenant_id: p.tenant_id || ''
-            }));
-            setTenantUsers(formatted);
-        } catch (err) {
-            console.error("Error fetching team:", err);
-            alert("No se pudo cargar el equipo.");
-        } finally {
-            setIsFetchingTeam(false);
         }
     };
 
@@ -165,82 +144,15 @@ export default function SuperAdminDashboard() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to invite');
 
-            alert(`Empresa creada e invitación enviada a ${inviteForm.email}`);
+            setToast({ message: `Empresa creada e invitación enviada a ${inviteForm.email}`, type: 'success' });
             setIsInviteModalOpen(false);
             setInviteForm({ companyName: '', email: '', role: 'admin' });
-            fetchClients(); // Refrescar lista
+            fetchClients();
         } catch (err: any) {
-            alert(err.message);
+            setToast({ message: err.message, type: 'error' });
             console.error(err);
         } finally {
             setIsInviting(false);
-        }
-    };
-
-    const toggleFeature = async (userId: string, featureId: string, isBooleanCol: boolean) => {
-        setIsUpdating(`${userId}-${featureId}`);
-        const user = tenantUsers.find((c) => c.id === userId);
-        if (!user) {
-            setIsUpdating(null);
-            return;
-        }
-
-        try {
-            if (isBooleanCol) {
-                // e.g. has_leads_access
-                const newValue = !user.has_leads_access;
-                const { error } = await supabase
-                    .from("profiles")
-                    .update({ has_leads_access: newValue })
-                    .eq("id", userId);
-
-                if (error) throw error;
-
-                setTenantUsers((prev) =>
-                    prev.map((c) =>
-                        c.id === userId ? { ...c, has_leads_access: newValue } : c
-                    )
-                );
-            } else {
-                // e.g. features: { tramites: true }
-                const newFeatures = { ...user.features };
-                newFeatures[featureId] = !newFeatures[featureId];
-
-                const { error } = await supabase
-                    .from("profiles")
-                    .update({ features: newFeatures })
-                    .eq("id", userId);
-
-                if (error) throw error;
-
-                setTenantUsers((prev) =>
-                    prev.map((c) =>
-                        c.id === userId ? { ...c, features: newFeatures } : c
-                    )
-                );
-            }
-        } catch (err) {
-            console.error("Error updating features:", err);
-        } finally {
-            setIsUpdating(null);
-        }
-    };
-
-    const setRole = async (userId: string, newRole: string) => {
-        if (!confirm(`¿Cambiar rol a ${newRole}?`)) return;
-        try {
-            const { error } = await supabase
-                .from("profiles")
-                .update({ role: newRole })
-                .eq("id", userId);
-            if (error) throw error;
-            if (selectedTenant && isTeamModalOpen) {
-                viewTeam(selectedTenant.id, selectedTenant.name);
-            } else {
-                fetchClients();
-            }
-        } catch (err) {
-            console.error("Error updating role:", err);
         }
     };
 
@@ -258,10 +170,10 @@ export default function SuperAdminDashboard() {
 
             if (!res.ok) throw new Error(data.error || 'Failed to delete tenant');
 
-            alert(data.message || 'Usuario y empresa eliminados.');
+            setToast({ message: data.message || 'Empresa eliminada correctamente.', type: 'success' });
             fetchClients();
         } catch (err: any) {
-            alert(err.message);
+            setToast({ message: err.message, type: 'error' });
             console.error("Error deleting client:", err);
         } finally {
             setIsUpdating(null);
@@ -276,7 +188,7 @@ export default function SuperAdminDashboard() {
     if (profileLoading || isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <RefreshCw className="w-8 h-8 text-brand-primary animate-spin mb-4" />
+                <LoaderCircle className="w-8 h-8 text-brand-primary animate-spin mb-4" />
                 <p className="text-gray-500 font-medium">Cargando Panel Maestro...</p>
             </div>
         );
@@ -326,39 +238,43 @@ export default function SuperAdminDashboard() {
                 <div className="bg-white rounded-3xl border border-gray-200 shadow-xl relative flex-1 min-h-0 flex flex-col">
                     <div className="overflow-auto flex-1">
                         <table className="w-full text-left border-collapse table-fixed">
-                            <thead className="bg-gray-50/50 sticky top-0 z-10">
-                                <tr>
-                                    <th className="px-6 py-2.5 text-[11px] font-bold text-gray-900 uppercase tracking-tight w-[18%] border-b border-gray-100">Nombre de la Empresa</th>
-                                    <th className="px-6 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-[45%] border-b border-l border-gray-100">Correo Principal</th>
-                                    <th className="px-6 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-tight w-[30%] text-center border-b border-l border-gray-100">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <colgroup>
+                                <col className="w-[200px]" />
+                                <col className="w-auto" />
+                                <col className="w-[160px]" />
+                                <col className="w-[240px]" />
+                            </colgroup>
+                            <tbody className="divide-y divide-gray-200">
                                 {filteredClients.map((client) => (
-                                    <tr key={client.id} className="hover:bg-gray-200/60 transition-colors group">
-                                        <td className="px-6 py-2 border-b border-gray-50">
-                                            <p className="text-sm font-bold text-gray-900 truncate">{client.companyName}</p>
+                                    <tr key={client.id} className="hover:bg-gray-50 transition-colors group">
+                                        <td className="px-5 py-3.5">
+                                            <p className="text-xs font-bold text-gray-900 truncate">{client.companyName}</p>
                                         </td>
-                                        <td className="px-6 py-2 border-b border-l border-gray-50">
-                                            <div className="flex flex-col gap-1">
-                                                <p className="text-sm font-medium text-gray-500 truncate">{client.email}</p>
-                                                {!client.branding_complete && (
-                                                    <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-orange-500 uppercase tracking-wider">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
-                                                        Invitación Pendiente
-                                                    </span>
-                                                )}
-                                            </div>
+                                        <td className="px-5 py-3.5 border-l border-gray-100">
+                                            <p className="text-xs font-medium text-gray-500 truncate">{client.email}</p>
                                         </td>
-                                        <td className="px-6 py-2 border-b border-l border-gray-50 relative">
-                                            <div className="flex items-center justify-end gap-3">
-                                                <button
-                                                    onClick={() => viewTeam(client.tenant_id, client.companyName)}
-                                                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white hover:bg-gray-800 text-[10px] font-bold rounded-lg transition-all shadow-sm"
+                                        <td className="px-5 py-3.5 border-l border-gray-100">
+                                            {client.branding_complete ? (
+                                                <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-green-600 uppercase tracking-wider">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                    Activo
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-orange-500 uppercase tracking-wider">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                                    Pendiente
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-5 py-3.5 border-l border-gray-100">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Link
+                                                    href={`/admin/tenant/${client.tenant_id}?companyName=${encodeURIComponent(client.companyName)}`}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white hover:bg-gray-800 text-[10px] font-bold rounded-lg transition-all shadow-sm"
                                                 >
                                                     <Users size={12} />
                                                     Ver Equipo
-                                                </button>
+                                                </Link>
 
                                                 <Link
                                                     href={`/leads?view_as=${client.id}`}
@@ -382,98 +298,6 @@ export default function SuperAdminDashboard() {
                 </div>
             </div>
 
-            {/* Team Modal */}
-            {isTeamModalOpen && selectedTenant && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-4 duration-300">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
-                            <div>
-                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                                    <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-xl">
-                                        <Users size={20} />
-                                    </div>
-                                    Equipo Autorizado: {selectedTenant.name}
-                                </h2>
-                                <p className="text-xs font-medium text-gray-500 mt-2">Gestiona el nivel de acceso y los módulos disponibles para cada empleado.</p>
-                            </div>
-                            <button onClick={() => setIsTeamModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-white shadow-sm border border-gray-200 p-2.5 rounded-xl transition-all">
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="overflow-y-auto p-8 bg-gray-50/30 flex-1 relative">
-                            {isFetchingTeam ? (
-                                <div className="flex justify-center items-center h-48"><RefreshCw className="animate-spin text-brand-primary w-8 h-8" /></div>
-                            ) : (
-                                <div className="grid grid-cols-1 gap-4">
-                                    {tenantUsers.map((user) => (
-                                        <div key={user.id} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden group">
-                                            {/* Accent line if admin */}
-                                            {user.role === 'admin' && (
-                                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500"></div>
-                                            )}
-
-                                            <div className="min-w-[200px] flex gap-4 items-center">
-                                                <div className="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500 font-bold shrink-0">
-                                                    {(user.email || '?').charAt(0).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{user.email}</p>
-                                                    </div>
-                                                    <span className={cn(
-                                                        "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase whitespace-nowrap",
-                                                        user.role === 'admin' ? "bg-purple-50 text-purple-600 border border-purple-100" : "bg-blue-50 text-blue-600 border border-blue-100"
-                                                    )}>
-                                                        {user.role === 'admin' ? 'Propietario' : 'Agente/Usuario'}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex-1 bg-gray-50/50 p-3 rounded-xl border border-gray-50">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Módulos Autorizados</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {AVAILABLE_FEATURES.map((feature) => {
-                                                        const isActive = feature.isBooleanCol ? user.has_leads_access : user.features?.[feature.id];
-                                                        const key = `${user.id}-${feature.id}`;
-                                                        return (
-                                                            <button
-                                                                key={feature.id}
-                                                                onClick={() => toggleFeature(user.id, feature.id, !!feature.isBooleanCol)}
-                                                                disabled={isUpdating === key}
-                                                                className={cn(
-                                                                    "px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-2 border transition-all",
-                                                                    isActive
-                                                                        ? "bg-brand-primary/10 border-brand-primary/30 text-brand-primary shadow-sm hover:bg-brand-primary/20"
-                                                                        : "bg-white border-gray-200 text-gray-400 hover:text-gray-600 hover:bg-gray-50 cursor-pointer"
-                                                                )}
-                                                            >
-                                                                <span className="text-xs">{feature.icon}</span>
-                                                                {feature.label}
-                                                                {isUpdating === key && <RefreshCw className="w-3 h-3 animate-spin" />}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            <div className="shrink-0 flex items-center justify-end">
-                                                <button
-                                                    onClick={() => setRole(user.id, user.role === 'admin' ? 'client' : 'admin')}
-                                                    className="opacity-0 group-hover:opacity-100 flex items-center gap-2 px-3 py-2 text-[10px] font-bold text-gray-600 bg-white hover:bg-gray-50 hover:text-gray-900 rounded-xl transition-all border border-gray-200 shadow-sm"
-                                                >
-                                                    <Settings size={14} />
-                                                    {user.role === 'admin' ? 'Degradar a Agente' : 'Hacer Propietario'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Invite Modal */}
             {
@@ -530,7 +354,7 @@ export default function SuperAdminDashboard() {
                                         disabled={isInviting || !inviteForm.companyName || !inviteForm.email}
                                         className="px-4 py-2 bg-brand-primary text-white text-xs font-bold rounded-xl hover:bg-brand-primary/90 transition-all disabled:opacity-50 flex items-center gap-2"
                                     >
-                                        {isInviting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus size={16} />}
+                                        {isInviting ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <UserPlus size={16} />}
                                         {isInviting ? 'Creando...' : 'Enviar Invitación'}
                                     </button>
                                 </div>
@@ -539,6 +363,23 @@ export default function SuperAdminDashboard() {
                     </div>
                 )
             }
+
+            {/* Toast Popup */}
+            {toast && (
+                <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl border animate-in slide-in-from-bottom-4 duration-300 ${toast.type === 'success'
+                        ? 'bg-green-50 border-green-200 text-green-800'
+                        : 'bg-red-50 border-red-200 text-red-800'
+                    }`}>
+                    {toast.type === 'success'
+                        ? <CheckCircle2 size={18} className="text-green-500 shrink-0" />
+                        : <AlertCircle size={18} className="text-red-500 shrink-0" />
+                    }
+                    <p className="text-xs font-bold">{toast.message}</p>
+                    <button onClick={() => setToast(null)} className="ml-2 text-gray-400 hover:text-gray-600">
+                        <X size={14} />
+                    </button>
+                </div>
+            )}
         </div >
     );
 }

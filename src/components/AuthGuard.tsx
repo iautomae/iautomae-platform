@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
     const { user, loading: authLoading } = useAuth();
@@ -64,7 +64,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         return (
             <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center z-[110]">
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="animate-spin text-brand-turquoise" size={48} />
+                    <LoaderCircle className="animate-spin text-brand-turquoise" size={48} />
                     <span className="text-white/40 text-xs font-bold tracking-widest uppercase animate-pulse">Autenticando...</span>
                 </div>
             </div>

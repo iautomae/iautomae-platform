@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, ArrowLeft, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Clock, FileText } from 'lucide-react';
+import { LoaderCircle, ArrowLeft, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Clock, FileText } from 'lucide-react';
 
 // For simplicity in this initial calendar view, we'll just mock a few events or fetch 'tramites' to show them on their creation date
 // In a full implementation, you'd query a specific 'citas' table

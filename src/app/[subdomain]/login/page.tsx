@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { NebulaBackground } from '@/components/NebulaBackground';
+import { Eye, EyeOff } from 'lucide-react';
 
 function LoginContent({ subdomain }: { subdomain: string }) {
     const router = useRouter();
@@ -14,6 +15,7 @@ function LoginContent({ subdomain }: { subdomain: string }) {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [recoverySent, setRecoverySent] = useState(false);
@@ -199,14 +201,28 @@ function LoginContent({ subdomain }: { subdomain: string }) {
                                     ¿Olvidaste tu contraseña?
                                 </button>
                             </div>
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-5 py-3.5 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-400 focus:ring-2 focus:border-transparent transition-all duration-300 outline-none backdrop-blur-md hover:bg-black/30 focus:bg-white/5"
-                                style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
-                            />
+                            <div className="relative group">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full px-5 py-3.5 pr-12 rounded-xl bg-black/20 border border-white/10 text-white placeholder-slate-400 focus:ring-2 focus:border-transparent transition-all duration-300 outline-none backdrop-blur-md hover:bg-black/30 focus:bg-white/5"
+                                    style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors duration-200 focus:outline-none"
+                                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                >
+                                    {showPassword ? (
+                                        <Eye className="h-5 w-5" />
+                                    ) : (
+                                        <EyeOff className="h-5 w-5" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         <button

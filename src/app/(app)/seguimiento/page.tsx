@@ -5,7 +5,7 @@ import { FilterTabs } from "@/components/ui/FilterTabs";
 import { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabase';
 import { TramitesTableBase, type TramiteRow } from '@/components/tramites/TramitesTableBase';
-import { Loader2 } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 
 const SEGUIMIENTO_TABS = [
     { id: 'EN_PROCESO', label: 'Seguimiento de Trámite' },
@@ -48,7 +48,7 @@ export default function SeguimientoPage() {
     if (isLoading) {
         return (
             <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="animate-spin text-brand-primary" size={48} />
+                <LoaderCircle className="animate-spin text-brand-primary" size={48} />
             </div>
         );
     }

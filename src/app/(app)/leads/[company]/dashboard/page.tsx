@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, RefreshCw, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, LoaderCircle, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -1533,7 +1533,7 @@ export default function DynamicLeadsDashboard() {
                                             disabled={isCreating || !newAgentName.trim()}
                                             className="flex-2 px-8 py-4 bg-gray-900 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-gray-900/10 disabled:opacity-50 flex items-center justify-center gap-2"
                                         >
-                                            {isCreating ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
+                                            {isCreating ? <LoaderCircle size={14} className="animate-spin" /> : <Plus size={14} />}
                                             Crear Agente
                                         </button>
                                     </div>
@@ -1692,7 +1692,7 @@ export default function DynamicLeadsDashboard() {
                                         <>
                                             {isLoadingImports ? (
                                                 <div className="flex flex-col items-center justify-center py-8 gap-3">
-                                                    <RefreshCw size={24} className="animate-spin text-brand-mint" />
+                                                    <LoaderCircle size={24} className="animate-spin text-brand-mint" />
                                                     <p className="text-sm text-gray-400 font-medium">Cargando agentes de ElevenLabs...</p>
                                                 </div>
                                             ) : importableAgents.length === 0 ? (
@@ -1718,7 +1718,7 @@ export default function DynamicLeadsDashboard() {
                                                                     />
                                                                 </div>
                                                                 <div className="flex items-center gap-3">
-                                                                    <RefreshCw size={14} className="animate-spin text-brand-mint" />
+                                                                    <LoaderCircle size={14} className="animate-spin text-brand-mint" />
                                                                     <p className="text-[11px] text-gray-500 font-bold uppercase tracking-[0.2em]">
                                                                         Creando Agente... <span className="text-brand-mint">{creationProgress}%</span>
                                                                     </p>
@@ -2215,7 +2215,7 @@ export default function DynamicLeadsDashboard() {
                                                 hasUnsavedNotificationChanges ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/10" : "bg-gray-900 hover:brightness-110 shadow-gray-900/10"
                                             )}
                                         >
-                                            {isSavingPushover ? <RefreshCw size={14} className="animate-spin" /> : null}
+                                            {isSavingPushover ? <LoaderCircle size={14} className="animate-spin" /> : null}
                                             {isSavingPushover ? 'Guardando...' : 'Guardar Configuración'}
                                         </button>
                                     </div>
@@ -2252,7 +2252,7 @@ export default function DynamicLeadsDashboard() {
                                 <div className="p-8 space-y-8 overflow-y-auto">
                                     {isLoadingUsage ? (
                                         <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                            <RefreshCw size={32} className="animate-spin text-brand-primary" />
+                                            <LoaderCircle size={32} className="animate-spin text-brand-primary" />
                                             <p className="text-sm font-medium text-gray-400">Analizando consumo de tokens...</p>
                                         </div>
                                     ) : (
@@ -2540,7 +2540,7 @@ export default function DynamicLeadsDashboard() {
                                         disabled={isSavingLead}
                                         className="w-full bg-brand-primary text-brand-dark py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:shadow-lg hover:shadow-brand-primary/20 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
-                                        {isSavingLead ? <RefreshCw size={16} className="animate-spin" /> : 'Guardar Cambios'}
+                                        {isSavingLead ? <LoaderCircle size={16} className="animate-spin" /> : 'Guardar Cambios'}
                                     </button>
                                 </div>
                             </div>
@@ -2645,7 +2645,7 @@ export default function DynamicLeadsDashboard() {
                                         disabled={isSavingLead}
                                         className="w-full bg-brand-dark text-white py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-800 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                                     >
-                                        {isSavingLead ? <RefreshCw size={16} className="animate-spin" /> : 'Actualizar Seguimiento'}
+                                        {isSavingLead ? <LoaderCircle size={16} className="animate-spin" /> : 'Actualizar Seguimiento'}
                                     </button>
                                 </div>
                             </div>
