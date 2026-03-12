@@ -11,7 +11,8 @@ import {
     Plus,
     FileText,
     DollarSign,
-    ClipboardList
+    ClipboardList,
+    Users
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -40,6 +41,7 @@ const SUB_MENU_CONFIG = {
     settings: {
         title: 'Ajustes',
         items: [
+            { label: 'Equipo', href: '/settings/team', icon: Users },
             { label: 'Perfil', href: '/settings/profile', icon: Settings2 },
             { label: 'Suscripción', href: '/settings/billing', icon: Plus },
         ]
