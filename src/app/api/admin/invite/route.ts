@@ -81,9 +81,9 @@ export async function POST(req: Request) {
                 id: userId,
                 email: email,
                 tenant_id: newTenant.id,
-                role: role,
-                has_leads_access: true,
-                features: { tramites: false } // Permisos por defecto
+                role: 'tenant_owner',
+                has_leads_access: false,
+                features: {}
             });
 
         if (profileError) {

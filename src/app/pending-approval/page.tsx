@@ -5,19 +5,45 @@ import { Shield, Clock, LogOut, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function PendingApprovalPage() {
     const { signOut } = useAuth();
     const { profile, loading } = useProfile();
     const router = useRouter();
+    const [tenantName, setTenantName] = useState('Opps One');
 
+    // Fetch tenant name for personalized message
     useEffect(() => {
-        if (!loading) {
-            if (profile?.has_leads_access) {
-                router.push('/leads');
-            } else if (profile?.features?.['tramites']) {
-                router.push('/tramites');
+        async function fetchTenantName() {
+            if (!profile?.tenant_id) return;
+            const { data } = await supabase
+                .from('tenants')
+                .select('nombre')
+                .eq('id', profile.tenant_id)
+                .single();
+            if (data?.nombre) setTenantName(data.nombre);
+        }
+        fetchTenantName();
+    }, [profile?.tenant_id]);
+
+    // Auto-redirect when access is granted
+    useEffect(() => {
+        if (!loading && profile) {
+            if (profile.role === 'admin') {
+                router.push('/admin');
+                return;
+            }
+            const hasAccess = profile.has_leads_access
+                || Object.values(profile.features || {}).some(v => v === true);
+            if (hasAccess) {
+                if (profile.has_leads_access) router.push('/leads');
+                else if (profile.features?.['tramites']) router.push('/tramites');
+                else {
+                    const first = Object.entries(profile.features || {}).find(([, v]) => v === true);
+                    if (first) router.push(`/${first[0]}`);
+                }
             }
         }
     }, [profile, loading, router]);
@@ -46,7 +72,7 @@ export default function PendingApprovalPage() {
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Cuenta en Revisión</h1>
                     <p className="text-gray-500 text-sm leading-relaxed">
-                        ¡Hola! Hemos recibido tu registro correctamente. Por seguridad y para garantizar la mejor experiencia, un administrador de <span className="font-bold text-gray-900">Opps One</span> activará tu cuenta manualmente en breve.
+                        ¡Hola! Hemos recibido tu registro correctamente. Por seguridad y para garantizar la mejor experiencia, un administrador de <span className="font-bold text-gray-900">{tenantName}</span> activará tu cuenta manualmente en breve.
                     </p>
                 </div>
 

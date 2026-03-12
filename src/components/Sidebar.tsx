@@ -40,13 +40,14 @@ interface MenuItem {
 }
 
 const PRIMARY_MENU: MenuItem[] = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { id: 'tramites', icon: FileText, label: 'Trámites' },
-  { id: 'citas', icon: Calendar, label: 'Citas', href: '/citas' },
-  { id: 'seguimiento', icon: Activity, label: 'Seguimiento', href: '/seguimiento' },
-  { id: 'terminados', icon: CheckCircle, label: 'Terminados', href: '/terminados' },
-  { id: 'finanzas', icon: Receipt, label: 'Finanzas', href: '/finanzas' },
-  { id: 'requerimientos', icon: ClipboardList, label: 'Requerimientos', href: '/requerimientos' },
+  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', feature: 'dashboard' },
+  { id: 'tramites', icon: FileText, label: 'Trámites', feature: 'tramites' },
+  { id: 'leads', icon: Users, label: 'Leads', href: '/leads', feature: 'leads' },
+  { id: 'citas', icon: Calendar, label: 'Citas', href: '/citas', feature: 'citas' },
+  { id: 'seguimiento', icon: Activity, label: 'Seguimiento', href: '/seguimiento', feature: 'seguimiento' },
+  { id: 'terminados', icon: CheckCircle, label: 'Terminados', href: '/terminados', feature: 'terminados' },
+  { id: 'finanzas', icon: Receipt, label: 'Finanzas', href: '/finanzas', feature: 'finanzas' },
+  { id: 'requerimientos', icon: ClipboardList, label: 'Requerimientos', href: '/requerimientos', feature: 'requerimientos' },
 ];
 
 // Menú exclusivo para el Super Admin (dueño de la plataforma)
@@ -76,22 +77,15 @@ export function Sidebar() {
 
   if (loading || !user || pathname === '/login' || pathname === '/pending-approval') return null;
 
-  // Si es admin (dueño de la plataforma), mostrar solo menú de admin
-  // Si es usuario normal, mostrar el menú de módulos filtrado por permisos
+  // Super admin → menú de admin (Usuarios, Plataformas)
+  // Tenant owner / user → menú filtrado por features habilitadas
   const visibleMenu = profile?.role === 'admin'
     ? ADMIN_MENU
     : PRIMARY_MENU.filter(item => {
-      // Feature-flagged routes
-      if (item.feature) {
-        return profile?.features?.[item.feature] === true;
-      }
-
-      // Standard permission routes
-      if (item.permission) {
-        return profile?.[item.permission as keyof typeof profile] === true;
-      }
-
-      return true;
+      if (!item.feature) return true;
+      // 'leads' uses the legacy has_leads_access field
+      if (item.feature === 'leads') return profile?.has_leads_access === true;
+      return profile?.features?.[item.feature] === true;
     });
 
 

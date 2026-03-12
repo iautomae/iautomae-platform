@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type MainCategory = 'dashboard' | 'tramites' | 'citas' | 'seguimiento' | 'terminados' | 'finanzas' | 'requerimientos' | 'settings' | 'admin' | 'plataformas' | null;
+export type MainCategory = 'dashboard' | 'tramites' | 'leads' | 'citas' | 'seguimiento' | 'terminados' | 'finanzas' | 'requerimientos' | 'settings' | 'admin' | 'plataformas' | null;
 
 type UIContextType = {
     isSidebarCollapsed: boolean; // Primary sidebar (icons only)

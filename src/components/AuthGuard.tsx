@@ -2,9 +2,16 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import type { UserProfile } from '@/hooks/useProfile';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { LoaderCircle } from 'lucide-react';
+
+function hasAnyPlatformAccess(profile: NonNullable<UserProfile>): boolean {
+    if (profile.has_leads_access) return true;
+    if (profile.features && Object.values(profile.features).some(v => v === true)) return true;
+    return false;
+}
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
     const { user, loading: authLoading } = useAuth();
@@ -16,41 +23,43 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!isLoading) {
-            // Case 1: No user at all -> Login (Permiting public routes)
+            // Case 1: No user → Login (permit public routes)
             if (!user && pathname !== '/login' && !pathname.endsWith('/set-password')) {
                 router.push('/login');
                 return;
             }
 
-            // Simple Rule: If user has leads access or tramites feature, they are approved.
-            // Otherwise, they go to pending-approval.
             if (user && profile) {
-                const hasAnyAccess = profile.has_leads_access || profile.features?.['tramites'];
+                // Super admin always has full access
+                if (profile.role === 'admin') return;
 
-                if (hasAnyAccess) {
-                    // If they are specifically in pending-approval but ALREADY have access, move them out
+                // Check if tenant_owner/user has any platform enabled
+                const hasAccess = hasAnyPlatformAccess(profile);
+
+                if (hasAccess) {
+                    // If they are on pending-approval but already have access, redirect to first available
                     if (pathname === '/pending-approval') {
-                        router.push(profile.has_leads_access ? '/leads' : '/tramites');
-                        return;
-                    }
-                    // Protection: If they try to go to pages they don't have access to (docs/forms skeletons)
-                    if (pathname.startsWith('/documents') || pathname.startsWith('/forms')) {
-                        router.push(profile.has_leads_access ? '/leads' : '/tramites');
+                        const firstRoute = getFirstAvailableRoute(profile);
+                        router.push(firstRoute);
                         return;
                     }
 
-                    // Strict boundary protection
+                    // Route protection: prevent access to pages without the matching feature
                     if (pathname.startsWith('/leads') && !profile.has_leads_access) {
-                        router.push('/tramites');
+                        router.push(getFirstAvailableRoute(profile));
                         return;
                     }
                     if (pathname.startsWith('/tramites') && !profile.features?.['tramites']) {
-                        router.push('/leads');
+                        router.push(getFirstAvailableRoute(profile));
                         return;
                     }
-
+                    // Block admin routes for non-admins
+                    if (pathname.startsWith('/admin')) {
+                        router.push(getFirstAvailableRoute(profile));
+                        return;
+                    }
                 } else {
-                    // No access -> Pending Approval
+                    // No access at all → Pending Approval
                     if (pathname !== '/pending-approval') {
                         router.push('/pending-approval');
                         return;
@@ -73,7 +82,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     // Protection during redirection
     if (!user && pathname !== '/login' && !pathname.endsWith('/set-password')) return null;
-    if (user && profile && !profile.has_leads_access && !profile.features?.['tramites'] && pathname !== '/pending-approval') return null;
+    if (user && profile && profile.role !== 'admin' && !hasAnyPlatformAccess(profile) && pathname !== '/pending-approval') return null;
 
     return <>{children}</>;
+}
+
+function getFirstAvailableRoute(profile: NonNullable<UserProfile>): string {
+    if (profile.has_leads_access) return '/leads';
+    if (profile.features?.['tramites']) return '/tramites';
+    if (profile.features?.['dashboard']) return '/dashboard';
+    // Fallback: find first enabled feature
+    const enabledFeature = Object.entries(profile.features || {}).find(([, v]) => v === true);
+    if (enabledFeature) return `/${enabledFeature[0]}`;
+    return '/pending-approval';
 }
