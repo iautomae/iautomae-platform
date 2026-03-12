@@ -120,7 +120,6 @@ export default function DynamicLeadsDashboard() {
             if (view === 'LEADS' && !isClient) setView('GALLERY');
             return;
         }
-        if (!targetUid && !isClient) return;
 
         let leadData, error;
         const isImpersonating = isAdmin && viewAsUid;
@@ -181,12 +180,11 @@ export default function DynamicLeadsDashboard() {
                 }
             }
         } else {
-            // Tenant owner or regular user: show all leads for this agent
+            // Tenant owner: show all leads for this agent (including shared/admin agents)
             const result = await supabase
                 .from('leads')
                 .select('*')
                 .eq('agent_id', activeAgentId)
-                .eq('user_id', targetUid)
                 .order('created_at', { ascending: false });
             leadData = result.data;
             error = result.error;
@@ -306,7 +304,7 @@ export default function DynamicLeadsDashboard() {
 
     // Load Real Agents
     React.useEffect(() => {
-        if (!targetUid && !isClient) {
+        if (!targetUid && !isClient && !isTenantOwner) {
             setAgents([]);
             return;
         }
@@ -315,8 +313,8 @@ export default function DynamicLeadsDashboard() {
             let data, error;
             const isImpersonating = isAdmin && viewAsUid;
 
-            if (isClient) {
-                // Client: fetch tenant's agents via API (they don't own agents)
+            if (isClient || isTenantOwner) {
+                // Client & tenant_owner: fetch tenant agents + shared admin agents via API
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
                     const res = await fetch('/api/leads/tenant-agents', {
@@ -325,7 +323,9 @@ export default function DynamicLeadsDashboard() {
                     if (res.ok) {
                         const json = await res.json();
                         data = json.agents;
-                        setLeadsVisibleAdvisors(json.leadsVisibleAdvisors || 'all');
+                        if (isClient) {
+                            setLeadsVisibleAdvisors(json.leadsVisibleAdvisors || 'all');
+                        }
                     } else {
                         const errJson = await res.json();
                         error = errJson.error;
@@ -373,7 +373,7 @@ export default function DynamicLeadsDashboard() {
             setIsLoading(false);
         }
         loadAgents();
-    }, [targetUid, isAdmin, isClient, viewAsUid]);
+    }, [targetUid, isAdmin, isClient, isTenantOwner, viewAsUid]);
 
     // Import Modal States
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);

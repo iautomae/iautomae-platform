@@ -15,24 +15,34 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'No perteneces a ningún tenant.' }, { status: 403 });
         }
 
-        // Get all user IDs in this tenant (tenant_owners who own agents)
-        const { data: tenantProfiles, error: profilesError } = await supabaseAdmin
+        // 1. Get agents from tenant_owners in the same tenant
+        const { data: tenantProfiles } = await supabaseAdmin
             .from('profiles')
             .select('id')
             .eq('tenant_id', tenantId)
-            .in('role', ['tenant_owner', 'admin']);
+            .in('role', ['tenant_owner']);
 
-        if (profilesError || !tenantProfiles || tenantProfiles.length === 0) {
-            return NextResponse.json({ agents: [] });
+        const tenantOwnerIds = (tenantProfiles || []).map(p => p.id);
+
+        // 2. Get admin user IDs (their agents are global/shared across all tenants)
+        const { data: adminProfiles } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('role', 'admin');
+
+        const adminIds = (adminProfiles || []).map(p => p.id);
+
+        // Combine: tenant-specific + global admin agents
+        const allOwnerIds = [...new Set([...tenantOwnerIds, ...adminIds])];
+
+        if (allOwnerIds.length === 0) {
+            return NextResponse.json({ agents: [], leadsVisibleAdvisors: 'all' });
         }
 
-        const ownerIds = tenantProfiles.map(p => p.id);
-
-        // Get all agents belonging to those owners
         const { data: agents, error: agentsError } = await supabaseAdmin
             .from('agentes')
             .select('*')
-            .in('user_id', ownerIds)
+            .in('user_id', allOwnerIds)
             .order('created_at', { ascending: true });
 
         if (agentsError) {
