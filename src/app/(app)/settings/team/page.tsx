@@ -70,6 +70,7 @@ interface TeamMember {
     role: string;
     features: Record<string, boolean>;
     has_leads_access: boolean;
+    status: 'active' | 'pending';
 }
 
 export default function TeamPage() {
@@ -109,29 +110,18 @@ export default function TeamPage() {
             });
     }, [profile, dbPlatforms]);
 
-    // ── Fetch team ──
+    // ── Fetch team (via server-side API to bypass RLS) ──
     const fetchTeam = useCallback(async () => {
         if (!profile?.tenant_id) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from("profiles")
-                .select("id, email, full_name, role, features, has_leads_access")
-                .eq("tenant_id", profile.tenant_id)
-                .neq("id", profile.id)
-                .order("created_at", { ascending: true });
-
-            if (error) throw error;
-            setMembers(
-                (data || []).map(d => ({
-                    id: d.id,
-                    email: d.email || "Sin email",
-                    full_name: d.full_name || null,
-                    role: d.role || "client",
-                    features: d.features || {},
-                    has_leads_access: d.has_leads_access || false,
-                }))
-            );
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            const res = await fetch("/api/tenant/team", {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setMembers(data.members || []);
         } catch (err) {
             console.error("Error fetching team:", err);
         } finally {
@@ -173,6 +163,7 @@ export default function TeamPage() {
                 role: "client",
                 features: {},
                 has_leads_access: false,
+                status: "pending" as const,
             }]);
             setInviteName("");
             setInviteEmail("");
@@ -386,10 +377,21 @@ export default function TeamPage() {
                                             {member.full_name && (
                                                 <p className="text-[11px] text-gray-400 truncate">{member.email}</p>
                                             )}
-                                            <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border inline-flex items-center gap-1 mt-1", summary.color)}>
-                                                <Shield size={8} />
-                                                {summary.label}
-                                            </span>
+                                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                <span className={cn(
+                                                    "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border inline-flex items-center gap-1",
+                                                    member.status === "active"
+                                                        ? "text-green-600 bg-green-50 border-green-200"
+                                                        : "text-amber-600 bg-amber-50 border-amber-200"
+                                                )}>
+                                                    <CheckCircle2 size={8} />
+                                                    {member.status === "active" ? "Activo" : "Pendiente"}
+                                                </span>
+                                                <span className={cn("text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border inline-flex items-center gap-1", summary.color)}>
+                                                    <Shield size={8} />
+                                                    {summary.label}
+                                                </span>
+                                            </div>
                                         </div>
                                     </button>
                                 );
@@ -407,9 +409,20 @@ export default function TeamPage() {
                                                 {selectedMember.email.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-gray-900">
-                                                    {selectedMember.full_name || selectedMember.email}
-                                                </h3>
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-lg font-bold text-gray-900">
+                                                        {selectedMember.full_name || selectedMember.email}
+                                                    </h3>
+                                                    <span className={cn(
+                                                        "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border inline-flex items-center gap-1",
+                                                        selectedMember.status === "active"
+                                                            ? "text-green-600 bg-green-50 border-green-200"
+                                                            : "text-amber-600 bg-amber-50 border-amber-200"
+                                                    )}>
+                                                        <CheckCircle2 size={8} />
+                                                        {selectedMember.status === "active" ? "Activo" : "Pendiente"}
+                                                    </span>
+                                                </div>
                                                 {selectedMember.full_name && (
                                                     <p className="text-xs text-gray-400">{selectedMember.email}</p>
                                                 )}
