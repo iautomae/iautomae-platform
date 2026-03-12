@@ -206,7 +206,7 @@ export default function TeamPage() {
                 )
             );
 
-            // Si se desactiva la plataforma, desactivar todos sus tabs también
+            // Si se desactiva la plataforma, desactivar todos sus tabs también y refrescar
             if (!newValue && PLATFORM_TABS[platformKey]) {
                 for (const tab of PLATFORM_TABS[platformKey].tabs) {
                     const tabKey = `${platformKey}:${tab.id}`;
@@ -218,13 +218,7 @@ export default function TeamPage() {
                         });
                     }
                 }
-                // Refresh member data
-                const refreshRes = await fetch("/api/admin/toggle-access", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId: memberId, featureKey: `${platformKey}:_noop`, newValue: false }),
-                });
-                // Just re-fetch to get clean state
+                // Re-fetch to get clean state after batch updates
                 fetchTeam();
             }
         } catch (err) {

@@ -39,10 +39,9 @@ export async function GET(req: Request) {
         // 3. Obtener todos los perfiles del tenant (excepto el caller)
         const { data: members, error: membersError } = await supabaseAdmin
             .from('profiles')
-            .select('id, email, full_name, role, features, has_leads_access, created_at')
+            .select('id, email, full_name, role, features, has_leads_access')
             .eq('tenant_id', callerProfile.tenant_id)
-            .neq('id', callerProfile.id)
-            .order('created_at', { ascending: true });
+            .neq('id', callerProfile.id);
 
         if (membersError) {
             console.error('Error fetching team:', membersError);
