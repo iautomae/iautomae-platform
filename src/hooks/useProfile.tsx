@@ -48,8 +48,6 @@ export function useProfile() {
                         console.error('Error fetching profile:', error.message);
                     } else {
                         console.warn('Profile not found, stale session?');
-                        // Optionally sign out the user if profile completely missing:
-                        // await supabase.auth.signOut();
                     }
 
                     setProfile({
@@ -64,7 +62,6 @@ export function useProfile() {
                         empresa: null
                     });
                 } else {
-                    // Merge auth email into profile for UI consistency
                     setProfile({
                         ...data,
                         email: data.email || user.email || ''
@@ -78,6 +75,34 @@ export function useProfile() {
         }
 
         fetchProfile();
+
+        // Realtime: refresh profile when permissions change
+        if (user) {
+            const channel = supabase
+                .channel(`profile-updates-${user.id}`)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'profiles',
+                        filter: `id=eq.${user.id}`,
+                    },
+                    (payload) => {
+                        const updated = payload.new as Record<string, unknown>;
+                        setProfile(prev => prev ? {
+                            ...prev,
+                            ...updated,
+                            email: (updated.email as string) || prev.email,
+                        } : prev);
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        }
     }, [user]);
 
     const updateProfile = async (updates: Partial<UserProfile>) => {
