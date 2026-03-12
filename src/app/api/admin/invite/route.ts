@@ -49,11 +49,14 @@ export async function POST(req: Request) {
 
         // 4. Crear el usuario en Supabase Auth y generar link de invitación (SIN enviar correo de Supabase)
         // generateLink crea el usuario internamente si no existe y nos devuelve la URL de acción.
+        const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'opps.one';
+        const tenantBaseUrl = `https://${slug}.${rootDomain}`;
+
         const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'invite',
             email: email,
             options: {
-                redirectTo: `https://${slug}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'localhost:3000'}/set-password`
+                redirectTo: `${tenantBaseUrl}/set-password`
             }
         });
 
@@ -63,7 +66,13 @@ export async function POST(req: Request) {
         }
 
         const userId = inviteData.user.id;
-        const actionLink = inviteData.properties.action_link; // El link con el token mágico!
+
+        // Supabase action_link always uses the Site URL (hub.opps.one).
+        // We override redirect_to so after token verification, Supabase redirects
+        // to the tenant's set-password page instead of the default Site URL.
+        const verifyUrl = new URL(inviteData.properties.action_link);
+        verifyUrl.searchParams.set('redirect_to', `${tenantBaseUrl}/set-password`);
+        const actionLink = verifyUrl.toString();
 
         // 5. Vincular el Perfil al Nuevo Tenant (Usamos upsert por si el trigger no ha creado el perfil aún)
         const { error: profileError } = await supabaseAdmin

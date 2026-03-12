@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, LoaderCircle, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function SetPasswordPage({
     params
@@ -14,6 +14,7 @@ export default function SetPasswordPage({
     const router = useRouter();
     const [tenantConfig, setTenantConfig] = useState<any>(null);
 
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -21,13 +22,15 @@ export default function SetPasswordPage({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const [sessionReady, setSessionReady] = useState(false);
+    const [checkingSession, setCheckingSession] = useState(true);
 
-    // Cargar la configuración del Tenant (Logo, Colores) basado en el subdominio
+    // Load tenant branding
     useEffect(() => {
         async function loadTenant() {
             if (!subdomain) return;
 
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('tenants')
                 .select('nombre, logo_url, color_primary, color_secondary')
                 .eq('slug', subdomain)
@@ -40,6 +43,39 @@ export default function SetPasswordPage({
         }
         loadTenant();
     }, [subdomain]);
+
+    // Handle auth session from invite link hash fragment
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('[set-password] Auth event:', event, 'Session:', !!session);
+
+            if (session?.user) {
+                setEmail(session.user.email || '');
+                setSessionReady(true);
+                setCheckingSession(false);
+            }
+        });
+
+        // Also check if there's already a session
+        const checkExisting = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setEmail(session.user.email || '');
+                setSessionReady(true);
+                setCheckingSession(false);
+            } else {
+                // Give Supabase client time to process the hash fragment
+                setTimeout(() => {
+                    setCheckingSession(false);
+                }, 3000);
+            }
+        };
+        checkExisting();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
 
     const handleSetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,21 +95,20 @@ export default function SetPasswordPage({
         }
 
         try {
-            // Actualizar la contraseña del usuario actualmente autenticado (visto a través del magic link hash)
             const { error: updateError } = await supabase.auth.updateUser({
                 password: password
             });
 
             if (updateError) throw updateError;
 
-            // Marcar user onboarding completed
+            // Mark onboarding as completed
             await supabase.auth.updateUser({
                 data: { onboarding_completed: true }
             });
 
             setSuccess(true);
 
-            // Redirigir al CRM luego de 2 segundos de mostrar el checklist de exito
+            // Redirect to CRM after success
             setTimeout(() => {
                 router.push('/leads');
             }, 2000);
@@ -85,10 +120,49 @@ export default function SetPasswordPage({
         }
     };
 
-    // Variables dinámicas
+    // Dynamic variables
     const primaryColor = tenantConfig?.color_primary || '#2CDB9B';
     const logoUrl = tenantConfig?.logo_url || null;
     const companyName = tenantConfig?.nombre || 'Opps One';
+
+    // Loading state while checking session
+    if (checkingSession) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-white p-4">
+                <div className="text-center space-y-4">
+                    <LoaderCircle className="animate-spin mx-auto" size={40} style={{ color: primaryColor }} />
+                    <p className="text-gray-500 text-sm font-medium">Verificando tu invitación...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // No session found - invite link expired or invalid
+    if (!sessionReady) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-white p-4">
+                <div className="w-full max-w-sm text-center space-y-6">
+                    {logoUrl && (
+                        <img src={logoUrl} alt={companyName} className="h-16 object-contain mx-auto" />
+                    )}
+                    <div className="bg-amber-50 border border-amber-100 p-6 rounded-2xl">
+                        <h3 className="text-lg font-bold text-amber-800 mb-2">Enlace expirado o inválido</h3>
+                        <p className="text-amber-700 text-sm leading-relaxed">
+                            Este enlace de invitación ya no es válido. Puede haber expirado o ya fue utilizado.
+                            Contacta a tu administrador para solicitar un nuevo enlace.
+                        </p>
+                    </div>
+                    <a
+                        href={`/login`}
+                        className="inline-block w-full py-3 rounded-xl text-white font-semibold shadow-md transition-all"
+                        style={{ backgroundColor: primaryColor }}
+                    >
+                        Ir al inicio de sesión
+                    </a>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-white p-4">
@@ -103,11 +177,15 @@ export default function SetPasswordPage({
                 {!success ? (
                     <>
                         <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs font-bold uppercase tracking-wider mx-auto mb-4">
+                                <ShieldCheck size={14} />
+                                Configuración de Acceso
+                            </div>
                             <h2 className="text-2xl font-bold text-gray-900">
-                                Establecer contraseña
+                                Crea tu contraseña
                             </h2>
                             <p className="mt-2 text-sm text-gray-500 font-medium">
-                                Por favor, crea una nueva contraseña segura para tu acceso en <strong>{companyName}</strong>.
+                                Establece una contraseña segura para tu acceso en <strong>{companyName}</strong>.
                             </p>
                         </div>
 
@@ -115,6 +193,19 @@ export default function SetPasswordPage({
                             {error && (
                                 <div className="bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-sm text-center">
                                     {error}
+                                </div>
+                            )}
+
+                            {/* Email display (read only) */}
+                            {email && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tu correo</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        readOnly
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed outline-none"
+                                    />
                                 </div>
                             )}
 
@@ -167,17 +258,18 @@ export default function SetPasswordPage({
                                 className="w-full mt-4 py-3 rounded-xl text-white font-semibold shadow-md border hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
                                 style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                             >
-                                {isLoading ? 'Guardando...' : 'Guardar contraseña'}
+                                {isLoading ? <LoaderCircle className="animate-spin" size={20} /> : 'Activar mi cuenta'}
                             </button>
                         </form>
                     </>
                 ) : (
                     <div className="bg-green-50 text-green-700 p-8 rounded-2xl border border-green-100 space-y-4">
                         <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                            <CheckCircle2 className="w-6 h-6 text-green-600" />
                         </div>
-                        <h3 className="text-xl font-bold">¡Contraseña guardada!</h3>
-                        <p className="text-sm">Redirigiendo a tu panel...</p>
+                        <h3 className="text-xl font-bold">¡Cuenta activada!</h3>
+                        <p className="text-sm">Tu contraseña ha sido guardada. Redirigiendo a tu panel...</p>
+                        <LoaderCircle className="animate-spin mx-auto text-green-500" size={24} />
                     </div>
                 )}
             </div>
