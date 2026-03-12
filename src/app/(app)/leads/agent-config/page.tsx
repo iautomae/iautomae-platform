@@ -157,6 +157,7 @@ export default function AgentConfigPage() {
 
             let data, error;
             const isImpersonating = isAdmin && viewAsUid;
+            const isTenantOwner = profile?.role === 'tenant_owner';
 
             if (isImpersonating) {
                 try {
@@ -168,6 +169,23 @@ export default function AgentConfigPage() {
                         const json = await res.json();
                         // Find the specific agent
                         data = json.agents.find((a: { id: string }) => a.id === agentId);
+                    } else {
+                        const errJson = await res.json();
+                        error = errJson.error;
+                    }
+                } catch (e: unknown) {
+                    error = e instanceof Error ? e.message : String(e);
+                }
+            } else if (isTenantOwner) {
+                // Tenant owners use server-side API to bypass RLS for shared/global agents
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(`/api/agents/fetch?id=${agentId}`, {
+                        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        data = json.agent;
                     } else {
                         const errJson = await res.json();
                         error = errJson.error;
@@ -204,7 +222,7 @@ export default function AgentConfigPage() {
         }
 
         loadAgent();
-    }, [user, agentId, targetUid, isAdmin, viewAsUid]);
+    }, [user, profile, agentId, targetUid, isAdmin, viewAsUid]);
 
     const handleSave = async () => {
         if (!user) return;
@@ -283,6 +301,7 @@ export default function AgentConfigPage() {
             if (agentId && agentId !== '1' && agentId !== '2') {
                 // Update existing agent
                 const isImpersonating = isAdmin && viewAsUid;
+                const isTenantOwner = profile?.role === 'tenant_owner';
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { user_id, ...updateData } = agentData;
 
@@ -300,6 +319,21 @@ export default function AgentConfigPage() {
                             agentId,
                             data: updateData
                         })
+                    });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Server error');
+                    }
+                } else if (isTenantOwner) {
+                    // Tenant owners use server-side API to bypass RLS for shared/global agents
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch('/api/agents/save-general', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session?.access_token}`
+                        },
+                        body: JSON.stringify({ agentId, data: updateData })
                     });
                     if (!res.ok) {
                         const err = await res.json();

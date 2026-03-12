@@ -46,7 +46,9 @@ export async function POST(request: Request) {
         const sameTenant = context.profile.tenant_id && context.profile.tenant_id === ownerProfile.tenant_id;
         const isOwner = context.profile.id === agent.user_id;
         const isAdmin = context.profile.role === 'admin';
-        const isTenantOwner = context.profile.role === 'tenant_owner' && sameTenant;
+        // Tenant owners can configure agents from their own tenant OR admin-owned global agents
+        const isAdminOwnedGlobal = ownerProfile.role === 'admin';
+        const isTenantOwner = context.profile.role === 'tenant_owner' && (sameTenant || isAdminOwnedGlobal);
 
         if (!isAdmin && !isOwner && !isTenantOwner) {
             return NextResponse.json({ error: 'No tienes permisos para modificar este agente.' }, { status: 403 });
