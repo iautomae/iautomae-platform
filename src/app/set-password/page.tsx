@@ -88,6 +88,20 @@ export default function SetPasswordPage() {
                 data: { onboarding_completed: true }
             });
 
+            // Mark tenant as active (account confirmed)
+            const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('tenant_id')
+                .eq('id', (await supabase.auth.getUser()).data.user?.id ?? '')
+                .maybeSingle();
+
+            if (userProfile?.tenant_id) {
+                await supabase
+                    .from('tenants')
+                    .update({ branding_complete: true })
+                    .eq('id', userProfile.tenant_id);
+            }
+
             setSuccess(true);
             setUpdating(false);
 

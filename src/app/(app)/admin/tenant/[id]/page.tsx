@@ -220,13 +220,28 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
         try {
             const newFeatures = { ...adminGeneral.features };
             newFeatures[featureKey] = !newFeatures[featureKey];
+
+            // Build update payload: always update features JSONB
+            const updatePayload: Record<string, unknown> = { features: newFeatures };
+
+            // 'leads' also uses the legacy has_leads_access boolean column
+            if (featureKey === 'leads') {
+                updatePayload.has_leads_access = newFeatures[featureKey];
+            }
+
             const { error } = await supabase
                 .from('profiles')
-                .update({ features: newFeatures })
+                .update(updatePayload)
                 .eq('id', adminGeneral.id);
             if (error) throw error;
             setTenantUsers(prev => prev.map(u =>
-                u.id === adminGeneral.id ? { ...u, features: newFeatures } : u
+                u.id === adminGeneral.id
+                    ? {
+                        ...u,
+                        features: newFeatures,
+                        ...(featureKey === 'leads' ? { has_leads_access: newFeatures[featureKey] } : {})
+                    }
+                    : u
             ));
         } catch (err) {
             console.error('Error toggling platform:', err);
