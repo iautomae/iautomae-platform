@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdminClient, requireAuth } from '@/lib/server-auth';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseAdmin = getSupabaseAdminClient();
 
-export async function POST() {
+export async function POST(request: Request) {
     try {
-        // Create the platforms table using raw SQL via Supabase REST
+        const { response } = await requireAuth(request, ['admin']);
+        if (response) {
+            return response;
+        }
+
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
@@ -16,8 +17,8 @@ export async function POST() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'apikey': serviceKey,
-                'Authorization': `Bearer ${serviceKey}`,
+                apikey: serviceKey,
+                Authorization: `Bearer ${serviceKey}`,
             },
             body: JSON.stringify({
                 sql: `
@@ -30,30 +31,12 @@ export async function POST() {
                         is_active BOOLEAN NOT NULL DEFAULT true,
                         created_at TIMESTAMPTZ DEFAULT now()
                     );
-
-                    ALTER TABLE public.platforms ENABLE ROW LEVEL SECURITY;
-
-                    DO $$
-                    BEGIN
-                        IF NOT EXISTS (
-                            SELECT 1 FROM pg_policies WHERE tablename = 'platforms' AND policyname = 'Allow all for authenticated'
-                        ) THEN
-                            CREATE POLICY "Allow all for authenticated" ON public.platforms
-                                FOR ALL USING (true) WITH CHECK (true);
-                        END IF;
-                    END $$;
-                `
-            })
+                `,
+            }),
         });
 
-        let rpcWorked = sqlResponse.ok;
+        const rpcWorked = sqlResponse.ok;
 
-        if (!rpcWorked) {
-            // Fallback: try using the Supabase Management API or just seed directly
-            console.log('RPC not available, trying direct insert to check if table exists...');
-        }
-
-        // Seed default platforms
         const defaults = [
             { name: 'Trámites', description: 'Gestión de licencias, tarjetas de propiedad y trámites documentarios.', icon: 'FileText', color: 'blue', is_active: true },
             { name: 'Leads', description: 'CRM de captación de clientes, seguimiento de prospectos y conversiones.', icon: 'Users', color: 'emerald', is_active: true },
@@ -67,16 +50,12 @@ export async function POST() {
             .select();
 
         if (error) {
-            return NextResponse.json({
-                success: false,
-                error: error.message,
-                hint: 'You may need to create the table manually. Run this SQL in your Supabase SQL Editor:\n\nCREATE TABLE public.platforms (\n  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\n  name TEXT NOT NULL UNIQUE,\n  description TEXT NOT NULL DEFAULT \'\',\n  icon TEXT NOT NULL DEFAULT \'Layers\',\n  color TEXT NOT NULL DEFAULT \'blue\',\n  is_active BOOLEAN NOT NULL DEFAULT true,\n  created_at TIMESTAMPTZ DEFAULT now()\n);\n\nALTER TABLE public.platforms ENABLE ROW LEVEL SECURITY;\nCREATE POLICY "Allow all for authenticated" ON public.platforms FOR ALL USING (true) WITH CHECK (true);'
-            }, { status: 500 });
+            return NextResponse.json({ success: false, error: error.message }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, platforms: data, rpcWorked });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Setup error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
     }
 }

@@ -132,9 +132,13 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
         const newValue = !currentValue;
 
         try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch('/api/admin/toggle-access', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ userId, featureKey, newValue }),
             });
             const data = await res.json();
@@ -182,10 +186,12 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
                 ? { userId: admin.id }
                 : { tenantId: tenantId };
 
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const response = await fetch('/api/admin/remove-tenant', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify(payload),
             });
@@ -214,9 +220,13 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
         const newValue = !currentValue;
 
         try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch('/api/admin/toggle-access', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ userId: adminGeneral.id, featureKey, newValue }),
             });
             const data = await res.json();

@@ -137,9 +137,13 @@ export default function SuperAdminDashboard() {
         e.preventDefault();
         setIsInviting(true);
         try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch('/api/admin/invite', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify(inviteForm)
             });
 
@@ -163,9 +167,13 @@ export default function SuperAdminDashboard() {
 
         setIsUpdating(`delete-${userId}`);
         try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch('/api/admin/remove-tenant', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ userId })
             });
             const data = await res.json();

@@ -82,9 +82,14 @@ export default function DynamicLeadsDashboard() {
     // Admin View Login: Check if viewing as another user
     const viewAsUid = searchParams.get('view_as');
     const isAdmin = profile?.role === 'admin';
+    const isClient = profile?.role === 'client';
+    const isTenantOwner = profile?.role === 'tenant_owner';
     const targetUid = (isAdmin && viewAsUid) ? viewAsUid : user?.id;
 
-    // UI States
+    // Advisor visibility for clients (loaded from tenant-agents API)
+    const [leadsVisibleAdvisors, setLeadsVisibleAdvisors] = useState<'all' | number[]>('all');
+
+    // UI States — clients skip GALLERY entirely
     const [view, setView] = useState<'GALLERY' | 'LEADS'>('GALLERY');
     const [editableCompany, setEditableCompany] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -111,12 +116,12 @@ export default function DynamicLeadsDashboard() {
     const [realLeads, setRealLeads] = useState<Lead[]>([]);
 
     const fetchLeads = React.useCallback(async () => {
-        if (!targetUid || !activeAgentId) {
-            if (view === 'LEADS' && !activeAgentId) setView('GALLERY');
+        if (!activeAgentId) {
+            if (view === 'LEADS' && !isClient) setView('GALLERY');
             return;
         }
+        if (!targetUid && !isClient) return;
 
-        // setIsLoadingLeads(true);
         let leadData, error;
         const isImpersonating = isAdmin && viewAsUid;
 
@@ -136,27 +141,53 @@ export default function DynamicLeadsDashboard() {
             } catch (e: unknown) {
                 error = e instanceof Error ? e.message : String(e);
             }
+        } else if (isClient) {
+            // Client: filter leads by visible advisor slots
+            // We need to resolve advisor slot numbers → profile_ids from the agent
+            const agent = agents.find(a => a.id === activeAgentId);
+            if (!agent) return;
+
+            if (leadsVisibleAdvisors === 'all') {
+                // See all leads for this agent
+                const result = await supabase
+                    .from('leads')
+                    .select('*')
+                    .eq('agent_id', activeAgentId)
+                    .order('created_at', { ascending: false });
+                leadData = result.data;
+                error = result.error;
+            } else {
+                // Resolve slot numbers to profile_ids
+                const visibleProfileIds: string[] = [];
+                for (const slot of leadsVisibleAdvisors) {
+                    const profileId = slot === 1 ? agent.pushover_user_1_profile_id
+                        : slot === 2 ? agent.pushover_user_2_profile_id
+                        : slot === 3 ? agent.pushover_user_3_profile_id
+                        : null;
+                    if (profileId) visibleProfileIds.push(profileId);
+                }
+
+                if (visibleProfileIds.length === 0) {
+                    leadData = [];
+                } else {
+                    const result = await supabase
+                        .from('leads')
+                        .select('*')
+                        .eq('agent_id', activeAgentId)
+                        .in('assigned_profile_id', visibleProfileIds)
+                        .order('created_at', { ascending: false });
+                    leadData = result.data;
+                    error = result.error;
+                }
+            }
         } else {
-            // If user is a team member (client), only show leads assigned to them
-            // If user is tenant_owner, show all leads for this agent
-            const isTeamMember = profile?.role === 'client';
-            let query = supabase
+            // Tenant owner or regular user: show all leads for this agent
+            const result = await supabase
                 .from('leads')
                 .select('*')
                 .eq('agent_id', activeAgentId)
                 .eq('user_id', targetUid)
                 .order('created_at', { ascending: false });
-
-            if (isTeamMember && profile?.id) {
-                query = supabase
-                    .from('leads')
-                    .select('*')
-                    .eq('agent_id', activeAgentId)
-                    .eq('assigned_profile_id', profile.id)
-                    .order('created_at', { ascending: false });
-            }
-
-            const result = await query;
             leadData = result.data;
             error = result.error;
         }
@@ -201,7 +232,7 @@ export default function DynamicLeadsDashboard() {
             console.error('Error fetching leads:', error);
         }
         // setIsLoadingLeads(false);
-    }, [activeAgentId, view, isAdmin, viewAsUid, targetUid]);
+    }, [activeAgentId, view, isAdmin, isClient, viewAsUid, targetUid, agents, leadsVisibleAdvisors]);
 
     // Side Panel State
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -231,17 +262,22 @@ export default function DynamicLeadsDashboard() {
     const [deleteInput, setDeleteInput] = useState('');
     const [infoModal, setInfoModal] = useState<{ isOpen: boolean, type: 'success' | 'error', message: string }>({ isOpen: false, type: 'success', message: '' });
 
-    // Safety check: ensure activeAgentId belongs to the current user
+    // Safety check: ensure activeAgentId belongs to the available agents
     React.useEffect(() => {
         if (activeAgentId && agents.length > 0 && !isLoading) {
-            const isOwned = agents.some(a => a.id === activeAgentId);
-            if (!isOwned) {
-                console.warn('❌ Attempted access to unowned agent:', activeAgentId);
-                setActiveAgentId(null);
-                setView('GALLERY');
+            const isAvailable = agents.some(a => a.id === activeAgentId);
+            if (!isAvailable) {
+                console.warn('Attempted access to unavailable agent:', activeAgentId);
+                if (isClient && agents.length > 0) {
+                    // Client: re-select first agent
+                    setActiveAgentId(agents[0].id);
+                } else {
+                    setActiveAgentId(null);
+                    setView('GALLERY');
+                }
             }
         }
-    }, [activeAgentId, agents, isLoading]);
+    }, [activeAgentId, agents, isLoading, isClient]);
 
     // Fetch leads effect with realtime subscription
     React.useEffect(() => {
@@ -270,7 +306,7 @@ export default function DynamicLeadsDashboard() {
 
     // Load Real Agents
     React.useEffect(() => {
-        if (!targetUid) {
+        if (!targetUid && !isClient) {
             setAgents([]);
             return;
         }
@@ -279,7 +315,25 @@ export default function DynamicLeadsDashboard() {
             let data, error;
             const isImpersonating = isAdmin && viewAsUid;
 
-            if (isImpersonating) {
+            if (isClient) {
+                // Client: fetch tenant's agents via API (they don't own agents)
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch('/api/leads/tenant-agents', {
+                        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        data = json.agents;
+                        setLeadsVisibleAdvisors(json.leadsVisibleAdvisors || 'all');
+                    } else {
+                        const errJson = await res.json();
+                        error = errJson.error;
+                    }
+                } catch (e: unknown) {
+                    error = e instanceof Error ? e.message : String(e);
+                }
+            } else if (isImpersonating) {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
                     const res = await fetch(`/api/admin/impersonate/agents?user_id=${targetUid}`, {
@@ -307,6 +361,11 @@ export default function DynamicLeadsDashboard() {
 
             if (data && !error) {
                 setAgents(data);
+                // Auto-select first agent and skip to LEADS for clients
+                if (isClient && data.length > 0) {
+                    setActiveAgentId(data[0].id);
+                    setView('LEADS');
+                }
             } else {
                 setAgents([]);
                 if (error) console.error('Error fetching agents:', error);
@@ -314,7 +373,7 @@ export default function DynamicLeadsDashboard() {
             setIsLoading(false);
         }
         loadAgents();
-    }, [targetUid, isAdmin, viewAsUid]);
+    }, [targetUid, isAdmin, isClient, viewAsUid]);
 
     // Import Modal States
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -688,9 +747,13 @@ export default function DynamicLeadsDashboard() {
         setRealLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...updates } : l));
 
         try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch('/api/leads/update-lead', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({
                     leadId,
                     ...updates
@@ -985,9 +1048,13 @@ export default function DynamicLeadsDashboard() {
                     }
                 } catch { /* detail fetch is optional, agent still gets imported */ }
 
+                const token = (await supabase.auth.getSession()).data.session?.access_token;
                 const importResponse = await fetch('/api/agents/import', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
                     body: JSON.stringify({
                         userId: targetUid,
                         agent: {
@@ -1063,8 +1130,8 @@ export default function DynamicLeadsDashboard() {
                 <div className="flex items-center justify-between mb-8 shrink-0">
                     <div className="space-y-1">
                         <div className="flex items-center gap-3">
-                            {/* Back Button - Only show in LEADS view */}
-                            {view === 'LEADS' && (
+                            {/* Back Button - Only show in LEADS view for non-clients */}
+                            {view === 'LEADS' && !isClient && (
                                 <button
                                     onClick={() => setView('GALLERY')}
                                     className="mr-2 p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-900 transition-colors"
@@ -1097,20 +1164,22 @@ export default function DynamicLeadsDashboard() {
                                         Panel de {editableCompany}
                                     </h1>
                                 )}
-                                <button
-                                    onClick={() => setIsEditingTitle(!isEditingTitle)}
-                                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-brand-primary transition-all opacity-0 group-hover:opacity-100"
-                                >
-                                    <Pencil size={18} />
-                                </button>
+                                {!isClient && (
+                                    <button
+                                        onClick={() => setIsEditingTitle(!isEditingTitle)}
+                                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-brand-primary transition-all opacity-0 group-hover:opacity-100"
+                                    >
+                                        <Pencil size={18} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                         <p className="text-gray-500 text-sm font-medium ml-1">
-                            {view === 'GALLERY' ? "Gestión de Agentes de IA" : "Gestión de Leads"}
+                            {isClient ? "Mis Leads" : (view === 'GALLERY' ? "Gestión de Agentes de IA" : "Gestión de Leads")}
                         </p>
                     </div>
                     <div className="flex gap-3">
-                        {view === 'GALLERY' ? (
+                        {isClient ? null : view === 'GALLERY' ? (
                             <button
                                 onClick={handleOpenCreateModal}
                                 className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
@@ -1144,7 +1213,7 @@ export default function DynamicLeadsDashboard() {
                 </div>
 
                 {
-                    view === 'GALLERY' ? (
+                    view === 'GALLERY' && !isClient ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {agents.map(agent => (
                                 <div key={agent.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all group relative overflow-visible flex flex-col justify-between min-h-[220px]">
@@ -1248,6 +1317,11 @@ export default function DynamicLeadsDashboard() {
                                 </div>
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-mint">Nuevo Agente</span>
                             </div>
+                        </div>
+                    ) : isClient && isLoading ? (
+                        <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+                            <div className="w-10 h-10 border-4 border-brand-mint border-t-transparent rounded-full animate-spin" />
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cargando Leads...</p>
                         </div>
                     ) : (
                         <div className="flex flex-col h-full overflow-hidden">

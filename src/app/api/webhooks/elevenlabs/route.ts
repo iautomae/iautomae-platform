@@ -60,6 +60,7 @@ export async function POST(request: Request) {
         // --- SECURITY: Verify ElevenLabs Signature ---
         const signature = request.headers.get('elevenlabs-signature');
         const secret = process.env.ELEVENLABS_WEBHOOK_SECRET;
+        const allowDebugFallback = process.env.ELEVENLABS_DEBUG_FALLBACK === 'true';
 
         if (secret) {
             if (!signature) {
@@ -79,6 +80,17 @@ export async function POST(request: Request) {
             }
         } else {
             console.warn('⚠️ ELEVENLABS_WEBHOOK_SECRET not set. Webhook is insecure.');
+        }
+
+        if (secret) {
+            if (!signature) {
+                return NextResponse.json({ error: 'Firma de webhook ausente' }, { status: 401 });
+            }
+
+            const verificationDigest = crypto.createHmac('sha256', secret).update(bodyText).digest('hex');
+            if (signature !== verificationDigest) {
+                return NextResponse.json({ error: 'Firma de webhook inválida' }, { status: 401 });
+            }
         }
 
         console.log('Received ElevenLabs Webhook Type:', payload.type);
@@ -118,6 +130,9 @@ export async function POST(request: Request) {
             console.error('Agent not found for ElevenLabs ID:', elAgentId, agentError);
 
             // --- DEBUG FALLBACK ---
+            if (!allowDebugFallback) {
+                return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+            }
             console.log('Using debug fallback for ID:', elAgentId);
             const { data: debugAgent, error: debugError } = await supabase
                 .from('agentes')

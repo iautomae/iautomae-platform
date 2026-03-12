@@ -1,34 +1,33 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { getSupabaseAdminClient, requireAuth } from '@/lib/server-auth';
 
-export async function GET() {
+const supabaseAdmin = getSupabaseAdminClient();
+
+export async function GET(request: Request) {
     try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-        if (!supabaseServiceKey) {
-            return NextResponse.json({ error: "Missing Service Role Key" }, { status: 500 });
+        const { response } = await requireAuth(request, ['admin']);
+        if (response) {
+            return response;
         }
 
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-        // Fetch all agents with their user_id to count them per user
-        // We use user_id because it correlates with the profile.id
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
             .from('agentes')
             .select('user_id');
 
-        if (error) throw error;
+        if (error) {
+            throw error;
+        }
 
         const counts: Record<string, number> = {};
-        data.forEach(agent => {
-            const uid = agent.user_id;
-            if (uid) counts[uid] = (counts[uid] || 0) + 1;
-        });
+        for (const agent of data || []) {
+            if (agent.user_id) {
+                counts[agent.user_id] = (counts[agent.user_id] || 0) + 1;
+            }
+        }
 
         return NextResponse.json({ counts });
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error fetching admin stats:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
     }
 }

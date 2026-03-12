@@ -1,118 +1,90 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdminClient, requireAuth } from '@/lib/server-auth';
 
-// Usa Service Role para poder saltar RLS y borrar datos críticos
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseAdmin = getSupabaseAdminClient();
+const PROTECTED_SLUGS = ['iautomae', 'app', 'hub'];
 
 export async function POST(req: Request) {
     try {
+        const { response } = await requireAuth(req, ['admin']);
+        if (response) {
+            return response;
+        }
+
         const { userId, tenantId } = await req.json();
 
         if (!userId && !tenantId) {
-            return NextResponse.json({ error: 'Falta el ID del usuario o del tenant' }, { status: 400 });
+            return NextResponse.json({ error: 'Falta el ID del usuario o del tenant.' }, { status: 400 });
         }
 
-        // SLUGS protegidos que nunca se pueden borrar
-        const PROTECTED_SLUGS = ['iautomae', 'app', 'hub'];
+        let targetTenantId = tenantId as string | undefined;
 
-        // --- FLUJO A: Borrar por tenantId directamente (para tenants huérfanos sin usuarios) ---
-        if (tenantId && !userId) {
-            // Verificar que no sea un tenant protegido
-            const { data: tenant } = await supabaseAdmin
-                .from('tenants')
-                .select('slug')
-                .eq('id', tenantId)
-                .single();
-
-            if (tenant && PROTECTED_SLUGS.includes(tenant.slug)) {
-                return NextResponse.json({ error: 'No se puede eliminar la cuenta de administración maestra' }, { status: 403 });
-            }
-
-            // Borrar cualquier perfil asociado (y su auth user)
-            const { data: linkedProfiles } = await supabaseAdmin
+        if (!targetTenantId && userId) {
+            const { data: profile, error: profileError } = await supabaseAdmin
                 .from('profiles')
-                .select('id')
-                .eq('tenant_id', tenantId);
+                .select('tenant_id')
+                .eq('id', userId)
+                .single<{ tenant_id: string | null }>();
 
-            if (linkedProfiles && linkedProfiles.length > 0) {
-                for (const sp of linkedProfiles) {
-                    await supabaseAdmin.auth.admin.deleteUser(sp.id);
-                }
+            if (profileError || !profile?.tenant_id) {
+                return NextResponse.json({ error: 'Perfil no encontrado.' }, { status: 404 });
             }
 
-            // Borrar el tenant
-            const { error: tenantError } = await supabaseAdmin
-                .from('tenants')
-                .delete()
-                .eq('id', tenantId);
-
-            if (tenantError) {
-                console.error("Error al borrar tenant:", tenantError);
-                return NextResponse.json({ error: 'Error al eliminar la empresa' }, { status: 500 });
-            }
-
-            return NextResponse.json({ success: true, message: "Empresa eliminada permanentemente" });
+            targetTenantId = profile.tenant_id;
         }
 
-        // --- FLUJO B: Borrar por userId (flujo original) ---
-        // 1. Obtener el perfil para saber qué Tenant borrar
-        const { data: profile, error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .select('tenant_id, role')
-            .eq('id', userId)
-            .single();
-
-        if (profileError || !profile) {
-            console.error("Profile not found:", profileError);
-            return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
+        if (!targetTenantId) {
+            return NextResponse.json({ error: 'No se pudo resolver el tenant.' }, { status: 400 });
         }
 
-        // Protección extra: No permitimos borrar si es admin maestro
-        if (profile.role === 'admin') {
-            const { data: tenant } = await supabaseAdmin
-                .from('tenants')
-                .select('slug')
-                .eq('id', profile.tenant_id)
-                .single();
+        const { data: tenant, error: tenantLookupError } = await supabaseAdmin
+            .from('tenants')
+            .select('slug')
+            .eq('id', targetTenantId)
+            .single<{ slug: string }>();
 
-            if (tenant && PROTECTED_SLUGS.includes(tenant.slug)) {
-                return NextResponse.json({ error: 'No se puede eliminar la cuenta de administración maestra' }, { status: 403 });
-            }
+        if (tenantLookupError || !tenant) {
+            return NextResponse.json({ error: 'Tenant no encontrado.' }, { status: 404 });
         }
 
-        // 2. Borrar sub-usuarios del mismo tenant
-        const { data: subProfiles } = await supabaseAdmin
+        if (PROTECTED_SLUGS.includes(tenant.slug)) {
+            return NextResponse.json(
+                { error: 'No se puede eliminar la cuenta de administración maestra.' },
+                { status: 403 }
+            );
+        }
+
+        const { data: linkedProfiles, error: linkedProfilesError } = await supabaseAdmin
             .from('profiles')
             .select('id')
-            .eq('tenant_id', profile.tenant_id);
+            .eq('tenant_id', targetTenantId);
 
-        if (subProfiles && subProfiles.length > 0) {
-            for (const sp of subProfiles) {
-                await supabaseAdmin.auth.admin.deleteUser(sp.id);
-            }
-        } else {
-            await supabaseAdmin.auth.admin.deleteUser(userId);
+        if (linkedProfilesError) {
+            console.error('Error fetching tenant profiles:', linkedProfilesError);
+            return NextResponse.json({ error: 'Error al obtener los usuarios del tenant.' }, { status: 500 });
         }
 
-        // 3. Finalmente, borrar la Empresa (Tenant)
-        if (profile.tenant_id) {
-            const { error: tenantError } = await supabaseAdmin
-                .from('tenants')
-                .delete()
-                .eq('id', profile.tenant_id);
-
-            if (tenantError) {
-                console.error("Error al borrar tenant:", tenantError);
+        for (const profile of linkedProfiles || []) {
+            const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(profile.id);
+            if (deleteAuthError) {
+                console.error('Error deleting auth user:', deleteAuthError);
+                return NextResponse.json({ error: 'Error al eliminar los usuarios del tenant.' }, { status: 500 });
             }
         }
 
-        return NextResponse.json({ success: true, message: "Empresa y dependencias eliminadas permanentemente" });
+        const { error: tenantError } = await supabaseAdmin
+            .from('tenants')
+            .delete()
+            .eq('id', targetTenantId);
 
-    } catch (error) {
-        console.error("Remove tenant API error:", error);
-        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+        if (tenantError) {
+            console.error('Error deleting tenant:', tenantError);
+            return NextResponse.json({ error: 'Error al eliminar la empresa.' }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true, message: 'Empresa eliminada permanentemente.' });
+    } catch (error: unknown) {
+        console.error('Remove tenant API error:', error);
+        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
     }
 }

@@ -1,131 +1,117 @@
-
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdminClient, requireAuth } from '@/lib/server-auth';
 
-// Initialize Supabase Client with Service Role Key to bypass RLS
+type IncomingAgent = {
+    eleven_labs_agent_id?: string;
+    name?: string;
+    prompt?: string | null;
+    personalidad?: string | null;
+    knowledge_files?: unknown;
+    phone_number?: string | null;
+    phone_number_id?: string | null;
+    status?: string | null;
+};
+
+const supabaseAdmin = getSupabaseAdminClient();
+
 export async function POST(request: Request) {
-    // Initialize Supabase Client with Service Role Key to bypass RLS
-    // Moved inside handler to avoid build-time errors when env vars might be missing
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
     try {
-        const body = await request.json();
-        const { agent, userId } = body;
-
-        if (!agent || !userId) {
-            return NextResponse.json({ error: 'Missing agent data or userId' }, { status: 400 });
+        const { context, response } = await requireAuth(request, ['admin', 'tenant_owner']);
+        if (response || !context) {
+            return response!;
         }
 
-        console.log(`📥 Importing agent ${agent.name} for user ${userId}...`);
+        const body = await request.json();
+        const agent = (body.agent || {}) as IncomingAgent;
+        const requestedUserId = typeof body.userId === 'string' ? body.userId : '';
+        const targetUserId = context.profile.role === 'admin' ? requestedUserId : context.profile.id;
 
-        // Check if agent already exists (by eleven_labs_agent_id) - GLOBAL LOCK
-        const { data: existingAgents, error: fetchError } = await supabase
+        if (!agent.eleven_labs_agent_id || !targetUserId) {
+            return NextResponse.json({ error: 'Faltan los datos del agente o del usuario.' }, { status: 400 });
+        }
+
+        if (context.profile.role !== 'admin' && requestedUserId && requestedUserId !== context.profile.id) {
+            return NextResponse.json({ error: 'No puedes importar agentes para otro usuario.' }, { status: 403 });
+        }
+
+        const { data: existingAgents, error: fetchError } = await supabaseAdmin
             .from('agentes')
             .select('id, user_id, nombre')
             .eq('eleven_labs_agent_id', agent.eleven_labs_agent_id);
 
-        if (fetchError) throw fetchError;
-
-        if (existingAgents && existingAgents.length > 0) {
-            // Check if ANY instance of this agent ID belongs to ANOTHER user
-            const otherOwner = existingAgents.find(a => a.user_id !== userId);
-
-            if (otherOwner) {
-                console.log(`❌ Security Alert: User ${userId} tried to import agent ${agent.eleven_labs_agent_id} which belongs to ${otherOwner.user_id}`);
-                return NextResponse.json({
-                    error: 'Este agente ya está vinculado a otra cuenta o es de uso exclusivo.',
-                    code: 'AGENT_OWNED_BY_OTHER'
-                }, { status: 403 });
-            }
-
-            // --- Optional: Rename in ElevenLabs if a new name is provided ---
-            if (agent.name) {
-                try {
-                    const apiKey = process.env.ELEVEN_LABS_API_KEY;
-                    if (apiKey) {
-                        await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agent.eleven_labs_agent_id}`, {
-                            method: 'PATCH',
-                            headers: {
-                                'xi-api-key': apiKey,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ name: agent.name })
-                        });
-                        console.log(`🏷️ Agent renamed in ElevenLabs to: ${agent.name}`);
-                    }
-                } catch (e) {
-                    console.error('Error renaming agent in ElevenLabs:', e);
-                }
-            }
-
-            const existingAgentId = existingAgents[0].id;
-            console.log(`⚠️ Agent ${agent.name} already exists for this user. Updating first instance (${existingAgentId})...`);
-
-            // If there were more than one, we should probably delete the others, but for now just update the main one
-            const { data: updatedAgent, error: updateError } = await supabase
-                .from('agentes')
-                .update({
-                    nombre: agent.name,
-                    user_id: userId,
-                    prompt: agent.prompt,
-                    personalidad: agent.personalidad,
-                    knowledge_files: agent.knowledge_files,
-                    phone_number: agent.phone_number,
-                    phone_number_id: agent.phone_number_id,
-                    status: agent.status
-                })
-                .eq('id', existingAgentId)
-                .select()
-                .single();
-
-            if (updateError) throw updateError;
-            return NextResponse.json({ success: true, agent: updatedAgent, action: 'updated' });
-        } else {
-            // --- Optional: Rename in ElevenLabs if a new name is provided ---
-            if (agent.name) {
-                try {
-                    const apiKey = process.env.ELEVEN_LABS_API_KEY;
-                    if (apiKey) {
-                        await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agent.eleven_labs_agent_id}`, {
-                            method: 'PATCH',
-                            headers: {
-                                'xi-api-key': apiKey,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ name: agent.name })
-                        });
-                        console.log(`🏷️ Agent renamed in ElevenLabs to: ${agent.name}`);
-                    }
-                } catch (e) {
-                    console.error('Error renaming agent in ElevenLabs:', e);
-                }
-            }
-
-            // Insert new agent
-            const { data: newAgent, error: insertError } = await supabase
-                .from('agentes')
-                .insert([{
-                    nombre: agent.name,
-                    user_id: userId,
-                    eleven_labs_agent_id: agent.eleven_labs_agent_id,
-                    prompt: agent.prompt,
-                    personalidad: agent.personalidad,
-                    knowledge_files: agent.knowledge_files,
-                    phone_number: agent.phone_number,
-                    phone_number_id: agent.phone_number_id,
-                    status: agent.status
-                }])
-                .select()
-                .single();
-
-            if (insertError) throw insertError;
-            return NextResponse.json({ success: true, agent: newAgent, action: 'created' });
+        if (fetchError) {
+            throw fetchError;
         }
 
+        const otherOwner = (existingAgents || []).find(existing => existing.user_id !== targetUserId);
+        if (otherOwner) {
+            return NextResponse.json(
+                {
+                    error: 'Este agente ya está vinculado a otra cuenta o es de uso exclusivo.',
+                    code: 'AGENT_OWNED_BY_OTHER',
+                },
+                { status: 403 }
+            );
+        }
+
+        if (agent.name) {
+            try {
+                const apiKey = process.env.ELEVEN_LABS_API_KEY;
+                if (apiKey) {
+                    await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agent.eleven_labs_agent_id}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'xi-api-key': apiKey,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ name: agent.name }),
+                    });
+                }
+            } catch (renameError) {
+                console.error('Error renaming agent in ElevenLabs:', renameError);
+            }
+        }
+
+        const payload = {
+            nombre: agent.name?.trim() || 'Agente Importado',
+            user_id: targetUserId,
+            eleven_labs_agent_id: agent.eleven_labs_agent_id,
+            prompt: agent.prompt || null,
+            personalidad: agent.personalidad || null,
+            knowledge_files: agent.knowledge_files || null,
+            phone_number: agent.phone_number || null,
+            phone_number_id: agent.phone_number_id || null,
+            status: agent.status || 'active',
+        };
+
+        if (existingAgents && existingAgents.length > 0) {
+            const { data: updatedAgent, error: updateError } = await supabaseAdmin
+                .from('agentes')
+                .update(payload)
+                .eq('id', existingAgents[0].id)
+                .select()
+                .single();
+
+            if (updateError) {
+                throw updateError;
+            }
+
+            return NextResponse.json({ success: true, agent: updatedAgent, action: 'updated' });
+        }
+
+        const { data: newAgent, error: insertError } = await supabaseAdmin
+            .from('agentes')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (insertError) {
+            throw insertError;
+        }
+
+        return NextResponse.json({ success: true, agent: newAgent, action: 'created' });
     } catch (error: unknown) {
-        console.error('❌ Error importing agent:', error);
-        return NextResponse.json({ error: (error as Error).message || 'Internal Server Error' }, { status: 500 });
+        console.error('Error importing agent:', error);
+        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
     }
 }

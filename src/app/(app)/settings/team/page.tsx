@@ -68,9 +68,18 @@ interface TeamMember {
     email: string;
     full_name: string | null;
     role: string;
-    features: Record<string, boolean>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    features: Record<string, any>;
     has_leads_access: boolean;
     status: 'active' | 'pending';
+}
+
+interface TenantAgent {
+    id: string;
+    nombre: string;
+    pushover_user_1_name?: string;
+    pushover_user_2_name?: string;
+    pushover_user_3_name?: string;
 }
 
 export default function TeamPage() {
@@ -83,6 +92,9 @@ export default function TeamPage() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [expandedPlatforms, setExpandedPlatforms] = useState<Record<string, boolean>>({});
     const [isToggling, setIsToggling] = useState<string | null>(null);
+
+    // Tenant agents (for advisor slot names)
+    const [tenantAgents, setTenantAgents] = useState<TenantAgent[]>([]);
 
     // Invite modal
     const [showInvite, setShowInvite] = useState(false);
@@ -139,6 +151,22 @@ export default function TeamPage() {
                 return;
             }
             fetchTeam();
+
+            // Fetch tenant agents for advisor slot names
+            (async () => {
+                try {
+                    const token = (await supabase.auth.getSession()).data.session?.access_token;
+                    const res = await fetch("/api/leads/tenant-agents", {
+                        headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        setTenantAgents(data.agents || []);
+                    }
+                } catch (err) {
+                    console.error("Error fetching tenant agents:", err);
+                }
+            })();
         }
     }, [profile, profileLoading, fetchTeam, router]);
 
@@ -225,9 +253,13 @@ export default function TeamPage() {
 
         setIsToggling(platformKey);
         try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch("/api/admin/toggle-access", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ userId: memberId, featureKey: platformKey, newValue }),
             });
             const data = await res.json();
@@ -248,7 +280,10 @@ export default function TeamPage() {
                     if (member.features?.[tabKey]) {
                         await fetch("/api/admin/toggle-access", {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers: {
+                                "Content-Type": "application/json",
+                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                            },
                             body: JSON.stringify({ userId: memberId, featureKey: tabKey, newValue: false }),
                         });
                     }
@@ -264,6 +299,42 @@ export default function TeamPage() {
         }
     };
 
+    // ── Update leads advisor visibility ──
+    const updateAdvisorVisibility = async (memberId: string, newVisibility: 'all' | number[]) => {
+        setIsToggling('leads_advisors');
+        try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            const res = await fetch("/api/admin/toggle-access", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    userId: memberId,
+                    featureKey: "leads",
+                    newValue: true,
+                    leadsVisibleAdvisors: newVisibility,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+
+            setMembers(prev =>
+                prev.map(m =>
+                    m.id === memberId
+                        ? { ...m, features: data.features, has_leads_access: data.has_leads_access }
+                        : m
+                )
+            );
+        } catch (err) {
+            console.error("Error updating advisor visibility:", err);
+            setToast({ message: "Error al actualizar visibilidad de asesores.", type: "error" });
+        } finally {
+            setIsToggling(null);
+        }
+    };
+
     // ── Toggle tab access ──
     const toggleTab = async (memberId: string, platformKey: string, tabId: string) => {
         const member = members.find(m => m.id === memberId);
@@ -274,9 +345,13 @@ export default function TeamPage() {
         setIsToggling(tabKey);
 
         try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch("/api/admin/toggle-access", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ userId: memberId, featureKey: tabKey, newValue }),
             });
             const data = await res.json();
@@ -563,6 +638,93 @@ export default function TeamPage() {
                                                             )} />
                                                         </button>
                                                     </div>
+
+                                                    {/* Advisor visibility selector for Leads */}
+                                                    {platformKey === 'leads' && isPlatformActive && isExpanded && (
+                                                        <div className="px-3.5 pb-2 pt-0">
+                                                            <div className="ml-9 pl-3 border-l-2 border-emerald-200 space-y-1">
+                                                                <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-2 ml-1">
+                                                                    Leads visibles
+                                                                </p>
+                                                                {(() => {
+                                                                    const currentVisibility = selectedMember.features?.leads_visible_advisors || 'all';
+                                                                    const isAll = currentVisibility === 'all';
+                                                                    const selectedSlots: number[] = isAll ? [1, 2, 3] : (Array.isArray(currentVisibility) ? currentVisibility : []);
+
+                                                                    const advisorSlots = [
+                                                                        { num: 1, label: tenantAgents[0]?.pushover_user_1_name || 'Asesor 1' },
+                                                                        { num: 2, label: tenantAgents[0]?.pushover_user_2_name || 'Asesor 2' },
+                                                                        { num: 3, label: tenantAgents[0]?.pushover_user_3_name || 'Asesor 3' },
+                                                                    ];
+
+                                                                    const handleToggleAll = () => {
+                                                                        updateAdvisorVisibility(selectedMember.id, isAll ? [] : 'all');
+                                                                    };
+
+                                                                    const handleToggleSlot = (slot: number) => {
+                                                                        if (isAll) {
+                                                                            // Switching from "all" to specific: remove this slot
+                                                                            updateAdvisorVisibility(selectedMember.id, [1, 2, 3].filter(s => s !== slot));
+                                                                        } else {
+                                                                            const newSlots = selectedSlots.includes(slot)
+                                                                                ? selectedSlots.filter(s => s !== slot)
+                                                                                : [...selectedSlots, slot].sort();
+                                                                            // If all 3 selected, switch to "all"
+                                                                            updateAdvisorVisibility(selectedMember.id, newSlots.length === 3 ? 'all' : newSlots);
+                                                                        }
+                                                                    };
+
+                                                                    return (
+                                                                        <div className="space-y-1">
+                                                                            <div
+                                                                                onClick={handleToggleAll}
+                                                                                className={cn(
+                                                                                    "flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer transition-colors",
+                                                                                    isAll ? "bg-emerald-50" : "hover:bg-white/60"
+                                                                                )}
+                                                                            >
+                                                                                <div className={cn(
+                                                                                    "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
+                                                                                    isAll ? "bg-emerald-500 border-emerald-500" : "border-gray-300"
+                                                                                )}>
+                                                                                    {isAll && <CheckCircle2 size={10} className="text-white" />}
+                                                                                </div>
+                                                                                <span className={cn("text-xs font-bold", isAll ? "text-emerald-700" : "text-gray-500")}>
+                                                                                    Todos los asesores
+                                                                                </span>
+                                                                            </div>
+                                                                            {advisorSlots.map(slot => {
+                                                                                const isActive = isAll || selectedSlots.includes(slot.num);
+                                                                                return (
+                                                                                    <div
+                                                                                        key={slot.num}
+                                                                                        onClick={() => handleToggleSlot(slot.num)}
+                                                                                        className={cn(
+                                                                                            "flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-pointer transition-colors",
+                                                                                            isActive && !isAll ? "bg-emerald-50" : "hover:bg-white/60"
+                                                                                        )}
+                                                                                    >
+                                                                                        <div className={cn(
+                                                                                            "w-4 h-4 rounded border-2 flex items-center justify-center transition-colors",
+                                                                                            isActive ? "bg-emerald-500 border-emerald-500" : "border-gray-300"
+                                                                                        )}>
+                                                                                            {isActive && <CheckCircle2 size={10} className="text-white" />}
+                                                                                        </div>
+                                                                                        <span className={cn(
+                                                                                            "text-xs font-medium",
+                                                                                            isActive ? "text-gray-800" : "text-gray-400"
+                                                                                        )}>
+                                                                                            Asesor {slot.num}: {slot.label}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    );
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     {/* Tabs expandable */}
                                                     {hasTabs && isPlatformActive && isExpanded && (

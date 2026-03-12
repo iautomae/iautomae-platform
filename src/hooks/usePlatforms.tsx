@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 import {
     FileText, Users, Briefcase, Shirt, Heart, Globe, Zap, Package, Layers
 } from "lucide-react";
@@ -50,7 +51,9 @@ export function usePlatforms() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/admin/platforms');
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
+            const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+            const res = await fetch('/api/admin/platforms', { headers });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Error al cargar plataformas');
             setPlatforms(data.platforms || []);
@@ -68,9 +71,13 @@ export function usePlatforms() {
 
     const createPlatform = async (name: string, description: string): Promise<Platform | null> => {
         try {
+            const token = (await supabase.auth.getSession()).data.session?.access_token;
             const res = await fetch('/api/admin/platforms', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ name, description }),
             });
             const data = await res.json();
