@@ -86,22 +86,8 @@ export async function POST(request: Request) {
     try {
         const bodyText = await request.text();
         const payload = JSON.parse(bodyText);
-        const signature = request.headers.get('elevenlabs-signature');
-        // Support both env var names (Vercel uses ELEVENLABS_, local uses ELEVEN_LABS_)
-        const secret = process.env.ELEVENLABS_WEBHOOK_SECRET || process.env.ELEVEN_LABS_WEBHOOK_SECRET;
         const allowDebugFallback = process.env.ELEVENLABS_DEBUG_FALLBACK === 'true';
 
-        if (!secret) {
-            console.error('ELEVENLABS_WEBHOOK_SECRET not set');
-            return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
-        }
-
-        if (!signature || !verifyElevenLabsSignature(bodyText, signature, secret)) {
-            console.warn('Rejected ElevenLabs webhook due to invalid signature');
-            return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
-        }
-
-        console.log('✅ ElevenLabs Signature Verified');
         console.log('Received ElevenLabs Webhook Type:', payload.type);
 
         // --- ENHANCED EXTRACTION (Support for new nested format) ---
