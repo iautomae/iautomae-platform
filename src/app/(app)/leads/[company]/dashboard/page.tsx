@@ -1126,22 +1126,7 @@ export default function DynamicLeadsDashboard() {
 
     return (
         <div className="w-full flex flex-col animate-in fade-in duration-500 h-[calc(100vh-2rem)] overflow-hidden">
-            {/* Admin Impersonation Banner */}
-            {viewAsUid && isAdmin && (
-                <div className="bg-slate-900 py-2 px-8 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2 text-brand-primary text-[10px] font-bold uppercase tracking-widest">
-                        <Shield size={14} />
-                        Modo Administrador: Viendo como usuario ({viewAsUid.slice(0, 8)}...)
-                    </div>
-                    <Link
-                        href="/admin"
-                        className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors uppercase tracking-widest flex items-center gap-1"
-                    >
-                        <ArrowLeft size={12} />
-                        Volver al Panel Maestro
-                    </Link>
-                </div>
-            )}
+            {/* Admin Impersonation Banner is now handled globally by ClientLayout */}
 
             <div className="flex flex-col pt-6 pb-6 px-8 flex-1 overflow-hidden">
                 {/* Header with Dynamic Company Name */}

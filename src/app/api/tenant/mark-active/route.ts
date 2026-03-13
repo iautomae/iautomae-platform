@@ -3,17 +3,23 @@ import { getSupabaseAdminClient } from '@/lib/server-auth';
 
 export async function POST(request: Request) {
     try {
-        const { slug } = await request.json();
-        if (!slug || typeof slug !== 'string') {
-            return NextResponse.json({ error: 'slug requerido' }, { status: 400 });
+        const { slug, tenant_id } = await request.json();
+        if (!slug && !tenant_id) {
+            return NextResponse.json({ error: 'slug o tenant_id requerido' }, { status: 400 });
         }
 
         const supabaseAdmin = getSupabaseAdminClient();
-        const { error } = await supabaseAdmin
+        let query = supabaseAdmin
             .from('tenants')
-            .update({ branding_complete: true })
-            .eq('slug', slug)
-            .eq('is_active', true);
+            .update({ branding_complete: true });
+
+        if (slug) {
+            query = query.eq('slug', slug);
+        } else {
+            query = query.eq('id', tenant_id);
+        }
+
+        const { error } = await query;
 
         if (error) {
             console.error('Error marking tenant active:', error);

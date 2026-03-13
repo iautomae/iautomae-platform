@@ -88,7 +88,7 @@ export default function SetPasswordPage() {
                 data: { onboarding_completed: true }
             });
 
-            // Mark tenant as active (account confirmed)
+            // Mark tenant as active (account confirmed) via API to bypass RLS
             const { data: userProfile } = await supabase
                 .from('profiles')
                 .select('tenant_id')
@@ -96,10 +96,11 @@ export default function SetPasswordPage() {
                 .maybeSingle();
 
             if (userProfile?.tenant_id) {
-                await supabase
-                    .from('tenants')
-                    .update({ branding_complete: true })
-                    .eq('id', userProfile.tenant_id);
+                fetch('/api/tenant/mark-active', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenant_id: userProfile.tenant_id }),
+                }).catch(() => {});
             }
 
             setSuccess(true);

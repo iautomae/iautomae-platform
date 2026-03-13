@@ -47,8 +47,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             <main
                 className={cn(
                     "flex-1 min-h-screen py-4 pr-8 relative z-0 transition-all duration-300",
-                    marginClass,
-                    isImpersonating && "pt-[52px]"
+                    marginClass
                 )}
             >
                 {children}
