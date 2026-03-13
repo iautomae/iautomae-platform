@@ -116,8 +116,8 @@ export default function DynamicLeadsDashboard() {
     // Advisor visibility for clients (loaded from tenant-agents API)
     const [leadsVisibleAdvisors, setLeadsVisibleAdvisors] = useState<'all' | number[]>('all');
 
-    // UI States — clients and tenant_owners skip GALLERY entirely
-    const [view, setView] = useState<'GALLERY' | 'LEADS'>((isClient || isTenantOwner) ? 'LEADS' : 'GALLERY');
+    // UI States — all roles skip GALLERY, go directly to LEADS
+    const [view, setView] = useState<'GALLERY' | 'LEADS'>('LEADS');
     const [editableCompany, setEditableCompany] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem(`panel_name_${company}`);
@@ -343,8 +343,8 @@ export default function DynamicLeadsDashboard() {
 
             if (data && !error) {
                 setAgents(data);
-                // Auto-select first agent and skip to LEADS for clients and tenant_owners
-                if ((isClient || isTenantOwner) && data.length > 0) {
+                // Auto-select first agent and skip to LEADS for all roles
+                if (data.length > 0 && !activeAgentId) {
                     setActiveAgentId(data[0].id);
                     setView('LEADS');
                 }
@@ -1145,15 +1145,7 @@ export default function DynamicLeadsDashboard() {
                 <div className="flex items-center justify-between mb-8 shrink-0">
                     <div className="space-y-1">
                         <div className="flex items-center gap-3">
-                            {/* Back Button - Only show in LEADS view for admin */}
-                            {view === 'LEADS' && !isClient && !isTenantOwner && (
-                                <button
-                                    onClick={() => setView('GALLERY')}
-                                    className="mr-2 p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-900 transition-colors"
-                                >
-                                    <ArrowLeft size={20} />
-                                </button>
-                            )}
+                            {/* Back Button removed — all roles go directly to LEADS */}
 
                             <div className="flex items-center gap-3 group">
                                 {isEditingTitle ? (
@@ -1190,22 +1182,19 @@ export default function DynamicLeadsDashboard() {
                             </div>
                         </div>
                         <p className="text-gray-500 text-sm font-medium ml-1">
-                            {isClient ? "Mis Leads" : isTenantOwner ? "Gestión de Leads" : (view === 'GALLERY' ? "Gestión de Agentes de IA" : "Gestión de Leads")}
+                            {isClient ? "Mis Leads" : "Gestión de Leads"}
                         </p>
                     </div>
                     <div className="flex gap-3">
-                        {isClient ? null : isTenantOwner ? (
-                            /* Tenant owner: show agent config + notifications buttons only when loaded */
-                            activeAgentId ? <>
-                                {activeAgentId && (
-                                    <Link
-                                        href={`/leads/agent-config?id=${activeAgentId}`}
-                                        className="px-5 py-2.5 border border-gray-200 bg-white rounded-xl text-xs font-bold text-gray-700 hover:border-brand-primary hover:text-brand-primary transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 shadow-sm"
-                                    >
-                                        <Settings size={16} />
-                                        Configurar Agente
-                                    </Link>
-                                )}
+                        {isClient ? null : activeAgentId ? (
+                            <>
+                                <Link
+                                    href={`/leads/agent-config?id=${activeAgentId}`}
+                                    className="px-5 py-2.5 border border-gray-200 bg-white rounded-xl text-xs font-bold text-gray-700 hover:border-brand-primary hover:text-brand-primary transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 shadow-sm"
+                                >
+                                    <Settings size={16} />
+                                    Configurar Agente
+                                </Link>
                                 <button
                                     onClick={() => {
                                         const agentToConfig = agents.find(a => a.id === activeAgentId);
@@ -1225,146 +1214,13 @@ export default function DynamicLeadsDashboard() {
                                     <Bell size={16} />
                                     Notificaciones {isPushoverConfigured(activeAgentId) && <Check size={14} className="ml-1" />}
                                 </button>
-                            </> : null
-                        ) : view === 'GALLERY' ? (
-                            <button
-                                onClick={handleOpenCreateModal}
-                                className="px-6 py-2.5 bg-brand-primary text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-brand-primary/20 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2"
-                            >
-                                <Plus size={16} />
-                                Crear Agente
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => {
-                                    const agentToConfig = agents.find(a => a.id === activeAgentId);
-                                    if (agentToConfig) {
-                                        handleOpenPushover(agentToConfig);
-                                    } else {
-                                        setInfoModal({ isOpen: true, type: 'error', message: 'No hay agentes para configurar.' });
-                                    }
-                                }}
-                                className={cn(
-                                    "px-6 py-2.5 border rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 shadow-sm",
-                                    isPushoverConfigured(activeAgentId)
-                                        ? "bg-brand-primary/10 border-brand-primary text-brand-primary"
-                                        : "bg-white border-gray-200 text-gray-700 hover:border-brand-primary hover:text-brand-primary"
-                                )}
-                            >
-                                <Bell size={16} />
-                                Configurar Notificaciones {isPushoverConfigured(activeAgentId) && <Check size={14} className="ml-1" />}
-                            </button>
-                        )}
+                            </>
+                        ) : null}
                     </div>
                 </div>
 
                 {
-                    view === 'GALLERY' && !isClient && !isTenantOwner ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {agents.map(agent => (
-                                <div key={agent.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all group relative overflow-visible flex flex-col justify-between min-h-[220px]">
-                                    {/* Hover Action Buttons */}
-                                    <div className="absolute right-[-10px] top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all z-10">
-                                        <button
-                                            onClick={(e) => { e.preventDefault(); handleDeleteAgent(agent); }}
-                                            className="w-8 h-8 bg-white border border-red-100 text-red-400 rounded-full shadow-lg hover:bg-red-50 hover:text-red-600 flex items-center justify-center"
-                                            title="Eliminar Agente"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary shadow-inner overflow-hidden">
-                                                {agent.avatar_url ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={agent.avatar_url} alt={agent.nombre} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <Bot size={24} />
-                                                )}
-                                            </div>
-                                            <div className="flex flex-col items-end gap-1 text-right">
-                                                {/* Switch Toggle */}
-                                                <div className="flex flex-col items-end gap-1">
-                                                    <span className={cn(
-                                                        "text-[8px] font-bold uppercase tracking-widest transition-colors",
-                                                        agent.status === 'active' ? "text-brand-primary" : "text-gray-400"
-                                                    )}>
-                                                        {agent.status === 'active' ? "Activo" : "Desactivado"}
-                                                    </span>
-                                                    <div
-                                                        onClick={() => toggleAgentStatus(agent)}
-                                                        className={cn(
-                                                            "w-11 h-6 rounded-full relative transition-all cursor-pointer shadow-inner flex items-center px-1",
-                                                            agent.status === 'active' ? "bg-brand-primary/20" : "bg-gray-100 border border-gray-200"
-                                                        )}
-                                                    >
-                                                        <div className={cn(
-                                                            "w-4 h-4 rounded-full shadow-md transition-all duration-300",
-                                                            agent.status === 'active' ? "translate-x-5 bg-brand-primary" : "translate-x-0 bg-gray-400"
-                                                        )} />
-                                                    </div>
-                                                </div>
-                                                {/* Empty space where stats used to be */}
-                                                <div className="h-8" />
-                                            </div>
-                                        </div>
-
-                                        <h3 className="text-lg font-bold text-gray-900 mb-0.5 leading-tight truncate" title={agent.nombre}>{agent.nombre || 'Agente sin nombre'}</h3>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-4 truncate" title={agent.personalidad}>{agent.personalidad || 'Sin especialidad'}</p>
-                                    </div>
-
-                                    <div className="flex gap-1.5 mt-auto">
-                                        <Link
-                                            href={`/leads/agent-config?id=${agent.id}${viewAsUid ? `&view_as=${viewAsUid}` : ''}`}
-                                            className="flex-[0.8] bg-gray-50 text-gray-600 py-3 rounded-xl text-[8px] font-bold uppercase tracking-widest hover:bg-brand-primary hover:text-white transition-all text-center flex flex-col items-center justify-center gap-1 border border-gray-100 hover:border-brand-primary shadow-sm"
-                                        >
-                                            <Settings size={14} />
-                                            <span>Config</span>
-                                        </Link>
-                                        <button
-                                            onClick={() => {
-                                                setActiveAgentId(agent.id);
-                                                setView('LEADS');
-                                            }}
-                                            className="flex-[1.2] bg-brand-primary-darker text-white py-3 rounded-xl text-[8px] font-bold uppercase tracking-widest hover:brightness-110 transition-all shadow-md shadow-brand-primary-darker/10 flex flex-col items-center justify-center gap-1"
-                                        >
-                                            <Bot size={14} />
-                                            <span>Ver Leads</span>
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                fetchUsageStats(agent);
-                                            }}
-                                            className="flex-[0.8] bg-amber-50 text-amber-700 py-3 rounded-xl text-[8px] font-bold uppercase tracking-widest hover:bg-amber-100 transition-all text-center flex flex-col items-center justify-center gap-1 border border-amber-100 shadow-sm"
-                                        >
-                                            <BarChart2 size={14} />
-                                            <span>Uso</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-
-                            {isLoading && (
-                                <div className="col-span-full py-20 flex flex-col items-center justify-center space-y-4">
-                                    <div className="w-10 h-10 border-4 border-brand-mint border-t-transparent rounded-full animate-spin" />
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cargando Agentes...</p>
-                                </div>
-                            )}
-                            {/* Add Agent Placeholder */}
-                            <div
-                                onClick={handleOpenCreateModal}
-                                className="border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center py-6 opacity-60 hover:opacity-100 transition-opacity cursor-pointer group hover:border-brand-mint/50 min-h-[220px]"
-                            >
-                                <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 group-hover:text-brand-mint group-hover:bg-brand-mint/5 transition-all mb-3">
-                                    <Plus size={24} />
-                                </div>
-                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-mint">Nuevo Agente</span>
-                            </div>
-                        </div>
-                    ) : (isClient || isTenantOwner) && isLoading ? (
+                    isLoading ? (
                         <div className="flex-1 flex flex-col items-center justify-center space-y-4">
                             <div className="w-10 h-10 border-4 border-brand-mint border-t-transparent rounded-full animate-spin" />
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cargando Leads...</p>

@@ -106,5 +106,20 @@ export function usePlatforms() {
         await fetchPlatforms();
     };
 
-    return { platforms, loading, error, createPlatform, updatePlatform, refetch: fetchPlatforms };
+    const reorderPlatforms = async (reorderedPlatforms: Platform[]): Promise<void> => {
+        setPlatforms(reorderedPlatforms); // Optimistic
+        const token = (await supabase.auth.getSession()).data.session?.access_token;
+        const reorder = reorderedPlatforms.map((p, i) => ({ id: p.id, sort_order: i }));
+        const res = await fetch('/api/admin/platforms', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ reorder }),
+        });
+        if (!res.ok) await fetchPlatforms(); // Revert on error
+    };
+
+    return { platforms, loading, error, createPlatform, updatePlatform, reorderPlatforms, refetch: fetchPlatforms };
 }

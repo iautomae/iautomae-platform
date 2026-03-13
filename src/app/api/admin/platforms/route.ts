@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         const { data, error } = await supabaseAdmin
             .from('platforms')
             .select('*')
-            .order('created_at', { ascending: true });
+            .order('sort_order', { ascending: true });
 
         if (error) {
             if (error.code === '42P01' || error.message?.includes('does not exist')) {
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
             const { data } = await supabaseAdmin
                 .from('platforms')
                 .select('*')
-                .order('created_at', { ascending: true });
+                .order('sort_order', { ascending: true });
 
             return NextResponse.json({ platforms: data || [], seeded: true });
         }
@@ -110,7 +110,16 @@ export async function PATCH(req: Request) {
         const { response } = await requireAuth(req, ['admin']);
         if (response) return response;
 
-        const { id, name, description } = await req.json();
+        const { id, name, description, reorder } = await req.json();
+
+        // Reorder: receives array of { id, sort_order }
+        if (reorder && Array.isArray(reorder)) {
+            for (const item of reorder) {
+                await supabaseAdmin.from('platforms').update({ sort_order: item.sort_order }).eq('id', item.id);
+            }
+            return NextResponse.json({ success: true });
+        }
+
         if (!id) return NextResponse.json({ error: 'ID requerido.' }, { status: 400 });
 
         const updateData: Record<string, string> = {};

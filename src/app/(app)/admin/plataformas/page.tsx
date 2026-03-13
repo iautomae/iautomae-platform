@@ -13,7 +13,9 @@ import {
     CheckCircle2,
     AlertCircle,
     Pencil,
-    Check
+    Check,
+    ChevronUp,
+    ChevronDown
 } from "lucide-react";
 
 // Map platform names to routes
@@ -31,7 +33,7 @@ function normalizeName(name: string): string {
 export default function PlataformasPage() {
     const { profile, loading: profileLoading } = useProfile();
     const router = useRouter();
-    const { platforms, loading: platformsLoading, createPlatform, updatePlatform } = usePlatforms();
+    const { platforms, loading: platformsLoading, createPlatform, updatePlatform, reorderPlatforms } = usePlatforms();
 
     // Create modal state
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -104,6 +106,14 @@ export default function PlataformasPage() {
         }
     };
 
+    const handleMove = (index: number, direction: 'up' | 'down') => {
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= platforms.length) return;
+        const reordered = [...platforms];
+        [reordered[index], reordered[newIndex]] = [reordered[newIndex], reordered[index]];
+        reorderPlatforms(reordered);
+    };
+
     const handleNavigate = (platform: { name: string }) => {
         // Try to find a matching route by normalized original name or common aliases
         const normalized = normalizeName(platform.name);
@@ -147,7 +157,7 @@ export default function PlataformasPage() {
 
                 {/* Platform Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {platforms.map((platform) => {
+                    {platforms.map((platform, index) => {
                         const IconComp = getIconComponent(platform.icon);
                         const colors = getColorClasses(platform.color);
                         const isEditing = editingId === platform.id;
@@ -157,16 +167,36 @@ export default function PlataformasPage() {
                                 key={platform.id}
                                 className={`relative group bg-white rounded-xl border ${colors.border} p-4 transition-all duration-300 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5`}
                             >
-                                {/* Status Badge + Edit Button */}
-                                <div className="absolute top-4 right-4 flex items-center gap-2">
+                                {/* Status Badge + Edit + Move Buttons */}
+                                <div className="absolute top-4 right-4 flex items-center gap-1">
                                     {!isEditing && (
-                                        <button
-                                            onClick={() => startEdit(platform)}
-                                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-all"
-                                            title="Editar nombre"
-                                        >
-                                            <Pencil size={12} />
-                                        </button>
+                                        <>
+                                            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
+                                                <button
+                                                    onClick={() => handleMove(index, 'up')}
+                                                    disabled={index === 0}
+                                                    className="p-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Mover arriba"
+                                                >
+                                                    <ChevronUp size={12} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleMove(index, 'down')}
+                                                    disabled={index === platforms.length - 1}
+                                                    className="p-1 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Mover abajo"
+                                                >
+                                                    <ChevronDown size={12} />
+                                                </button>
+                                                <button
+                                                    onClick={() => startEdit(platform)}
+                                                    className="p-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-all"
+                                                    title="Editar nombre"
+                                                >
+                                                    <Pencil size={12} />
+                                                </button>
+                                            </div>
+                                        </>
                                     )}
                                     <span className="inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-600 border border-green-200 uppercase tracking-wider">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
