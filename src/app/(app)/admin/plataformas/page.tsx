@@ -181,6 +181,9 @@ export default function PlataformasPage() {
 
                                 {/* Content — editable or static */}
                                 {isEditing ? (
+                                    (() => {
+                                        const hasChanges = editName.trim() !== platform.name || editDesc.trim() !== platform.description;
+                                        return (
                                     <div className="space-y-2 mb-4">
                                         <input
                                             type="text"
@@ -199,11 +202,15 @@ export default function PlataformasPage() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={handleSaveEdit}
-                                                disabled={isSaving || !editName.trim()}
-                                                className="flex items-center gap-1 px-3 py-1.5 bg-brand-primary text-white text-[10px] font-bold rounded-lg hover:bg-brand-primary/90 transition-all disabled:opacity-50"
+                                                disabled={isSaving || !editName.trim() || !hasChanges}
+                                                className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all disabled:opacity-50 ${
+                                                    hasChanges
+                                                        ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
+                                                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                }`}
                                             >
                                                 {isSaving ? <LoaderCircle size={12} className="animate-spin" /> : <Check size={12} />}
-                                                Guardar
+                                                {hasChanges ? 'Guardar Cambios' : 'Guardar'}
                                             </button>
                                             <button
                                                 onClick={() => setEditingId(null)}
@@ -213,6 +220,8 @@ export default function PlataformasPage() {
                                             </button>
                                         </div>
                                     </div>
+                                        );
+                                    })()
                                 ) : (
                                     <>
                                         <h3 className="text-sm font-bold text-gray-900 mb-1">{platform.name}</h3>
