@@ -104,3 +104,38 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Error al guardar la plataforma.' }, { status: 500 });
     }
 }
+
+export async function PATCH(req: Request) {
+    try {
+        const { response } = await requireAuth(req, ['admin']);
+        if (response) return response;
+
+        const { id, name, description } = await req.json();
+        if (!id) return NextResponse.json({ error: 'ID requerido.' }, { status: 400 });
+
+        const updateData: Record<string, string> = {};
+        if (name !== undefined) updateData.name = String(name).trim();
+        if (description !== undefined) updateData.description = String(description).trim();
+
+        if (Object.keys(updateData).length === 0) {
+            return NextResponse.json({ error: 'Nada que actualizar.' }, { status: 400 });
+        }
+
+        const { data, error } = await supabaseAdmin
+            .from('platforms')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            if (error.code === '23505') return NextResponse.json({ error: 'Ya existe una plataforma con ese nombre.' }, { status: 400 });
+            throw error;
+        }
+
+        return NextResponse.json({ platform: data });
+    } catch (error: unknown) {
+        console.error('PATCH /api/admin/platforms error:', error);
+        return NextResponse.json({ error: 'Error al actualizar la plataforma.' }, { status: 500 });
+    }
+}

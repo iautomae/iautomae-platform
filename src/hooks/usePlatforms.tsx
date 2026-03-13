@@ -91,5 +91,20 @@ export function usePlatforms() {
         }
     };
 
-    return { platforms, loading, error, createPlatform, refetch: fetchPlatforms };
+    const updatePlatform = async (id: string, name: string, description: string): Promise<void> => {
+        const token = (await supabase.auth.getSession()).data.session?.access_token;
+        const res = await fetch('/api/admin/platforms', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ id, name, description }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al actualizar plataforma');
+        await fetchPlatforms();
+    };
+
+    return { platforms, loading, error, createPlatform, updatePlatform, refetch: fetchPlatforms };
 }

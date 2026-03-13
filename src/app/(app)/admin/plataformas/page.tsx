@@ -11,19 +11,39 @@ import {
     Plus,
     X,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    Pencil,
+    Check
 } from "lucide-react";
+
+// Map platform names to routes
+const PLATFORM_ROUTES: Record<string, string> = {
+    leads: '/leads',
+    tramites: '/tramites',
+    reclutamiento: '/reclutamiento',
+    textil: '/textil',
+};
+
+function normalizeName(name: string): string {
+    return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+}
 
 export default function PlataformasPage() {
     const { profile, loading: profileLoading } = useProfile();
     const router = useRouter();
-    const { platforms, loading: platformsLoading, createPlatform } = usePlatforms();
+    const { platforms, loading: platformsLoading, createPlatform, updatePlatform } = usePlatforms();
 
     // Create modal state
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [newName, setNewName] = useState('');
     const [newDesc, setNewDesc] = useState('');
     const [isCreating, setIsCreating] = useState(false);
+
+    // Edit state
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editName, setEditName] = useState('');
+    const [editDesc, setEditDesc] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     // Toast
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -64,6 +84,40 @@ export default function PlataformasPage() {
         }
     };
 
+    const startEdit = (platform: { id: string; name: string; description: string }) => {
+        setEditingId(platform.id);
+        setEditName(platform.name);
+        setEditDesc(platform.description);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingId || !editName.trim()) return;
+        setIsSaving(true);
+        try {
+            await updatePlatform(editingId, editName, editDesc);
+            setToast({ message: 'Plataforma actualizada.', type: 'success' });
+            setEditingId(null);
+        } catch (err: any) {
+            setToast({ message: err.message, type: 'error' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleNavigate = (platform: { name: string }) => {
+        // Try to find a matching route by normalized original name or common aliases
+        const normalized = normalizeName(platform.name);
+        // Check direct match or known routes
+        const route = PLATFORM_ROUTES[normalized]
+            || Object.entries(PLATFORM_ROUTES).find(([key]) => normalized.includes(key))?.[1];
+
+        if (route) {
+            router.push(route);
+        } else {
+            setToast({ message: `Ruta para "${platform.name}" aún no configurada.`, type: 'error' });
+        }
+    };
+
     return (
         <div className="bg-background animate-in fade-in duration-500 overflow-y-auto" style={{ height: 'calc(100vh - 2rem)' }}>
             <div className="w-full max-w-[70rem] mx-auto px-6 py-8">
@@ -96,14 +150,24 @@ export default function PlataformasPage() {
                     {platforms.map((platform) => {
                         const IconComp = getIconComponent(platform.icon);
                         const colors = getColorClasses(platform.color);
+                        const isEditing = editingId === platform.id;
 
                         return (
                             <div
                                 key={platform.id}
                                 className={`relative group bg-white rounded-xl border ${colors.border} p-4 transition-all duration-300 hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5`}
                             >
-                                {/* Status Badge */}
-                                <div className="absolute top-4 right-4">
+                                {/* Status Badge + Edit Button */}
+                                <div className="absolute top-4 right-4 flex items-center gap-2">
+                                    {!isEditing && (
+                                        <button
+                                            onClick={() => startEdit(platform)}
+                                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-all"
+                                            title="Editar nombre"
+                                        >
+                                            <Pencil size={12} />
+                                        </button>
+                                    )}
                                     <span className="inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full bg-green-50 text-green-600 border border-green-200 uppercase tracking-wider">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                                         Activo
@@ -115,19 +179,59 @@ export default function PlataformasPage() {
                                     <IconComp size={18} className={colors.text} />
                                 </div>
 
-                                {/* Content */}
-                                <h3 className="text-sm font-bold text-gray-900 mb-1">{platform.name}</h3>
-                                <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                                    {platform.description}
-                                </p>
+                                {/* Content — editable or static */}
+                                {isEditing ? (
+                                    <div className="space-y-2 mb-4">
+                                        <input
+                                            type="text"
+                                            value={editName}
+                                            onChange={e => setEditName(e.target.value)}
+                                            className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none"
+                                            autoFocus
+                                        />
+                                        <input
+                                            type="text"
+                                            value={editDesc}
+                                            onChange={e => setEditDesc(e.target.value)}
+                                            className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none"
+                                            placeholder="Descripción..."
+                                        />
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleSaveEdit}
+                                                disabled={isSaving || !editName.trim()}
+                                                className="flex items-center gap-1 px-3 py-1.5 bg-brand-primary text-white text-[10px] font-bold rounded-lg hover:bg-brand-primary/90 transition-all disabled:opacity-50"
+                                            >
+                                                {isSaving ? <LoaderCircle size={12} className="animate-spin" /> : <Check size={12} />}
+                                                Guardar
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingId(null)}
+                                                className="px-3 py-1.5 text-[10px] font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <h3 className="text-sm font-bold text-gray-900 mb-1">{platform.name}</h3>
+                                        <p className="text-xs text-gray-500 leading-relaxed mb-4">
+                                            {platform.description}
+                                        </p>
+                                    </>
+                                )}
 
-                                {/* Action */}
-                                <button
-                                    className={`inline-flex items-center gap-2 text-xs font-bold ${colors.text} hover:underline transition-all group/btn`}
-                                >
-                                    Gestionar módulo
-                                    <ArrowRight size={14} className="transition-transform group-hover/btn:translate-x-1" />
-                                </button>
+                                {/* Action — Navigate */}
+                                {!isEditing && (
+                                    <button
+                                        onClick={() => handleNavigate(platform)}
+                                        className={`inline-flex items-center gap-2 text-xs font-bold ${colors.text} hover:underline transition-all group/btn`}
+                                    >
+                                        Gestionar módulo
+                                        <ArrowRight size={14} className="transition-transform group-hover/btn:translate-x-1" />
+                                    </button>
+                                )}
                             </div>
                         );
                     })}
