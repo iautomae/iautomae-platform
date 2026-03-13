@@ -1379,7 +1379,7 @@ export default function DynamicLeadsDashboard() {
                                         onClick={() => { setFilterStatus('ALL'); setFilterEstado(null); setCurrentPage(1); }}
                                         className={cn(
                                             "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
-                                            filterStatus === 'ALL' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                                            filterStatus === 'ALL' && !filterEstado ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
                                         )}
                                     >
                                         Todos ({realLeads.length})
@@ -1388,7 +1388,7 @@ export default function DynamicLeadsDashboard() {
                                         onClick={() => { setFilterStatus('NO_POTENCIAL'); setFilterEstado(null); setCurrentPage(1); }}
                                         className={cn(
                                             "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
-                                            filterStatus === 'NO_POTENCIAL' ? "bg-white text-red-600 shadow-sm" : "text-gray-500 hover:text-red-500"
+                                            filterStatus === 'NO_POTENCIAL' && !filterEstado ? "bg-white text-red-600 shadow-sm" : "text-gray-500 hover:text-red-500"
                                         )}
                                     >
                                         No Aptos ({realLeads.filter(l => l.status === 'NO_POTENCIAL').length})
@@ -1397,7 +1397,7 @@ export default function DynamicLeadsDashboard() {
                                         onClick={() => { setFilterStatus('POTENCIAL'); setFilterEstado(null); setCurrentPage(1); }}
                                         className={cn(
                                             "px-6 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
-                                            filterStatus === 'POTENCIAL' ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-emerald-600"
+                                            filterStatus === 'POTENCIAL' && !filterEstado ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-emerald-600"
                                         )}
                                     >
                                         Aptos ({realLeads.filter(l => l.status === 'POTENCIAL').length})
@@ -1412,7 +1412,7 @@ export default function DynamicLeadsDashboard() {
                                         return (
                                             <button
                                                 key={btn.value}
-                                                onClick={() => { setFilterEstado(isActive ? null : btn.value); if (!isActive) setFilterStatus('POTENCIAL'); setCurrentPage(1); }}
+                                                onClick={() => { setFilterEstado(btn.value); setFilterStatus('POTENCIAL'); setCurrentPage(1); }}
                                                 className={cn(
                                                     "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
                                                     isActive ? btn.activeClass : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
@@ -2732,11 +2732,23 @@ export default function DynamicLeadsDashboard() {
                                                     const name = (document.getElementById('edit-lead-name') as HTMLInputElement).value;
                                                     const advisor_name = crmModalLead.advisor_name || (document.getElementById('edit-lead-advisor') as HTMLInputElement)?.value || '';
                                                     setIsSavingLead(true);
-                                                    await handleUpdateLead(crmModalLead.id, {
+                                                    const updates: Partial<Lead> = {
                                                         name,
                                                         status: crmModalLead.status,
                                                         advisor_name
-                                                    });
+                                                    };
+                                                    // Si cambia a NO_POTENCIAL, limpiar estado, asesor y campos CRM
+                                                    if (crmModalLead.status === 'NO_POTENCIAL') {
+                                                        updates.advisor_name = '';
+                                                        updates.estado = '';
+                                                        updates.notas_seguimiento = '';
+                                                        updates.fecha_seguimiento = '';
+                                                        updates.tipo_tramite = '';
+                                                        updates.motivo_descarte = '';
+                                                        updates.primer_pago = '';
+                                                        updates.segundo_pago = '';
+                                                    }
+                                                    await handleUpdateLead(crmModalLead.id, updates);
                                                     setIsSavingLead(false);
                                                     setCrmModalType(null);
                                                 }}
