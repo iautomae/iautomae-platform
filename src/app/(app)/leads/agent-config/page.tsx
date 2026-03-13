@@ -87,7 +87,7 @@ export default function AgentConfigPage() {
     // Form States
     const [nombre, setNombre] = useState('');
     const [personalidad, setPersonalidad] = useState('Asesor de ventas / Asistente Comercial');
-    const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
+    const [systemPrompt, setSystemPrompt] = useState('');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [syncedNumbers, setSyncedNumbers] = useState<any[]>([]);
     const [isSyncing, setIsSyncing] = useState(false);

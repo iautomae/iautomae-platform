@@ -117,7 +117,6 @@ export default function DynamicLeadsDashboard() {
 
     const fetchLeads = React.useCallback(async () => {
         if (!activeAgentId) {
-            if (view === 'LEADS' && !isClient && !isTenantOwner) setView('GALLERY');
             return;
         }
 
@@ -226,20 +225,24 @@ export default function DynamicLeadsDashboard() {
         }
     }, [activeAgentId, agents, isLoading, isClient, isTenantOwner]);
 
+    // Stable ref for fetchLeads to avoid restarting the polling interval
+    const fetchLeadsRef = React.useRef(fetchLeads);
+    React.useEffect(() => { fetchLeadsRef.current = fetchLeads; }, [fetchLeads]);
+
     // Fetch leads effect with polling (realtime blocked by RLS for tenant_owners/clients)
     React.useEffect(() => {
-        if (view === 'LEADS' && user?.id) {
-            fetchLeads();
+        if (view === 'LEADS' && user?.id && activeAgentId) {
+            fetchLeadsRef.current();
 
             const interval = setInterval(() => {
-                fetchLeads();
+                fetchLeadsRef.current();
             }, 15000); // Poll every 15 seconds
 
             return () => {
                 clearInterval(interval);
             };
         }
-    }, [view, user, fetchLeads]);
+    }, [view, user?.id, activeAgentId]);
 
     // Load Real Agents
     React.useEffect(() => {
