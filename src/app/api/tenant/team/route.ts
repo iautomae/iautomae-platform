@@ -21,27 +21,45 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
         }
 
-        // 2. Obtener perfil del caller y verificar que es tenant_owner
+        // 2. Obtener perfil del caller
         const { data: callerProfile, error: profileError } = await supabaseAdmin
             .from('profiles')
             .select('id, role, tenant_id')
             .eq('id', user.id)
             .single();
 
-        if (profileError || !callerProfile || callerProfile.role !== 'tenant_owner') {
+        if (profileError || !callerProfile) {
+            return NextResponse.json({ error: 'Perfil no encontrado.' }, { status: 403 });
+        }
+
+        // Admin can view any tenant's team via ?tenant_id= query param
+        const url = new URL(req.url);
+        const queryTenantId = url.searchParams.get('tenant_id');
+
+        let tenantId: string;
+        let excludeId: string;
+
+        if (callerProfile.role === 'admin' && queryTenantId) {
+            tenantId = queryTenantId;
+            excludeId = ''; // Don't exclude anyone — admin is not a member
+        } else if (callerProfile.role === 'tenant_owner' && callerProfile.tenant_id) {
+            tenantId = callerProfile.tenant_id;
+            excludeId = callerProfile.id;
+        } else {
             return NextResponse.json({ error: 'Solo el propietario puede ver el equipo.' }, { status: 403 });
         }
 
-        if (!callerProfile.tenant_id) {
-            return NextResponse.json({ error: 'No se encontró el tenant.' }, { status: 400 });
-        }
-
-        // 3. Obtener todos los perfiles del tenant (excepto el caller)
-        const { data: members, error: membersError } = await supabaseAdmin
+        // 3. Obtener todos los perfiles del tenant
+        let membersQuery = supabaseAdmin
             .from('profiles')
             .select('id, email, full_name, role, features, has_leads_access')
-            .eq('tenant_id', callerProfile.tenant_id)
-            .neq('id', callerProfile.id);
+            .eq('tenant_id', tenantId);
+
+        if (excludeId) {
+            membersQuery = membersQuery.neq('id', excludeId);
+        }
+
+        const { data: members, error: membersError } = await membersQuery;
 
         if (membersError) {
             console.error('Error fetching team:', membersError);

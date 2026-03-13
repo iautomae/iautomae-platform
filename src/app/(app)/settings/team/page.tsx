@@ -127,7 +127,10 @@ export default function TeamPage() {
         setLoading(true);
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
-            const res = await fetch("/api/tenant/team", {
+            const teamUrl = isImpersonating && profile?.tenant_id
+                ? `/api/tenant/team?tenant_id=${profile.tenant_id}`
+                : "/api/tenant/team";
+            const res = await fetch(teamUrl, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
             const data = await res.json();
