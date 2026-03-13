@@ -1,14 +1,17 @@
 "use client";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LeadsRedirect() {
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
-        // Default redirect for the simplified UI version
-        router.push("/leads/app/dashboard");
-    }, [router]);
+        // Preserve query params (e.g. ?view_as=) during redirect
+        const params = searchParams.toString();
+        const target = `/leads/app/dashboard${params ? `?${params}` : ''}`;
+        router.push(target);
+    }, [router, searchParams]);
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-white">

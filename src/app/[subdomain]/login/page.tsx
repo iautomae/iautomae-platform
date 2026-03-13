@@ -51,9 +51,13 @@ function LoginContent({ subdomain }: { subdomain: string }) {
 
             if (signInError) throw signInError;
 
-            // Mark tenant as active on first successful login
+            // Mark tenant as active on first successful login (via API to bypass RLS)
             if (subdomain) {
-                supabase.from('tenants').update({ branding_complete: true }).eq('slug', subdomain).then();
+                fetch('/api/tenant/mark-active', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ slug: subdomain }),
+                }).catch(() => {});
             }
 
             // Redirect to leads (AuthGuard will handle routing to first available feature)

@@ -114,11 +114,11 @@ export default function TeamPage() {
         }
     }, [toast]);
 
-    // ── Plataformas a las que el owner tiene acceso ──
+    // ── Plataformas a las que el owner tiene acceso (usa route_key estático) ──
     const ownerPlatformKeys = React.useMemo(() => {
         if (!profile) return [];
         return dbPlatforms
-            .map(p => p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_"))
+            .map(p => p.route_key || p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_"))
             .filter(key => {
                 if (key === "leads") return profile.features?.["leads"] || profile.has_leads_access;
                 return profile.features?.[key];
@@ -376,9 +376,7 @@ export default function TeamPage() {
     const selectedMember = members.find(m => m.id === selectedId);
 
     const getPlatformLabel = (key: string) => {
-        const plat = dbPlatforms.find(
-            p => p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_") === key
-        );
+        const plat = dbPlatforms.find(p => (p.route_key || p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_")) === key);
         return plat?.name || PLATFORM_TABS[key]?.label || key;
     };
 
@@ -555,7 +553,7 @@ export default function TeamPage() {
 
                                         {ownerPlatformKeys.map(platformKey => {
                                             const dbPlat = dbPlatforms.find(
-                                                p => p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_") === platformKey
+                                                p => (p.route_key || p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_")) === platformKey
                                             );
                                             const IconComp = dbPlat ? getIconComponent(dbPlat.icon) : Shield;
                                             const colors = dbPlat ? getColorClasses(dbPlat.color) : { text: "text-gray-600", bg: "bg-gray-50", border: "border-gray-200" };

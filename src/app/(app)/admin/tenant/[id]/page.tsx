@@ -388,7 +388,7 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
                                                     })}
                                                     </div>
                                                     <Link
-                                                        href={`/leads?view_as=${owner.id}`}
+                                                        href={`/leads/app/dashboard?view_as=${owner.id}`}
                                                         className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 text-[10px] font-bold rounded-lg transition-all border border-purple-200 shrink-0"
                                                     >
                                                         <ExternalLink size={12} />
@@ -468,7 +468,7 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
                                                             Empleado
                                                         </span>
                                                         <Link
-                                                            href={`/leads?view_as=${selectedUser.id}`}
+                                                            href={`/leads/app/dashboard?view_as=${selectedUser.id}`}
                                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white text-[10px] font-bold rounded-lg transition-all border border-brand-primary/20"
                                                         >
                                                             <ExternalLink size={12} />
