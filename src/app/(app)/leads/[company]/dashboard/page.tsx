@@ -1391,7 +1391,7 @@ export default function DynamicLeadsDashboard() {
                                 </div>
 
                                 {/* Estado Filter Buttons */}
-                                <div className="flex bg-gray-200/50 p-1 rounded-xl">
+                                <div className="flex bg-gray-300/60 p-1 rounded-xl shadow-sm border border-gray-100/30">
                                     {ESTADO_FILTER_BUTTONS.map((btn) => {
                                         const isActive = filterEstado === btn.value;
                                         const count = realLeads.filter(l => l.estado === btn.value).length;
