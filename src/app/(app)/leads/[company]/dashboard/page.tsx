@@ -89,8 +89,8 @@ export default function DynamicLeadsDashboard() {
     // Advisor visibility for clients (loaded from tenant-agents API)
     const [leadsVisibleAdvisors, setLeadsVisibleAdvisors] = useState<'all' | number[]>('all');
 
-    // UI States — clients skip GALLERY entirely
-    const [view, setView] = useState<'GALLERY' | 'LEADS'>('GALLERY');
+    // UI States — clients and tenant_owners skip GALLERY entirely
+    const [view, setView] = useState<'GALLERY' | 'LEADS'>((isClient || isTenantOwner) ? 'LEADS' : 'GALLERY');
     const [editableCompany, setEditableCompany] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem(`panel_name_${company}`);
@@ -267,6 +267,9 @@ export default function DynamicLeadsDashboard() {
                         data = json.agents;
                         if (isClient) {
                             setLeadsVisibleAdvisors(json.leadsVisibleAdvisors || 'all');
+                        }
+                        if (json.tenantName) {
+                            setEditableCompany(json.tenantName);
                         }
                     } else {
                         const errJson = await res.json();
@@ -1141,8 +1144,8 @@ export default function DynamicLeadsDashboard() {
                     </div>
                     <div className="flex gap-3">
                         {isClient ? null : isTenantOwner ? (
-                            /* Tenant owner: show agent config + notifications buttons */
-                            <>
+                            /* Tenant owner: show agent config + notifications buttons only when loaded */
+                            activeAgentId ? <>
                                 {activeAgentId && (
                                     <Link
                                         href={`/leads/agent-config?id=${activeAgentId}`}
@@ -1171,7 +1174,7 @@ export default function DynamicLeadsDashboard() {
                                     <Bell size={16} />
                                     Notificaciones {isPushoverConfigured(activeAgentId) && <Check size={14} className="ml-1" />}
                                 </button>
-                            </>
+                            </> : null
                         ) : view === 'GALLERY' ? (
                             <button
                                 onClick={handleOpenCreateModal}

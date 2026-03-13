@@ -53,9 +53,17 @@ export async function GET(request: Request) {
         const callerFeatures = context.profile.features || {};
         const leadsVisibleAdvisors = callerFeatures.leads_visible_advisors || 'all';
 
+        // Fetch tenant name for display
+        const { data: tenant } = await supabaseAdmin
+            .from('tenants')
+            .select('nombre')
+            .eq('id', tenantId)
+            .single();
+
         return NextResponse.json({
             agents: agents || [],
             leadsVisibleAdvisors,
+            tenantName: tenant?.nombre || null,
         });
     } catch (error: unknown) {
         console.error('Error fetching tenant agents:', error);
