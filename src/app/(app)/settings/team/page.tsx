@@ -466,14 +466,6 @@ export default function TeamPage() {
                                                 : "bg-white border-gray-200 shadow-sm hover:border-gray-300 hover:shadow-md"
                                         )}
                                     >
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 text-lg transition-colors",
-                                            isSelected
-                                                ? "bg-brand-primary/10 text-brand-primary border border-brand-primary/20"
-                                                : "bg-gray-50 text-gray-500 border border-gray-200"
-                                        )}>
-                                            {member.email.charAt(0).toUpperCase()}
-                                        </div>
                                         <div className="overflow-hidden flex-1">
                                             <p className="text-sm font-bold text-gray-900 truncate">
                                                 {member.full_name || member.email}
