@@ -2103,29 +2103,6 @@ export default function DynamicLeadsDashboard() {
                                                                 />
                                                             </div>
 
-                                                            {/* Team Member Link - Links this advisor slot to a team member for lead distribution */}
-                                                            {teamMembers.length > 0 && (
-                                                                <div className="space-y-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100">
-                                                                    <label className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">Vincular a Miembro del Equipo</label>
-                                                                    <p className="text-[9px] text-gray-400 font-medium -mt-1">Los leads asignados a este asesor aparecerán en el panel del miembro seleccionado.</p>
-                                                                    <select
-                                                                        value={activeAdvisorTab === 1 ? pushoverUser1ProfileId : activeAdvisorTab === 2 ? pushoverUser2ProfileId : pushoverUser3ProfileId}
-                                                                        onChange={(e) => {
-                                                                            if (activeAdvisorTab === 1) setPushoverUser1ProfileId(e.target.value);
-                                                                            else if (activeAdvisorTab === 2) setPushoverUser2ProfileId(e.target.value);
-                                                                            else setPushoverUser3ProfileId(e.target.value);
-                                                                        }}
-                                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-5 focus:ring-2 focus:ring-purple-300/30 focus:border-purple-300 outline-none text-sm text-gray-900 font-bold transition-all shadow-sm"
-                                                                    >
-                                                                        <option value="">Sin vincular (solo propietario)</option>
-                                                                        {teamMembers.map(m => (
-                                                                            <option key={m.id} value={m.id}>
-                                                                                {m.full_name || m.email}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
-                                                                </div>
-                                                            )}
 
                                                             <div className="grid grid-cols-2 gap-4">
                                                                 <div className="space-y-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
