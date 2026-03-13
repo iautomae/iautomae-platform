@@ -7,6 +7,7 @@ type LeadRecord = {
     id: string;
     user_id: string | null;
     assigned_profile_id: string | null;
+    agent_id: string | null;
 };
 
 export async function POST(request: Request) {
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
 
         const { data: lead, error: leadError } = await supabaseAdmin
             .from('leads')
-            .select('id, user_id, assigned_profile_id')
+            .select('id, user_id, assigned_profile_id, agent_id')
             .eq('id', leadId)
             .single<LeadRecord>();
 
@@ -34,15 +35,30 @@ export async function POST(request: Request) {
         }
 
         if (context.profile.role !== 'admin') {
-            const { data: ownerProfile, error: ownerProfileError } = await getProfileById(lead.user_id || '');
-            if (ownerProfileError || !ownerProfile) {
-                return NextResponse.json({ error: 'No se pudo validar el tenant del lead.' }, { status: 403 });
+            let hasAccess = false;
+
+            // Check 1: lead owner is in the same tenant
+            if (lead.user_id) {
+                const { data: ownerProfile } = await getProfileById(lead.user_id);
+                if (ownerProfile?.tenant_id && ownerProfile.tenant_id === context.profile.tenant_id) {
+                    hasAccess = true;
+                }
+                // Check 2: lead owner is admin (shared agent) — tenant_owner/client can access
+                if (ownerProfile?.role === 'admin') {
+                    hasAccess = true;
+                }
             }
 
-            if (!context.profile.tenant_id || context.profile.tenant_id !== ownerProfile.tenant_id) {
+            // Check 3: lead is assigned to current user
+            if (context.profile.id === lead.assigned_profile_id) {
+                hasAccess = true;
+            }
+
+            if (!context.profile.tenant_id || !hasAccess) {
                 return NextResponse.json({ error: 'No puedes modificar leads de otro tenant.' }, { status: 403 });
             }
 
+            // Extra restriction for clients: must be assigned or own the lead
             if (
                 context.profile.role === 'client' &&
                 context.profile.id !== lead.assigned_profile_id &&
