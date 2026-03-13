@@ -8,10 +8,7 @@ import {
     LayoutGrid,
     Settings2,
     Bell,
-    Plus,
     FileText,
-    DollarSign,
-    ClipboardList,
     Users
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -44,7 +41,6 @@ const SUB_MENU_CONFIG = {
         items: [
             { label: 'Equipo', href: '/settings/team', icon: Users },
             { label: 'Perfil', href: '/settings/profile', icon: Settings2 },
-            { label: 'Suscripción', href: '/settings/billing', icon: Plus },
         ]
     }
 };
@@ -66,10 +62,11 @@ export function SubSidebar() {
     const config = SUB_MENU_CONFIG[activeCategory as keyof typeof SUB_MENU_CONFIG];
     if (!config) return null;
 
-    // Filter items: "Equipo" only visible to tenant_owner (or admin impersonating one)
-    const isAdminDirect = profile?.role === 'admin' && !isImpersonating;
+    // "Equipo" only visible to tenant_owner (or admin impersonating one)
+    const isTenantOwner = profile?.role === 'tenant_owner';
+    const isAdminImpersonating = profile?.role === 'admin' && isImpersonating;
     const filteredItems = config.items.filter(item => {
-        if (item.href === '/settings/team' && isAdminDirect) return false;
+        if (item.href === '/settings/team' && !isTenantOwner && !isAdminImpersonating) return false;
         return true;
     });
 
