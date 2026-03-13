@@ -343,9 +343,9 @@ export default function DynamicLeadsDashboard() {
 
             if (data && !error) {
                 setAgents(data);
-                // Auto-select first agent and skip to LEADS for all roles
+                // Auto-select last agent (most recent) and skip to LEADS for all roles
                 if (data.length > 0 && !activeAgentId) {
-                    setActiveAgentId(data[0].id);
+                    setActiveAgentId(data[data.length - 1].id);
                     setView('LEADS');
                 }
             } else {
