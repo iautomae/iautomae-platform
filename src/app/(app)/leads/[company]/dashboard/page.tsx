@@ -226,27 +226,17 @@ export default function DynamicLeadsDashboard() {
         }
     }, [activeAgentId, agents, isLoading, isClient, isTenantOwner]);
 
-    // Fetch leads effect with realtime subscription
+    // Fetch leads effect with polling (realtime blocked by RLS for tenant_owners/clients)
     React.useEffect(() => {
         if (view === 'LEADS' && user?.id) {
             fetchLeads();
 
-            const channel = supabase
-                .channel('realtime-leads-dashboard')
-                .on(
-                    'postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'leads' },
-                    () => fetchLeads()
-                )
-                .on(
-                    'postgres_changes',
-                    { event: 'DELETE', schema: 'public', table: 'leads' },
-                    () => fetchLeads()
-                )
-                .subscribe();
+            const interval = setInterval(() => {
+                fetchLeads();
+            }, 15000); // Poll every 15 seconds
 
             return () => {
-                supabase.removeChannel(channel);
+                clearInterval(interval);
             };
         }
     }, [view, user, fetchLeads]);
