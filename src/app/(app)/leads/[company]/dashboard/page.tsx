@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, LoaderCircle, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink, Zap } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, LoaderCircle, Settings, Bot, Download, Lock, ArrowLeft, ArrowRight, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -28,7 +28,7 @@ interface Lead {
     created_at: string;
     tokens_billed?: number;
     advisor_name?: string;
-    estado?: 'Sin respuesta' | 'En seguimiento' | 'Compromiso de pago' | 'Descartado' | '';
+    estado?: 'Sin respuesta' | 'En seguimiento' | 'Compromiso de pago' | 'Pagado' | 'Descartado' | '';
     notas_seguimiento?: string;
     fecha_seguimiento?: string;
     tipo_tramite?: string;
@@ -42,6 +42,7 @@ const CRM_ESTADOS = [
     { value: 'Sin respuesta', label: 'Sin respuesta', color: 'bg-gray-100 text-gray-600 border-gray-200', activeColor: 'bg-gray-700 text-white border-gray-700' },
     { value: 'En seguimiento', label: 'En seguimiento', color: 'bg-blue-50 text-blue-600 border-blue-200', activeColor: 'bg-blue-600 text-white border-blue-600' },
     { value: 'Compromiso de pago', label: 'Compromiso de pago', color: 'bg-amber-50 text-amber-600 border-amber-200', activeColor: 'bg-amber-600 text-white border-amber-600' },
+    { value: 'Pagado', label: 'Pagado', color: 'bg-green-50 text-green-600 border-green-200', activeColor: 'bg-green-600 text-white border-green-600' },
     { value: 'Descartado', label: 'Descartado sin interés', color: 'bg-red-50 text-red-600 border-red-200', activeColor: 'bg-red-600 text-white border-red-600' },
 ];
 
@@ -49,6 +50,7 @@ const ESTADO_FILTER_BUTTONS = [
     { value: 'Sin respuesta', label: 'Sin respuesta', activeClass: 'bg-white text-gray-700 shadow-sm' },
     { value: 'En seguimiento', label: 'Seguimiento', activeClass: 'bg-white text-blue-600 shadow-sm' },
     { value: 'Compromiso de pago', label: 'Para pago', activeClass: 'bg-white text-amber-600 shadow-sm' },
+    { value: 'Pagado', label: 'Pagado', activeClass: 'bg-white text-green-600 shadow-sm' },
 ];
 
 const MOTIVOS_DESCARTE = [
@@ -137,7 +139,8 @@ export default function DynamicLeadsDashboard() {
     const [crmModalType, setCrmModalType] = useState<'INFO' | 'FOLLOW_UP' | null>(null);
     const [isSavingLead, setIsSavingLead] = useState(false);
 
-
+    // Calendar panel
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     // Lead Stats
     const [realLeads, setRealLeads] = useState<Lead[]>([]);
@@ -1261,23 +1264,49 @@ export default function DynamicLeadsDashboard() {
                                 </div>
 
                                 {/* Estado Filter Buttons */}
-                                <div className="flex bg-gray-300/60 p-1 rounded-xl shadow-sm border border-gray-100/30">
-                                    {ESTADO_FILTER_BUTTONS.map((btn) => {
-                                        const isActive = filterEstado === btn.value;
-                                        const count = realLeads.filter(l => l.estado === btn.value).length;
+                                <div className="flex items-center gap-3">
+                                    <div className="flex bg-gray-300/60 p-1 rounded-xl shadow-sm border border-gray-100/30">
+                                        {ESTADO_FILTER_BUTTONS.map((btn) => {
+                                            const isActive = filterEstado === btn.value;
+                                            const count = realLeads.filter(l => l.estado === btn.value).length;
+                                            return (
+                                                <button
+                                                    key={btn.value}
+                                                    onClick={() => { setFilterEstado(btn.value); setFilterStatus('POTENCIAL'); setCurrentPage(1); }}
+                                                    className={cn(
+                                                        "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+                                                        isActive ? btn.activeClass : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
+                                                    )}
+                                                >
+                                                    {btn.label} ({count})
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Calendar Icon with Today Alert */}
+                                    {(() => {
+                                        const today = new Date().toISOString().slice(0, 10);
+                                        const todayCount = realLeads.filter(l => l.fecha_seguimiento && l.fecha_seguimiento.slice(0, 10) === today).length;
+                                        const totalScheduled = realLeads.filter(l => !!l.fecha_seguimiento).length;
                                         return (
                                             <button
-                                                key={btn.value}
-                                                onClick={() => { setFilterEstado(btn.value); setFilterStatus('POTENCIAL'); setCurrentPage(1); }}
-                                                className={cn(
-                                                    "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
-                                                    isActive ? btn.activeClass : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
-                                                )}
+                                                onClick={() => setIsCalendarOpen(true)}
+                                                className="relative p-2.5 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-brand-primary/30 transition-all group"
+                                                title={`Calendario de seguimientos${todayCount > 0 ? ` — ${todayCount} para hoy` : ''}`}
                                             >
-                                                {btn.label} ({count})
+                                                <Calendar size={16} className="text-gray-500 group-hover:text-brand-primary transition-colors" />
+                                                {todayCount > 0 && (
+                                                    <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 bg-amber-400 text-white text-[9px] font-black rounded-full shadow-md shadow-amber-400/40 animate-pulse">
+                                                        {todayCount}
+                                                    </span>
+                                                )}
+                                                {todayCount === 0 && totalScheduled > 0 && (
+                                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-white shadow-sm" />
+                                                )}
                                             </button>
                                         );
-                                    })}
+                                    })()}
                                 </div>
                             </div>
 
@@ -2730,7 +2759,7 @@ export default function DynamicLeadsDashboard() {
                                     </div>
 
                                     {/* Section 4: Pagos — for Compromiso de pago and Pagado */}
-                                    {crmModalLead.estado === 'Compromiso de pago' && (
+                                    {(crmModalLead.estado === 'Compromiso de pago' || crmModalLead.estado === 'Pagado') && (
                                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                             <label className="text-[10px] font-bold text-amber-500 uppercase tracking-widest ml-1">Registro de Pagos</label>
                                             <div className="grid grid-cols-2 gap-2">
@@ -2841,6 +2870,150 @@ export default function DynamicLeadsDashboard() {
                         </div>
                     </>
                 )}
+            {/* Calendar Panel — Scheduled Follow-ups */}
+            {isCalendarOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setIsCalendarOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden animate-in slide-in-from-bottom-4 duration-300" onClick={e => e.stopPropagation()}>
+                        {(() => {
+                            const today = new Date().toISOString().slice(0, 10);
+                            const scheduledLeads = realLeads
+                                .filter(l => !!l.fecha_seguimiento)
+                                .sort((a, b) => new Date(a.fecha_seguimiento!).getTime() - new Date(b.fecha_seguimiento!).getTime());
+
+                            // Group by date
+                            const grouped: Record<string, Lead[]> = {};
+                            for (const lead of scheduledLeads) {
+                                const dateKey = lead.fecha_seguimiento!.slice(0, 10);
+                                if (!grouped[dateKey]) grouped[dateKey] = [];
+                                grouped[dateKey].push(lead);
+                            }
+                            const dateKeys = Object.keys(grouped).sort();
+
+                            const formatDate = (dateStr: string) => {
+                                if (dateStr === today) return 'Hoy';
+                                const tomorrow = new Date();
+                                tomorrow.setDate(tomorrow.getDate() + 1);
+                                if (dateStr === tomorrow.toISOString().slice(0, 10)) return 'Mañana';
+                                const d = new Date(dateStr + 'T12:00:00');
+                                return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+                            };
+
+                            const formatTime = (isoStr: string) => {
+                                const d = new Date(isoStr);
+                                return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                            };
+
+                            return (
+                                <>
+                                    {/* Header */}
+                                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-brand-primary/10 rounded-xl">
+                                                <Calendar size={20} className="text-brand-primary" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-lg font-bold text-gray-900">Calendario de Seguimientos</h2>
+                                                <p className="text-xs text-gray-500">{scheduledLeads.length} contacto{scheduledLeads.length !== 1 ? 's' : ''} agendado{scheduledLeads.length !== 1 ? 's' : ''}</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setIsCalendarOpen(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                                            <X size={18} className="text-gray-400" />
+                                        </button>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="overflow-y-auto p-6 space-y-5" style={{ maxHeight: 'calc(80vh - 72px)' }}>
+                                        {dateKeys.length === 0 ? (
+                                            <div className="text-center py-12">
+                                                <Calendar size={40} className="text-gray-200 mx-auto mb-3" />
+                                                <p className="text-sm font-bold text-gray-400">No hay seguimientos agendados</p>
+                                                <p className="text-xs text-gray-300 mt-1">Agenda fechas de contacto desde el CRM de cada lead.</p>
+                                            </div>
+                                        ) : (
+                                            dateKeys.map(dateKey => {
+                                                const isToday = dateKey === today;
+                                                const isPast = dateKey < today;
+                                                return (
+                                                    <div key={dateKey}>
+                                                        {/* Date Header */}
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            {isToday && (
+                                                                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                                                            )}
+                                                            <h3 className={cn(
+                                                                "text-xs font-black uppercase tracking-widest",
+                                                                isToday ? "text-amber-600" : isPast ? "text-red-400" : "text-gray-400"
+                                                            )}>
+                                                                {formatDate(dateKey)}
+                                                            </h3>
+                                                            {isPast && !isToday && (
+                                                                <span className="text-[9px] font-bold text-red-400 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">Vencido</span>
+                                                            )}
+                                                            <span className="text-[9px] text-gray-300 font-medium">{grouped[dateKey].length} lead{grouped[dateKey].length !== 1 ? 's' : ''}</span>
+                                                        </div>
+
+                                                        {/* Leads for this date */}
+                                                        <div className="space-y-2">
+                                                            {grouped[dateKey].map(lead => (
+                                                                <div
+                                                                    key={lead.id}
+                                                                    onClick={() => {
+                                                                        setIsCalendarOpen(false);
+                                                                        setSelectedLead(lead);
+                                                                        setCrmModalLead(lead);
+                                                                        setCrmModalType('FOLLOW_UP');
+                                                                    }}
+                                                                    className={cn(
+                                                                        "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5",
+                                                                        isToday ? "bg-amber-50/50 border-amber-200 hover:border-amber-300" : isPast ? "bg-red-50/30 border-red-100 hover:border-red-200" : "bg-white border-gray-100 hover:border-gray-200"
+                                                                    )}
+                                                                >
+                                                                    {/* Time */}
+                                                                    <div className={cn(
+                                                                        "text-xs font-bold tabular-nums shrink-0 w-12 text-center",
+                                                                        isToday ? "text-amber-600" : isPast ? "text-red-400" : "text-gray-400"
+                                                                    )}>
+                                                                        {formatTime(lead.fecha_seguimiento!)}
+                                                                    </div>
+
+                                                                    <div className="w-px h-8 bg-gray-200 shrink-0" />
+
+                                                                    {/* Lead Info */}
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-bold text-gray-900 truncate">{lead.name}</p>
+                                                                        <p className="text-[10px] text-gray-400 truncate">{lead.phone}{lead.advisor_name ? ` · ${lead.advisor_name}` : ''}</p>
+                                                                    </div>
+
+                                                                    {/* Estado Badge */}
+                                                                    {lead.estado && (
+                                                                        <span className={cn(
+                                                                            "text-[9px] font-bold px-2 py-1 rounded-full border shrink-0",
+                                                                            lead.estado === 'En seguimiento' ? "bg-blue-50 text-blue-600 border-blue-200"
+                                                                                : lead.estado === 'Compromiso de pago' ? "bg-amber-50 text-amber-600 border-amber-200"
+                                                                                : lead.estado === 'Pagado' ? "bg-green-50 text-green-600 border-green-200"
+                                                                                : lead.estado === 'Sin respuesta' ? "bg-gray-50 text-gray-500 border-gray-200"
+                                                                                : "bg-gray-50 text-gray-500 border-gray-200"
+                                                                        )}>
+                                                                            {lead.estado}
+                                                                        </span>
+                                                                    )}
+
+                                                                    <ArrowRight size={14} className="text-gray-300 shrink-0" />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </>
+                            );
+                        })()}
+                    </div>
+                </div>
+            )}
+
             </div >
         </div >
     );
