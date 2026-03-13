@@ -89,13 +89,13 @@ export async function POST(req: Request) {
         }
 
         const resendResult = await resend.emails.send({
-            from: 'Opps One <admin@opps.one>',
+            from: `${normalizedCompanyName} <admin@opps.one>`,
             to: normalizedEmail,
-            subject: `Has sido invitado a administrar ${normalizedCompanyName} en Opps One`,
+            subject: `Has sido invitado a administrar ${normalizedCompanyName}`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 16px; background-color: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb;">
                     <div style="text-align: center; margin-bottom: 12px;">
-                        <h1 style="color: #2CDB9B; margin: 0; font-size: 22px;">Opps One</h1>
+                        <h1 style="color: #2CDB9B; margin: 0; font-size: 22px;">${normalizedCompanyName}</h1>
                     </div>
                     <div style="background-color: white; padding: 20px; border-radius: 8px;">
                         <h2 style="color: #111827; margin-top: 0; font-size: 16px;">Bienvenido a tu espacio de trabajo</h2>
