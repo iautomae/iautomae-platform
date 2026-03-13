@@ -2722,7 +2722,8 @@ export default function DynamicLeadsDashboard() {
                                         </div>
                                     </div>
 
-                                    {/* Section 2: Tipo de Trámite + Detalles de la Llamada (merged) */}
+                                    {/* Section 2: Tipo de Trámite + Detalles — hidden for Pagado */}
+                                    {crmModalLead.estado !== 'Pagado' && (
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Tipo de Trámite y Detalle de Contacto</label>
                                         <textarea
@@ -2733,6 +2734,7 @@ export default function DynamicLeadsDashboard() {
                                             placeholder="Ej: Licencia L1 — Cliente interesado, se agendó cita para el lunes..."
                                         />
                                     </div>
+                                    )}
 
                                     {/* Section 4: Pagos — solo para Compromiso de pago */}
                                     {crmModalLead.estado === 'Compromiso de pago' && (
