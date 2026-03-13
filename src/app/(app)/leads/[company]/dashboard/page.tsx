@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, LoaderCircle, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, LoaderCircle, Settings, Bot, Download, Lock, ArrowLeft, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -1482,20 +1482,24 @@ export default function DynamicLeadsDashboard() {
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center text-nowrap">
-                                                        <span className={cn(
-                                                            "px-2 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wide inline-flex justify-center border min-w-[120px]",
-                                                            lead.estado === 'Sin respuesta' && "bg-gray-100 text-gray-500 border-gray-200",
-                                                            lead.estado === 'En seguimiento' && "bg-blue-100 text-blue-600 border-blue-200",
-                                                            lead.estado === 'Compromiso de pago' && "bg-amber-100 text-amber-600 border-amber-200",
-                                                            lead.estado === 'Descartado' && "bg-red-100 text-red-600 border-red-200",
-                                                            !lead.estado && "bg-gray-50 text-gray-300 border-gray-100"
-                                                        )}>
-                                                            {lead.estado || 'Sin estado'}
-                                                        </span>
+                                                        {lead.status === 'POTENCIAL' ? (
+                                                            <span className={cn(
+                                                                "px-2 py-1 rounded-lg text-[8px] font-bold uppercase tracking-wide inline-flex justify-center border min-w-[120px]",
+                                                                lead.estado === 'Sin respuesta' && "bg-gray-100 text-gray-500 border-gray-200",
+                                                                lead.estado === 'En seguimiento' && "bg-blue-100 text-blue-600 border-blue-200",
+                                                                lead.estado === 'Compromiso de pago' && "bg-amber-100 text-amber-600 border-amber-200",
+                                                                lead.estado === 'Descartado' && "bg-red-100 text-red-600 border-red-200",
+                                                                !lead.estado && "bg-gray-50 text-gray-400 border-gray-200"
+                                                            )}>
+                                                                {lead.estado || 'X Contactar'}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-300">—</span>
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
                                                         <span className="text-[10px] font-bold text-gray-700">
-                                                            {lead.advisor_name || '—'}
+                                                            {lead.status === 'POTENCIAL' ? (lead.advisor_name || '—') : '—'}
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-1.5 border-b border-l border-gray-100 text-center">
@@ -1507,19 +1511,15 @@ export default function DynamicLeadsDashboard() {
                                                             >
                                                                 <UserCog size={13} />
                                                             </button>
-                                                            <button
-                                                                onClick={() => { setCrmModalLead(lead); setCrmModalType('FOLLOW_UP'); }}
-                                                                className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-purple-600 rounded-lg transition-all"
-                                                                title="Gestión de Seguimiento"
-                                                            >
-                                                                <Calendar size={13} />
-                                                            </button>
-                                                            <button
-                                                                className="p-1.5 hover:bg-red-50 text-gray-300 hover:text-red-500 rounded-lg transition-all"
-                                                                title="Eliminar"
-                                                            >
-                                                                <Trash2 size={13} />
-                                                            </button>
+                                                            {lead.status === 'POTENCIAL' && (
+                                                                <button
+                                                                    onClick={() => { setCrmModalLead(lead); setCrmModalType('FOLLOW_UP'); }}
+                                                                    className="p-1.5 hover:bg-amber-50 text-gray-400 hover:text-amber-600 rounded-lg transition-all"
+                                                                    title="Gestionar Lead"
+                                                                >
+                                                                    <Zap size={13} />
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -2667,23 +2667,50 @@ export default function DynamicLeadsDashboard() {
                                     </button>
                                 </div>
 
-                                {/* Opción 3: Asesor */}
+                                {/* Opción 3: Asesor — from pushover config */}
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Asesor Asignado</label>
-                                    <input
-                                        type="text"
-                                        defaultValue={crmModalLead.advisor_name || ''}
-                                        id="edit-lead-advisor"
-                                        placeholder="Nombre del asesor..."
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
-                                    />
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Asignar Asesor</label>
+                                    {(() => {
+                                        const activeAgent = agents.find(a => a.id === activeAgentId);
+                                        const advisorNames = [
+                                            activeAgent?.pushover_user_1_name,
+                                            activeAgent?.pushover_user_2_name,
+                                            activeAgent?.pushover_user_3_name,
+                                        ].filter(Boolean) as string[];
+                                        return advisorNames.length > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {advisorNames.map((adv) => (
+                                                    <button
+                                                        key={adv}
+                                                        onClick={() => setCrmModalLead({ ...crmModalLead, advisor_name: crmModalLead.advisor_name === adv ? '' : adv })}
+                                                        className={cn(
+                                                            "px-4 py-3 rounded-2xl text-sm font-medium border transition-all flex-1 min-w-0",
+                                                            crmModalLead.advisor_name === adv
+                                                                ? "bg-brand-primary/10 border-brand-primary/30 text-brand-primary font-bold"
+                                                                : "bg-gray-50 border-gray-100 text-gray-500 hover:border-brand-primary/20"
+                                                        )}
+                                                    >
+                                                        {adv}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                defaultValue={crmModalLead.advisor_name || ''}
+                                                id="edit-lead-advisor"
+                                                placeholder="Nombre del asesor..."
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
+                                            />
+                                        );
+                                    })()}
                                 </div>
 
                                 <div className="pt-2">
                                     <button
                                         onClick={async () => {
                                             const name = (document.getElementById('edit-lead-name') as HTMLInputElement).value;
-                                            const advisor_name = (document.getElementById('edit-lead-advisor') as HTMLInputElement).value;
+                                            const advisor_name = crmModalLead.advisor_name || (document.getElementById('edit-lead-advisor') as HTMLInputElement)?.value || '';
                                             setIsSavingLead(true);
                                             await handleUpdateLead(crmModalLead.id, {
                                                 name,
