@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, LoaderCircle, Settings, Bot, Download, Lock, ArrowLeft, ArrowRight, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink, Zap, ClipboardList, Phone } from 'lucide-react';
+import { Plus, Trash2, Activity, BarChart2, CheckCircle2, X, Pencil, LoaderCircle, Settings, Bot, Download, Lock, ArrowLeft, ArrowRight, ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, Bell, RotateCcw, Shield, Rocket, Check, Calendar, MessageSquare, UserCog, CheckCheck, ExternalLink, Zap, ClipboardList, Phone, DollarSign } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -140,6 +140,7 @@ export default function DynamicLeadsDashboard() {
     const [crmModalType, setCrmModalType] = useState<'INFO' | 'FOLLOW_UP' | null>(null);
     const [isSavingLead, setIsSavingLead] = useState(false);
     const [historyLead, setHistoryLead] = useState<Lead | null>(null);
+    const [registroLead, setRegistroLead] = useState<Lead | null>(null);
 
     // Calendar panel
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -1421,6 +1422,15 @@ export default function DynamicLeadsDashboard() {
                                                                     title="Historial de contacto"
                                                                 >
                                                                     <ClipboardList size={13} />
+                                                                </button>
+                                                            )}
+                                                            {lead.estado === 'Pagado' && (
+                                                                <button
+                                                                    onClick={() => setRegistroLead(lead)}
+                                                                    className="p-1.5 bg-green-50 text-green-600 border border-green-200 rounded-lg transition-all hover:scale-110 hover:shadow-md hover:shadow-green-100"
+                                                                    title="Registro de cliente"
+                                                                >
+                                                                    <DollarSign size={13} />
                                                                 </button>
                                                             )}
                                                         </div>
@@ -2776,8 +2786,8 @@ export default function DynamicLeadsDashboard() {
                                         </div>
                                     )}
 
-                                    {/* Section 5: Conditional — Motivo descarte OR Fecha */}
-                                    {crmModalLead.estado === 'Descartado' ? (
+                                    {/* Section 5: Conditional sections by estado */}
+                                    {crmModalLead.estado === 'Descartado' && (
                                         <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
                                             <label className="text-[10px] font-bold text-red-400 uppercase tracking-widest ml-1">Motivo del Descarte</label>
                                             <select
@@ -2791,7 +2801,8 @@ export default function DynamicLeadsDashboard() {
                                                 ))}
                                             </select>
                                         </div>
-                                    ) : (
+                                    )}
+                                    {(crmModalLead.estado === 'En seguimiento' || crmModalLead.estado === 'Compromiso de pago') && (
                                         <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Próximo Contacto</label>
                                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center gap-3">
@@ -3009,6 +3020,122 @@ export default function DynamicLeadsDashboard() {
                         })()}
                     </div>
                 </div>
+            )}
+
+            {/* Registro de Cliente — Popup flotante para leads Pagados */}
+            {registroLead && (
+                <>
+                    <div
+                        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] animate-in fade-in duration-200"
+                        onClick={() => setRegistroLead(null)}
+                    />
+                    <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in-95 fade-in duration-300" onClick={e => e.stopPropagation()}>
+                            {/* Header */}
+                            <div className="bg-green-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+                                <div className="flex items-center gap-3 text-white">
+                                    <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+                                        <DollarSign size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold">Registro de Cliente</p>
+                                        <p className="text-[10px] text-white/60 font-medium">Datos para trámite</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setRegistroLead(null)} className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-white/40 hover:text-white">
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Form Body */}
+                            <div className="p-6 space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nombres</label>
+                                        <input
+                                            type="text"
+                                            defaultValue={registroLead.name?.split(' ').slice(0, 1).join(' ') || ''}
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all"
+                                            placeholder="Nombre"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Apellidos</label>
+                                        <input
+                                            type="text"
+                                            defaultValue={registroLead.name?.split(' ').slice(1).join(' ') || ''}
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all"
+                                            placeholder="Apellidos"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Teléfono</label>
+                                    <input
+                                        type="tel"
+                                        defaultValue={registroLead.phone || ''}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all"
+                                        placeholder="Teléfono"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Tipo de Trámite</label>
+                                    <input
+                                        type="text"
+                                        defaultValue={registroLead.tipo_tramite || ''}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all"
+                                        placeholder="Ej: Licencia L1, Renovación..."
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">1er Pago</label>
+                                        <input
+                                            type="text"
+                                            defaultValue={registroLead.primer_pago || ''}
+                                            className="w-full bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-200 transition-all"
+                                            placeholder="Monto..."
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">2do Pago</label>
+                                        <input
+                                            type="text"
+                                            defaultValue={registroLead.segundo_pago || ''}
+                                            className="w-full bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-200 transition-all"
+                                            placeholder="Monto..."
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Notas</label>
+                                    <textarea
+                                        defaultValue={registroLead.notas_seguimiento || ''}
+                                        rows={2}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300 transition-all resize-none"
+                                        placeholder="Observaciones..."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="px-6 pb-6">
+                                <p className="text-[10px] text-gray-400 text-center mb-3 font-medium">Vista previa — el formulario completo se habilitará próximamente</p>
+                                <button
+                                    onClick={() => setRegistroLead(null)}
+                                    className="w-full py-3 rounded-2xl font-bold text-sm uppercase tracking-widest bg-green-600 text-white hover:bg-green-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg"
+                                >
+                                    <Check size={14} />
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </>
             )}
 
             {/* Contact History Panel */}
