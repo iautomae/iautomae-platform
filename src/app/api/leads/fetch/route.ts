@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseAdminClient, requireAuth } from '@/lib/server-auth';
+import { getProfileById, getSupabaseAdminClient, requireAuth } from '@/lib/server-auth';
 
 const supabaseAdmin = getSupabaseAdminClient();
+
+type LeadRow = {
+    id: string;
+    [key: string]: unknown;
+};
 
 export async function GET(request: Request) {
     try {
@@ -17,7 +22,6 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'agent_id es requerido.' }, { status: 400 });
         }
 
-        // Verify the agent exists
         const { data: agent, error: agentError } = await supabaseAdmin
             .from('agentes')
             .select('id, user_id, pushover_user_1_profile_id, pushover_user_2_profile_id, pushover_user_3_profile_id, pushover_user_1_name, pushover_user_2_name, pushover_user_3_name')
@@ -29,10 +33,23 @@ export async function GET(request: Request) {
         }
 
         const profile = context.profile;
+        const { data: agentOwner, error: agentOwnerError } = await getProfileById(agent.user_id);
 
-        // Determine which leads to return based on role and visibility
+        if (agentOwnerError || !agentOwner) {
+            return NextResponse.json({ error: 'No se pudo validar el propietario del agente.' }, { status: 403 });
+        }
+
+        const isSameTenantAgent =
+            !!profile.tenant_id &&
+            !!agentOwner.tenant_id &&
+            profile.tenant_id === agentOwner.tenant_id;
+        const isAdminOwnedAgent = agentOwner.role === 'admin';
+
+        if (profile.role !== 'admin' && !isSameTenantAgent && !isAdminOwnedAgent) {
+            return NextResponse.json({ error: 'No puedes consultar leads de otro tenant.' }, { status: 403 });
+        }
+
         if (profile.role === 'admin' || profile.role === 'tenant_owner') {
-            // Admin and tenant_owner see ALL leads for this agent
             const { data: leads, error } = await supabaseAdmin
                 .from('leads')
                 .select('*')
@@ -43,7 +60,6 @@ export async function GET(request: Request) {
             return NextResponse.json({ leads: leads || [] });
         }
 
-        // Client: filter by leads_visible_advisors
         const features = profile.features || {};
         const visibility = features.leads_visible_advisors || 'all';
 
@@ -58,12 +74,15 @@ export async function GET(request: Request) {
             return NextResponse.json({ leads: leads || [] });
         }
 
-        // Resolve slot numbers to profile_ids AND advisor names
         const slots = Array.isArray(visibility) ? visibility : [];
         const visibleProfileIds: string[] = [];
         const visibleAdvisorNames: string[] = [];
         for (const slot of slots) {
             const slotNum = typeof slot === 'string' ? parseInt(slot, 10) : slot;
+            if (![1, 2, 3].includes(slotNum)) {
+                continue;
+            }
+
             const profileId = slotNum === 1 ? agent.pushover_user_1_profile_id
                 : slotNum === 2 ? agent.pushover_user_2_profile_id
                 : slotNum === 3 ? agent.pushover_user_3_profile_id
@@ -81,17 +100,28 @@ export async function GET(request: Request) {
             return NextResponse.json({ leads: [] });
         }
 
-        // Filter by assigned_profile_id OR advisor_name (fallback when profile_ids aren't linked)
-        let leads;
+        let leads: LeadRow[] = [];
         if (visibleProfileIds.length > 0 && visibleAdvisorNames.length > 0) {
-            const { data, error } = await supabaseAdmin
-                .from('leads')
-                .select('*')
-                .eq('agent_id', agentId)
-                .or(`assigned_profile_id.in.(${visibleProfileIds.join(',')}),advisor_name.in.(${visibleAdvisorNames.join(',')})`)
-                .order('created_at', { ascending: false });
-            if (error) throw error;
-            leads = data;
+            const [{ data: profileLeads, error: profileLeadsError }, { data: advisorLeads, error: advisorLeadsError }] = await Promise.all([
+                supabaseAdmin
+                    .from('leads')
+                    .select('*')
+                    .eq('agent_id', agentId)
+                    .in('assigned_profile_id', visibleProfileIds)
+                    .order('created_at', { ascending: false }),
+                supabaseAdmin
+                    .from('leads')
+                    .select('*')
+                    .eq('agent_id', agentId)
+                    .in('advisor_name', visibleAdvisorNames)
+                    .order('created_at', { ascending: false }),
+            ]);
+
+            if (profileLeadsError) throw profileLeadsError;
+            if (advisorLeadsError) throw advisorLeadsError;
+
+            const mergedLeads = [...(profileLeads || []), ...(advisorLeads || [])] as LeadRow[];
+            leads = Array.from(new Map(mergedLeads.map((lead) => [lead.id, lead])).values());
         } else if (visibleProfileIds.length > 0) {
             const { data, error } = await supabaseAdmin
                 .from('leads')
@@ -100,7 +130,7 @@ export async function GET(request: Request) {
                 .in('assigned_profile_id', visibleProfileIds)
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            leads = data;
+            leads = (data || []) as LeadRow[];
         } else {
             const { data, error } = await supabaseAdmin
                 .from('leads')
@@ -109,10 +139,10 @@ export async function GET(request: Request) {
                 .in('advisor_name', visibleAdvisorNames)
                 .order('created_at', { ascending: false });
             if (error) throw error;
-            leads = data;
+            leads = (data || []) as LeadRow[];
         }
 
-        return NextResponse.json({ leads: leads || [] });
+        return NextResponse.json({ leads });
     } catch (error: unknown) {
         console.error('Error fetching leads:', error);
         return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });

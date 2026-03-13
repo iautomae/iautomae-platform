@@ -1,38 +1,25 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdminClient, requireAuth } from '@/lib/server-auth';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseAdmin = getSupabaseAdminClient();
 
 export async function GET(req: Request) {
     try {
-        // 1. Identificar al caller
-        const authHeader = req.headers.get('authorization');
-        if (!authHeader) {
-            return NextResponse.json({ error: 'No autorizado.' }, { status: 401 });
+        const { context, response } = await requireAuth(req, ['admin', 'tenant_owner']);
+        if (response || !context) {
+            return response!;
         }
 
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
-        }
-
-        // 2. Obtener perfil del caller
         const { data: callerProfile, error: profileError } = await supabaseAdmin
             .from('profiles')
             .select('id, role, tenant_id')
-            .eq('id', user.id)
+            .eq('id', context.profile.id)
             .single();
 
         if (profileError || !callerProfile) {
             return NextResponse.json({ error: 'Perfil no encontrado.' }, { status: 403 });
         }
 
-        // Admin can view any tenant's team via ?tenant_id= query param
         const url = new URL(req.url);
         const queryTenantId = url.searchParams.get('tenant_id');
 
@@ -41,7 +28,7 @@ export async function GET(req: Request) {
 
         if (callerProfile.role === 'admin' && queryTenantId) {
             tenantId = queryTenantId;
-            excludeId = ''; // Don't exclude anyone — admin is not a member
+            excludeId = '';
         } else if (callerProfile.role === 'tenant_owner' && callerProfile.tenant_id) {
             tenantId = callerProfile.tenant_id;
             excludeId = callerProfile.id;
@@ -49,7 +36,6 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Solo el propietario puede ver el equipo.' }, { status: 403 });
         }
 
-        // 3. Obtener todos los perfiles del tenant
         let membersQuery = supabaseAdmin
             .from('profiles')
             .select('id, email, full_name, role, features, has_leads_access')
@@ -66,12 +52,11 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'Error al obtener el equipo.' }, { status: 500 });
         }
 
-        // 4. Para cada miembro, verificar si ya confirmó su cuenta (email_confirmed_at / last_sign_in_at)
         const membersWithStatus = await Promise.all(
             (members || []).map(async (member) => {
                 try {
                     const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(member.id);
-                    const isConfirmed = !!(authUser?.email_confirmed_at);
+                    const isConfirmed = !!authUser?.email_confirmed_at;
                     const lastSignIn = authUser?.last_sign_in_at || null;
 
                     return {
@@ -100,8 +85,7 @@ export async function GET(req: Request) {
         );
 
         return NextResponse.json({ members: membersWithStatus });
-
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('GET /api/tenant/team error:', error);
         return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
     }

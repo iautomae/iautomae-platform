@@ -5,6 +5,38 @@ import * as Sentry from '@sentry/nextjs';
 // crypto is available in Node.js environment
 import crypto from 'crypto';
 
+function timingSafeEqualHex(expectedHex: string, receivedHex: string) {
+    const expected = Buffer.from(expectedHex, 'hex');
+    const received = Buffer.from(receivedHex, 'hex');
+
+    if (expected.length === 0 || expected.length !== received.length) {
+        return false;
+    }
+
+    return crypto.timingSafeEqual(expected, received);
+}
+
+function verifyElevenLabsSignature(bodyText: string, signature: string, secret: string) {
+    const directDigest = crypto.createHmac('sha256', secret).update(bodyText).digest('hex');
+    if (timingSafeEqualHex(directDigest, signature)) {
+        return true;
+    }
+
+    const parts = signature.split(',').reduce((acc: Record<string, string>, part: string) => {
+        const [k, v] = part.split('=', 2);
+        if (k && v) acc[k.trim()] = v.trim();
+        return acc;
+    }, {} as Record<string, string>);
+
+    if (!parts.t || !(parts.v0 || parts.v1)) {
+        return false;
+    }
+
+    const signedPayload = `${parts.t}.${bodyText}`;
+    const expectedDigest = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
+    return timingSafeEqualHex(expectedDigest, parts.v0 || parts.v1);
+}
+
 export async function POST(request: Request) {
     // Determine which key to use
     // Using service role key allows bypassing RLS policies
@@ -54,48 +86,22 @@ export async function POST(request: Request) {
     try {
         const bodyText = await request.text();
         const payload = JSON.parse(bodyText);
-
-
-
-        // --- SECURITY: Verify ElevenLabs Signature ---
         const signature = request.headers.get('elevenlabs-signature');
-        const secret = process.env.ELEVENLABS_WEBHOOK_SECRET;
+        // Support both env var names (Vercel uses ELEVENLABS_, local uses ELEVEN_LABS_)
+        const secret = process.env.ELEVENLABS_WEBHOOK_SECRET || process.env.ELEVEN_LABS_WEBHOOK_SECRET;
         const allowDebugFallback = process.env.ELEVENLABS_DEBUG_FALLBACK === 'true';
 
-        if (secret && signature) {
-            // Log signature format to understand ElevenLabs' format
-            console.log(`ElevenLabs Signature received: ${signature.substring(0, 80)}...`);
-            const digest = crypto.createHmac('sha256', secret).update(bodyText).digest('hex');
-            if (signature === digest) {
-                console.log('✅ ElevenLabs Signature Verified (direct HMAC)');
-            } else {
-                // ElevenLabs may use t=timestamp,v0=hash format - try parsing
-                const parts = signature.split(',').reduce((acc: Record<string, string>, part: string) => {
-                    const [k, v] = part.split('=', 2);
-                    if (k && v) acc[k.trim()] = v.trim();
-                    return acc;
-                }, {} as Record<string, string>);
-
-                if (parts['t'] && (parts['v0'] || parts['v1'])) {
-                    const timestamp = parts['t'];
-                    const sigHash = parts['v0'] || parts['v1'];
-                    const signedPayload = `${timestamp}.${bodyText}`;
-                    const expectedDigest = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
-                    if (sigHash === expectedDigest) {
-                        console.log('✅ ElevenLabs Signature Verified (timestamp+payload)');
-                    } else {
-                        console.warn('⚠️ ElevenLabs Signature mismatch - allowing request (logging only)');
-                    }
-                } else {
-                    console.warn('⚠️ Unknown signature format - allowing request (logging only)');
-                }
-            }
-        } else if (secret && !signature) {
-            console.warn('⚠️ No signature header received from ElevenLabs');
-        } else {
-            console.warn('⚠️ ELEVENLABS_WEBHOOK_SECRET not set');
+        if (!secret) {
+            console.error('ELEVENLABS_WEBHOOK_SECRET not set');
+            return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
         }
 
+        if (!signature || !verifyElevenLabsSignature(bodyText, signature, secret)) {
+            console.warn('Rejected ElevenLabs webhook due to invalid signature');
+            return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
+        }
+
+        console.log('✅ ElevenLabs Signature Verified');
         console.log('Received ElevenLabs Webhook Type:', payload.type);
 
         // --- ENHANCED EXTRACTION (Support for new nested format) ---
