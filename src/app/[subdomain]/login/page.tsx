@@ -51,6 +51,11 @@ function LoginContent({ subdomain }: { subdomain: string }) {
 
             if (signInError) throw signInError;
 
+            // Mark tenant as active on first successful login
+            if (subdomain) {
+                supabase.from('tenants').update({ branding_complete: true }).eq('slug', subdomain).then();
+            }
+
             // Redirect to leads (AuthGuard will handle routing to first available feature)
             router.push('/leads');
         } catch (err: any) {

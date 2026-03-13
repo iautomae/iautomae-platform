@@ -353,9 +353,10 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
                                                 </div>
                                             </div>
 
-                                            {/* Right: Platform Toggles (only for primary owner) */}
+                                            {/* Right: Platform Toggles + View Interface */}
                                             {idx === 0 && (
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1.5">
                                                     {dbPlatforms.map((platform) => {
                                                         const isActive = !!owner.features?.[platform.route_key];
                                                         const isToggling = isTogglingPlatform === platform.route_key;
@@ -385,6 +386,14 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
                                                             </button>
                                                         );
                                                     })}
+                                                    </div>
+                                                    <Link
+                                                        href={`/leads?view_as=${owner.id}`}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 text-[10px] font-bold rounded-lg transition-all border border-purple-200 shrink-0"
+                                                    >
+                                                        <ExternalLink size={12} />
+                                                        Ver Interfaz
+                                                    </Link>
                                                 </div>
                                             )}
                                         </div>
@@ -454,10 +463,17 @@ export default function TenantDetailsPage({ params }: { params: Promise<{ id: st
                                                         </h3>
                                                         <p className="text-xs text-gray-500">Configura módulos y permisos de acceso para este usuario.</p>
                                                     </div>
-                                                    <div className="shrink-0 pt-1">
+                                                    <div className="flex items-center gap-2 shrink-0 pt-1">
                                                         <span className="text-[9px] font-bold px-2 py-1 rounded bg-blue-50 text-blue-600 border border-blue-100 uppercase">
-                                                            Rol Actual: Empleado
+                                                            Empleado
                                                         </span>
+                                                        <Link
+                                                            href={`/leads?view_as=${selectedUser.id}`}
+                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white text-[10px] font-bold rounded-lg transition-all border border-brand-primary/20"
+                                                        >
+                                                            <ExternalLink size={12} />
+                                                            Ver Interfaz
+                                                        </Link>
                                                     </div>
                                                 </div>
 

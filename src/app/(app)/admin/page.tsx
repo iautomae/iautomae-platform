@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { supabase } from "@/lib/supabase";
 import { useProfile } from "@/hooks/useProfile";
 import { useRouter } from "next/navigation";
-import { Shield, Settings, ExternalLink, Search, LoaderCircle, UserPlus, X, Trash2, MoreVertical, Users, CheckCircle2, AlertCircle } from "lucide-react";
+import { Shield, Settings, Search, LoaderCircle, UserPlus, X, Trash2, MoreVertical, Users, CheckCircle2, AlertCircle } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -280,18 +280,10 @@ export default function SuperAdminDashboard() {
                                             <div className="flex items-center justify-end gap-2">
                                                 <Link
                                                     href={`/admin/tenant/${client.tenant_id}?companyName=${encodeURIComponent(client.companyName)}`}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white hover:bg-gray-800 text-[10px] font-bold rounded-lg transition-all shadow-sm"
+                                                    className="flex items-center gap-1.5 px-5 py-2 bg-gray-900 text-white hover:bg-gray-800 text-[10px] font-bold rounded-lg transition-all shadow-sm"
                                                 >
                                                     <Users size={12} />
                                                     Ver Equipo
-                                                </Link>
-
-                                                <Link
-                                                    href={`/leads?view_as=${client.id}`}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white text-[10px] font-bold rounded-lg transition-all"
-                                                >
-                                                    <ExternalLink size={12} />
-                                                    Entrar
                                                 </Link>
                                             </div>
                                         </td>
