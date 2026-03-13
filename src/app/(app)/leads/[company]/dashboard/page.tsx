@@ -749,25 +749,39 @@ export default function DynamicLeadsDashboard() {
 
         try {
             const token = (await supabase.auth.getSession()).data.session?.access_token;
+            // Map frontend field names to API field names
+            const apiBody: Record<string, unknown> = { leadId };
+            if (updates.name !== undefined) apiBody.name = updates.name;
+            if (updates.status !== undefined) apiBody.status = updates.status;
+            if (updates.advisor_name !== undefined) apiBody.advisorName = updates.advisor_name;
+            if (updates.estado !== undefined) apiBody.estado = updates.estado;
+            if (updates.notas_seguimiento !== undefined) apiBody.notas_seguimiento = updates.notas_seguimiento;
+            if (updates.fecha_seguimiento !== undefined) apiBody.fecha_seguimiento = updates.fecha_seguimiento;
+            if (updates.tipo_tramite !== undefined) apiBody.tipo_tramite = updates.tipo_tramite;
+            if (updates.motivo_descarte !== undefined) apiBody.motivo_descarte = updates.motivo_descarte;
+            if (updates.primer_pago !== undefined) apiBody.primer_pago = updates.primer_pago;
+            if (updates.segundo_pago !== undefined) apiBody.segundo_pago = updates.segundo_pago;
+
             const res = await fetch('/api/leads/update-lead', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
-                body: JSON.stringify({
-                    leadId,
-                    ...updates
-                })
+                body: JSON.stringify(apiBody)
             });
 
             if (!res.ok) {
                 const err = await res.json();
                 throw new Error(err.error || 'Server error');
             }
+            // Refetch to ensure consistency with DB
+            fetchLeadsRef.current();
         } catch (error) {
             console.error('Error updating lead:', error);
-            // setInfoModal({ isOpen: true, type: 'error', message: 'Error al actualizar el lead.' });
+            setInfoModal({ isOpen: true, type: 'error', message: 'Error al actualizar el lead.' });
+            // Revert optimistic update on failure
+            fetchLeadsRef.current();
         }
     };
 
@@ -1506,7 +1520,7 @@ export default function DynamicLeadsDashboard() {
                                                         <div className="flex items-center justify-center gap-1.5">
                                                             <button
                                                                 onClick={() => { setCrmModalLead(lead); setCrmModalType('INFO'); }}
-                                                                className="p-1.5 hover:bg-gray-100 text-gray-400 hover:text-brand-primary rounded-lg transition-all"
+                                                                className="p-1.5 bg-emerald-50 text-emerald-500 border border-emerald-200 rounded-lg transition-all hover:scale-110 hover:shadow-md hover:shadow-emerald-100"
                                                                 title="Actualizar Info"
                                                             >
                                                                 <UserCog size={13} />
@@ -1514,7 +1528,7 @@ export default function DynamicLeadsDashboard() {
                                                             {lead.status === 'POTENCIAL' && (
                                                                 <button
                                                                     onClick={() => { setCrmModalLead(lead); setCrmModalType('FOLLOW_UP'); }}
-                                                                    className="p-1.5 hover:bg-amber-50 text-gray-400 hover:text-amber-600 rounded-lg transition-all"
+                                                                    className="p-1.5 bg-amber-50 text-amber-500 border border-amber-200 rounded-lg transition-all hover:scale-110 hover:shadow-md hover:shadow-amber-100"
                                                                     title="Gestionar Lead"
                                                                 >
                                                                     <Zap size={13} />
@@ -2627,106 +2641,119 @@ export default function DynamicLeadsDashboard() {
                                 </button>
                             </div>
 
-                            <div className="p-8 space-y-6">
-                                {/* Opción 1: Nombre */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
-                                    <input
-                                        type="text"
-                                        defaultValue={crmModalLead.name}
-                                        id="edit-lead-name"
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
-                                    />
-                                </div>
+                            {(() => {
+                                const originalInfoLead = realLeads.find(l => l.id === crmModalLead.id);
+                                const infoHasChanges = originalInfoLead ? (
+                                    crmModalLead.status !== originalInfoLead.status ||
+                                    crmModalLead.advisor_name !== originalInfoLead.advisor_name
+                                ) : false;
+                                const activeAgent = agents.find(a => a.id === activeAgentId);
+                                const advisorNames = [
+                                    activeAgent?.pushover_user_1_name,
+                                    activeAgent?.pushover_user_2_name,
+                                    activeAgent?.pushover_user_3_name,
+                                ].filter(Boolean) as string[];
 
-                                {/* Opción 2: Calificación */}
-                                <div className="flex items-center justify-between bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                                            crmModalLead.status === 'POTENCIAL' ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"
-                                        )}>
-                                            <Activity size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-bold text-gray-700 uppercase tracking-tight">Calificación</p>
-                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{crmModalLead.status === 'POTENCIAL' ? 'Potencial' : 'No Potencial'}</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setCrmModalLead({ ...crmModalLead, status: crmModalLead.status === 'POTENCIAL' ? 'NO_POTENCIAL' : 'POTENCIAL' })}
-                                        className={cn(
-                                            "w-12 h-6 rounded-full transition-all duration-300 relative",
-                                            crmModalLead.status === 'POTENCIAL' ? "bg-brand-primary" : "bg-gray-300"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm",
-                                            crmModalLead.status === 'POTENCIAL' ? "left-7" : "left-1"
-                                        )} />
-                                    </button>
-                                </div>
-
-                                {/* Opción 3: Asesor — from pushover config */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Asignar Asesor</label>
-                                    {(() => {
-                                        const activeAgent = agents.find(a => a.id === activeAgentId);
-                                        const advisorNames = [
-                                            activeAgent?.pushover_user_1_name,
-                                            activeAgent?.pushover_user_2_name,
-                                            activeAgent?.pushover_user_3_name,
-                                        ].filter(Boolean) as string[];
-                                        return advisorNames.length > 0 ? (
-                                            <div className="flex flex-wrap gap-2">
-                                                {advisorNames.map((adv) => (
-                                                    <button
-                                                        key={adv}
-                                                        onClick={() => setCrmModalLead({ ...crmModalLead, advisor_name: crmModalLead.advisor_name === adv ? '' : adv })}
-                                                        className={cn(
-                                                            "px-4 py-3 rounded-2xl text-sm font-medium border transition-all flex-1 min-w-0",
-                                                            crmModalLead.advisor_name === adv
-                                                                ? "bg-brand-primary/10 border-brand-primary/30 text-brand-primary font-bold"
-                                                                : "bg-gray-50 border-gray-100 text-gray-500 hover:border-brand-primary/20"
-                                                        )}
-                                                    >
-                                                        {adv}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
+                                return (
+                                    <div className="p-8 space-y-6">
+                                        {/* Opción 1: Nombre */}
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nombre Completo</label>
                                             <input
                                                 type="text"
-                                                defaultValue={crmModalLead.advisor_name || ''}
-                                                id="edit-lead-advisor"
-                                                placeholder="Nombre del asesor..."
+                                                defaultValue={crmModalLead.name}
+                                                id="edit-lead-name"
                                                 className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
                                             />
-                                        );
-                                    })()}
-                                </div>
+                                        </div>
 
-                                <div className="pt-2">
-                                    <button
-                                        onClick={async () => {
-                                            const name = (document.getElementById('edit-lead-name') as HTMLInputElement).value;
-                                            const advisor_name = crmModalLead.advisor_name || (document.getElementById('edit-lead-advisor') as HTMLInputElement)?.value || '';
-                                            setIsSavingLead(true);
-                                            await handleUpdateLead(crmModalLead.id, {
-                                                name,
-                                                status: crmModalLead.status,
-                                                advisor_name
-                                            });
-                                            setIsSavingLead(false);
-                                            setCrmModalType(null);
-                                        }}
-                                        disabled={isSavingLead}
-                                        className="w-full bg-brand-primary text-brand-dark py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:shadow-lg hover:shadow-brand-primary/20 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                                    >
-                                        {isSavingLead ? <LoaderCircle size={16} className="animate-spin" /> : 'Guardar Cambios'}
-                                    </button>
-                                </div>
-                            </div>
+                                        {/* Opción 2: Calificación */}
+                                        <div className="flex items-center justify-between bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                                                    crmModalLead.status === 'POTENCIAL' ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"
+                                                )}>
+                                                    <Activity size={20} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-700 uppercase tracking-tight">Calificación</p>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{crmModalLead.status === 'POTENCIAL' ? 'Potencial' : 'No Potencial'}</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setCrmModalLead({ ...crmModalLead, status: crmModalLead.status === 'POTENCIAL' ? 'NO_POTENCIAL' : 'POTENCIAL' })}
+                                                className={cn(
+                                                    "w-12 h-6 rounded-full transition-all duration-300 relative",
+                                                    crmModalLead.status === 'POTENCIAL' ? "bg-brand-primary" : "bg-gray-300"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm",
+                                                    crmModalLead.status === 'POTENCIAL' ? "left-7" : "left-1"
+                                                )} />
+                                            </button>
+                                        </div>
+
+                                        {/* Opción 3: Asesor — from pushover config */}
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Asignar Asesor</label>
+                                            {advisorNames.length > 0 ? (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {advisorNames.map((adv) => (
+                                                        <button
+                                                            key={adv}
+                                                            onClick={() => setCrmModalLead({ ...crmModalLead, advisor_name: crmModalLead.advisor_name === adv ? '' : adv })}
+                                                            className={cn(
+                                                                "px-4 py-3 rounded-2xl text-sm font-medium border transition-all flex-1 min-w-0",
+                                                                crmModalLead.advisor_name === adv
+                                                                    ? "bg-brand-primary/10 border-brand-primary/30 text-brand-primary font-bold"
+                                                                    : "bg-gray-50 border-gray-100 text-gray-500 hover:border-brand-primary/20"
+                                                            )}
+                                                        >
+                                                            {adv}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    defaultValue={crmModalLead.advisor_name || ''}
+                                                    id="edit-lead-advisor"
+                                                    placeholder="Nombre del asesor..."
+                                                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
+                                                />
+                                            )}
+                                        </div>
+
+                                        <div className="pt-2">
+                                            <button
+                                                onClick={async () => {
+                                                    const name = (document.getElementById('edit-lead-name') as HTMLInputElement).value;
+                                                    const advisor_name = crmModalLead.advisor_name || (document.getElementById('edit-lead-advisor') as HTMLInputElement)?.value || '';
+                                                    setIsSavingLead(true);
+                                                    await handleUpdateLead(crmModalLead.id, {
+                                                        name,
+                                                        status: crmModalLead.status,
+                                                        advisor_name
+                                                    });
+                                                    setIsSavingLead(false);
+                                                    setCrmModalType(null);
+                                                }}
+                                                disabled={isSavingLead}
+                                                className={cn(
+                                                    "w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-widest active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2",
+                                                    infoHasChanges
+                                                        ? "bg-orange-500 text-white hover:bg-orange-600 shadow-lg"
+                                                        : "bg-brand-primary text-brand-dark hover:shadow-lg hover:shadow-brand-primary/20"
+                                                )}
+                                            >
+                                                {isSavingLead ? <LoaderCircle size={16} className="animate-spin" /> : (infoHasChanges ? 'Guardar Cambios' : 'Guardar')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
