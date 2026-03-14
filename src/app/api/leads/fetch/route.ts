@@ -30,9 +30,9 @@ const PIPELINE_ESTADOS = ['Sin respuesta', 'En seguimiento', 'Compromiso de pago
 const ESTADO_VALUES = ['Sin respuesta', 'En seguimiento', 'Compromiso de pago', 'Pagado', 'Descartado'];
 
 // Helper: exclude pipeline leads from main panel queries
-// Main panel shows: leads with no estado, empty estado, or estado='Descartado'
+// Main panel shows: leads NOT in active pipeline (excludes Sin respuesta, En seguimiento, Compromiso de pago, Pagado)
 function applyMainPanelFilter(query: any) {
-    return query.or('estado.is.null,estado.eq.,estado.eq.Descartado');
+    return query.not('estado', 'in', `(${PIPELINE_ESTADOS.join(',')})`);
 }
 
 export async function GET(request: Request) {
