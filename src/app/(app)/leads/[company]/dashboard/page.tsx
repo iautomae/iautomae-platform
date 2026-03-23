@@ -2879,7 +2879,7 @@ export default function DynamicLeadsDashboard() {
             {/* Calendar Panel — 30-Day Monthly View */}
             {isCalendarOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => { setIsCalendarOpen(false); setCalendarSelectedDay(null); }}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-in slide-in-from-bottom-4 duration-300" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] overflow-hidden animate-in slide-in-from-bottom-4 duration-300" onClick={e => e.stopPropagation()}>
                         {(() => {
                             const today = new Date().toISOString().slice(0, 10);
                             const { year, month } = calendarMonth;
@@ -2992,76 +2992,79 @@ export default function DynamicLeadsDashboard() {
                                         </button>
                                     </div>
 
-                                    <div className="flex divide-x divide-gray-100" style={{ maxHeight: 'calc(90vh - 140px)' }}>
-                                        {/* Calendar Grid */}
-                                        <div className="flex-1 p-4">
+                                    <div className="flex divide-x divide-gray-100 flex-1 min-h-0">
+                                        {/* Calendar Grid — fixed size */}
+                                        <div className="w-[420px] shrink-0 p-5 flex flex-col">
                                             {/* Day Headers */}
-                                            <div className="grid grid-cols-7 mb-1">
+                                            <div className="grid grid-cols-7 mb-2">
                                                 {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => (
                                                     <div key={d} className="text-[10px] font-bold text-gray-400 text-center py-1 uppercase tracking-wider">{d}</div>
                                                 ))}
                                             </div>
 
-                                            {/* Day Cells */}
-                                            <div className="grid grid-cols-7 gap-px">
-                                                {cells.map((cell, idx) => {
-                                                    if (!cell.day) return <div key={`empty-${idx}`} className="aspect-square" />;
-                                                    const isToday2 = cell.dateStr === today;
-                                                    const isPast = cell.dateStr < today;
-                                                    const isSelected = cell.dateStr === calendarSelectedDay;
-                                                    const dayLeads = grouped[cell.dateStr] || [];
-                                                    const holiday = allHolidays[cell.dateStr];
-                                                    const isSunday = new Date(cell.dateStr + 'T12:00:00').getDay() === 0;
+                                            {/* Day Cells — fixed 6-row grid */}
+                                            <div className="grid grid-cols-7 grid-rows-6 gap-1 flex-1">
+                                                {(() => {
+                                                    // Pad to exactly 42 cells (6 rows)
+                                                    const padded = [...cells];
+                                                    while (padded.length < 42) padded.push({ day: null, dateStr: '' });
+                                                    return padded.map((cell, idx) => {
+                                                        if (!cell.day) return <div key={`empty-${idx}`} />;
+                                                        const isToday2 = cell.dateStr === today;
+                                                        const isPast = cell.dateStr < today;
+                                                        const isSelected = cell.dateStr === calendarSelectedDay;
+                                                        const dayLeads = grouped[cell.dateStr] || [];
+                                                        const holiday = allHolidays[cell.dateStr];
+                                                        const isSunday = new Date(cell.dateStr + 'T12:00:00').getDay() === 0;
 
-                                                    return (
-                                                        <div
-                                                            key={cell.dateStr}
-                                                            onClick={() => setCalendarSelectedDay(isSelected ? null : cell.dateStr)}
-                                                            className={cn(
-                                                                "aspect-square rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all relative group",
-                                                                isSelected ? "bg-brand-primary text-white shadow-lg scale-105" :
-                                                                isToday2 ? "bg-amber-50 border-2 border-amber-300 hover:border-amber-400" :
-                                                                holiday ? "bg-red-50/50 hover:bg-red-50" :
-                                                                isPast ? "hover:bg-gray-50 opacity-50" :
-                                                                "hover:bg-gray-50"
-                                                            )}
-                                                        >
-                                                            <span className={cn(
-                                                                "text-sm font-bold leading-none",
-                                                                isSelected ? "text-white" :
-                                                                isToday2 ? "text-amber-700" :
-                                                                (holiday || isSunday) ? "text-red-400" :
-                                                                isPast ? "text-gray-400" : "text-gray-700"
-                                                            )}>
-                                                                {cell.day}
-                                                            </span>
+                                                        return (
+                                                            <div
+                                                                key={cell.dateStr}
+                                                                onClick={() => setCalendarSelectedDay(isSelected ? null : cell.dateStr)}
+                                                                className={cn(
+                                                                    "rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all relative",
+                                                                    isSelected ? "bg-brand-primary text-white shadow-lg" :
+                                                                    isToday2 ? "bg-amber-50 border-2 border-amber-300 hover:border-amber-400" :
+                                                                    holiday ? "bg-red-50/50 hover:bg-red-50" :
+                                                                    isPast ? "hover:bg-gray-50 opacity-50" :
+                                                                    "hover:bg-gray-50"
+                                                                )}
+                                                            >
+                                                                <span className={cn(
+                                                                    "text-sm font-bold leading-none",
+                                                                    isSelected ? "text-white" :
+                                                                    isToday2 ? "text-amber-700" :
+                                                                    (holiday || isSunday) ? "text-red-400" :
+                                                                    isPast ? "text-gray-400" : "text-gray-700"
+                                                                )}>
+                                                                    {cell.day}
+                                                                </span>
 
-                                                            {/* Lead count dots */}
-                                                            {dayLeads.length > 0 && (
-                                                                <div className="flex items-center gap-0.5 mt-0.5">
-                                                                    {dayLeads.length <= 3 ? (
-                                                                        dayLeads.map((_, i) => (
-                                                                            <span key={i} className={cn(
-                                                                                "w-1 h-1 rounded-full",
-                                                                                isSelected ? "bg-white/80" : "bg-brand-primary"
-                                                                            )} />
-                                                                        ))
-                                                                    ) : (
-                                                                        <span className={cn(
-                                                                            "text-[8px] font-black leading-none",
-                                                                            isSelected ? "text-white/80" : "text-brand-primary"
-                                                                        )}>{dayLeads.length}</span>
-                                                                    )}
-                                                                </div>
-                                                            )}
+                                                                {dayLeads.length > 0 && (
+                                                                    <div className="flex items-center gap-0.5 mt-1">
+                                                                        {dayLeads.length <= 3 ? (
+                                                                            dayLeads.map((_, i) => (
+                                                                                <span key={i} className={cn(
+                                                                                    "w-1.5 h-1.5 rounded-full",
+                                                                                    isSelected ? "bg-white/80" : "bg-brand-primary"
+                                                                                )} />
+                                                                            ))
+                                                                        ) : (
+                                                                            <span className={cn(
+                                                                                "text-[9px] font-black leading-none",
+                                                                                isSelected ? "text-white/80" : "text-brand-primary"
+                                                                            )}>{dayLeads.length}</span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
 
-                                                            {/* Holiday indicator */}
-                                                            {holiday && !isSelected && (
-                                                                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-400" />
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
+                                                                {holiday && !isSelected && (
+                                                                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-400" />
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
                                             </div>
 
                                             {/* Holiday Legend */}
@@ -3069,7 +3072,7 @@ export default function DynamicLeadsDashboard() {
                                                 const monthHolidays = Object.entries(allHolidays).filter(([d]) => d.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`));
                                                 if (monthHolidays.length === 0) return null;
                                                 return (
-                                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    <div className="mt-3 pt-3 border-t border-gray-100 shrink-0">
                                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1">Feriados del mes</p>
                                                         <div className="flex flex-wrap gap-1.5">
                                                             {monthHolidays.map(([d, name]) => (
@@ -3083,39 +3086,45 @@ export default function DynamicLeadsDashboard() {
                                             })()}
                                         </div>
 
-                                        {/* Side Panel — Selected Day Detail */}
-                                        <div className="w-72 overflow-y-auto p-4 bg-gray-50/30" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+                                        {/* Side Panel — wider, compact horizontal cards */}
+                                        <div className="flex-1 overflow-y-auto p-5 bg-gray-50/30">
                                             {!calendarSelectedDay ? (
-                                                <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                                                    <Calendar size={28} className="text-gray-200 mb-2" />
+                                                <div className="flex flex-col items-center justify-center h-full text-center">
+                                                    <Calendar size={32} className="text-gray-200 mb-2" />
                                                     <p className="text-xs font-bold text-gray-400">Selecciona un día</p>
-                                                    <p className="text-[10px] text-gray-300 mt-1">Haz clic en una fecha para ver los seguimientos agendados.</p>
+                                                    <p className="text-[10px] text-gray-300 mt-1">Haz clic en una fecha para ver los seguimientos.</p>
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <div className="mb-3">
-                                                        <h4 className="text-sm font-bold text-gray-800 capitalize">
-                                                            {new Date(calendarSelectedDay + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                                        </h4>
-                                                        {selectedHoliday && (
-                                                            <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 inline-block mt-1">
-                                                                {selectedHoliday}
-                                                            </span>
-                                                        )}
-                                                        {calendarSelectedDay === today && (
-                                                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 inline-block mt-1 ml-1">
-                                                                Hoy
-                                                            </span>
+                                                    <div className="mb-4 flex items-center justify-between">
+                                                        <div>
+                                                            <h4 className="text-sm font-bold text-gray-800 capitalize">
+                                                                {new Date(calendarSelectedDay + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                                                            </h4>
+                                                            <div className="flex items-center gap-1.5 mt-1">
+                                                                {selectedHoliday && (
+                                                                    <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
+                                                                        {selectedHoliday}
+                                                                    </span>
+                                                                )}
+                                                                {calendarSelectedDay === today && (
+                                                                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                                                        Hoy
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {selectedDayLeads.length > 0 && (
+                                                            <span className="text-[10px] font-bold text-gray-400">{selectedDayLeads.length} seguimiento{selectedDayLeads.length !== 1 ? 's' : ''}</span>
                                                         )}
                                                     </div>
 
                                                     {selectedDayLeads.length === 0 ? (
-                                                        <div className="text-center py-8">
+                                                        <div className="text-center py-12">
                                                             <p className="text-xs text-gray-400">Sin seguimientos para este día</p>
                                                         </div>
                                                     ) : (
-                                                        <div className="space-y-2">
-                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{selectedDayLeads.length} seguimiento{selectedDayLeads.length !== 1 ? 's' : ''}</p>
+                                                        <div className="space-y-1.5">
                                                             {selectedDayLeads.map(lead => {
                                                                 const isPastDay = calendarSelectedDay < today;
                                                                 return (
@@ -3129,36 +3138,47 @@ export default function DynamicLeadsDashboard() {
                                                                             setCrmModalType('FOLLOW_UP');
                                                                         }}
                                                                         className={cn(
-                                                                            "p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5",
+                                                                            "flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all hover:shadow-sm hover:-translate-y-px",
                                                                             calendarSelectedDay === today ? "bg-amber-50/50 border-amber-200 hover:border-amber-300" :
                                                                             isPastDay ? "bg-red-50/30 border-red-100 hover:border-red-200" :
                                                                             "bg-white border-gray-100 hover:border-gray-200"
                                                                         )}
                                                                     >
-                                                                        <div className="flex items-center gap-2 mb-1">
-                                                                            <span className={cn(
-                                                                                "text-[10px] font-bold tabular-nums",
-                                                                                calendarSelectedDay === today ? "text-amber-600" : isPastDay ? "text-red-400" : "text-gray-400"
-                                                                            )}>
-                                                                                {formatTime(lead.fecha_seguimiento!)}
-                                                                            </span>
+                                                                        {/* Time */}
+                                                                        <span className={cn(
+                                                                            "text-[11px] font-bold tabular-nums shrink-0 w-11",
+                                                                            calendarSelectedDay === today ? "text-amber-600" : isPastDay ? "text-red-400" : "text-gray-400"
+                                                                        )}>
+                                                                            {formatTime(lead.fecha_seguimiento!)}
+                                                                        </span>
+
+                                                                        <div className="w-px h-6 bg-gray-200 shrink-0" />
+
+                                                                        {/* Name + phone inline */}
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-xs font-bold text-gray-900 truncate">{lead.name}</p>
+                                                                            <p className="text-[10px] text-gray-400 truncate">{lead.phone}{lead.advisor_name ? ` · ${lead.advisor_name}` : ''}</p>
+                                                                        </div>
+
+                                                                        {/* Estado + vencido badges */}
+                                                                        <div className="flex items-center gap-1 shrink-0">
                                                                             {isPastDay && (
-                                                                                <span className="text-[8px] font-bold text-red-400 bg-red-50 px-1 py-0.5 rounded border border-red-100">Vencido</span>
+                                                                                <span className="text-[8px] font-bold text-red-400 bg-red-50 px-1.5 py-0.5 rounded border border-red-100">Vencido</span>
+                                                                            )}
+                                                                            {lead.estado && (
+                                                                                <span className={cn(
+                                                                                    "text-[8px] font-bold px-1.5 py-0.5 rounded-full border",
+                                                                                    lead.estado === 'En seguimiento' ? "bg-blue-50 text-blue-600 border-blue-200"
+                                                                                        : lead.estado === 'Compromiso de pago' ? "bg-amber-50 text-amber-600 border-amber-200"
+                                                                                        : lead.estado === 'Pagado' ? "bg-green-50 text-green-600 border-green-200"
+                                                                                        : "bg-gray-50 text-gray-500 border-gray-200"
+                                                                                )}>
+                                                                                    {lead.estado}
+                                                                                </span>
                                                                             )}
                                                                         </div>
-                                                                        <p className="text-xs font-bold text-gray-900 truncate">{lead.name}</p>
-                                                                        <p className="text-[10px] text-gray-400 truncate">{lead.phone}{lead.advisor_name ? ` · ${lead.advisor_name}` : ''}</p>
-                                                                        {lead.estado && (
-                                                                            <span className={cn(
-                                                                                "text-[8px] font-bold px-1.5 py-0.5 rounded-full border inline-block mt-1.5",
-                                                                                lead.estado === 'En seguimiento' ? "bg-blue-50 text-blue-600 border-blue-200"
-                                                                                    : lead.estado === 'Compromiso de pago' ? "bg-amber-50 text-amber-600 border-amber-200"
-                                                                                    : lead.estado === 'Pagado' ? "bg-green-50 text-green-600 border-green-200"
-                                                                                    : "bg-gray-50 text-gray-500 border-gray-200"
-                                                                            )}>
-                                                                                {lead.estado}
-                                                                            </span>
-                                                                        )}
+
+                                                                        <ChevronRight size={14} className="text-gray-300 shrink-0" />
                                                                     </div>
                                                                 );
                                                             })}
