@@ -56,3 +56,51 @@ He realizado un análisis profundo de la base de código y detectado "agujeros" 
 1. **Limpiar Historial/Código en Git:** Se deben hacer commits de los archivos `test_webhook_manual.js`, `verify_pushover.js` e `index.ts` ya limpios, y hacer un `git push` a la rama principal para que GitHub deje de tener las contraseñas en su código fuente actual.
 2. **Rotación obligatoria (ElevenLabs):** Puesto que la clave de ElevenLabs quedó guardada en el historial de Git antiguo, es obligatorio generar una llave nueva en ElevenLabs y actualizar Doppler.
 3. **Despliegue automático (Vercel):** Al hacer el `git push`, Vercel se actualizará automáticamente. Sin embargo, para que funcione, Doppler debe estar integrado a Vercel (Doppler > Project > Integrations > Vercel).
+
+---
+
+## 🛡️ Fase 4: Mejoras de Seguridad para Escalar (Pendientes)
+
+Identificadas en auditoría del 21/04/2026. Implementar en orden de prioridad:
+
+### 🔴 Alta Prioridad
+
+1. **Limpiar Token de GitHub de la URL del remote**
+   - **Problema:** El Personal Access Token (PAT) de GitHub está embebido directamente en la URL de `origin` (`git remote -v`), lo que lo expone a cualquier herramienta que lea la config de Git.
+   - **Solución:**
+     ```bash
+     git remote set-url origin https://github.com/iautomae/opps-one.git
+     ```
+   - Luego usar autenticación por SSH o dejar que Git pida credenciales.
+
+2. **Rotar `WHATSAPP_VERIFY_TOKEN`**
+   - **Problema:** El valor actual en Doppler es `secury_webhook_2026`, predecible y con historial en el código.
+   - **Solución:** Generar un token aleatorio (mín. 32 caracteres), actualizar en Doppler Y en la consola de Meta Developers simultáneamente.
+
+### 🟡 Media Prioridad
+
+3. **Proteger rutas del frontend en el Middleware**
+   - **Problema:** `middleware.ts` maneja subdominios pero no valida sesión en rutas privadas del frontend. Un usuario sin sesión podría acceder a URLs internas si las conoce.
+   - **Solución:** Agregar validación de cookie de sesión de Supabase en el middleware para redirigir al login si no hay sesión activa.
+
+4. **Restringir CORS en el webhook de WhatsApp**
+   - **Problema:** La función `whatsapp-webhook` tiene `Access-Control-Allow-Origin: *` (acepta cualquier origen).
+   - **Solución:** Limitar a los IPs/dominios oficiales de Meta (`graph.facebook.com`).
+
+5. **Rate Limiting en el webhook de ElevenLabs**
+   - **Problema:** No hay límite de peticiones en `/api/webhooks/elevenlabs`. Un atacante podría bombardearlo y llenar la BD, aunque la firma HMAC evita contenido falso.
+   - **Solución:** Activar Vercel Edge Rate Limiting o agregar un contador por IP con Redis/Upstash.
+
+### 🟢 Mejoras Recomendadas (Nice to Have)
+
+6. **Login con Google (OAuth)**
+   - Supabase ya lo soporta nativamente. Solo activar en `Authentication > Providers > Google` y agregar credenciales de Google Cloud Console.
+   - No requiere cambios en el código de autenticación actual.
+
+7. **Autenticación en 2 pasos (2FA/TOTP)**
+   - Supabase Auth soporta TOTP (Google Authenticator).
+   - Habilitarlo opcionalmente para roles `admin` y `tenant_owner`.
+
+8. **Auditoría de RLS (Row Level Security) en Supabase**
+   - Verificar que las tablas `agentes`, `leads`, `profiles` y `conversaciones` tienen políticas RLS activas y bien configuradas para que cada `tenant_id` solo vea sus propios datos.
+   - Usar el inspector de Supabase: `Database > Policies`.
