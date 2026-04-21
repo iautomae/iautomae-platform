@@ -85,6 +85,21 @@ export async function POST(request: Request) {
 
     try {
         const bodyText = await request.text();
+
+        // --- HMAC SIGNATURE VALIDATION (Security: reject forged requests) ---
+        const webhookSecret = process.env.ELEVENLABS_WEBHOOK_SECRET;
+        if (!webhookSecret) {
+            console.error('ELEVENLABS_WEBHOOK_SECRET is not set. Rejecting all requests.');
+            return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+        }
+        const signature = request.headers.get('elevenlabs-signature') || '';
+        if (!verifyElevenLabsSignature(bodyText, signature, webhookSecret)) {
+            console.warn('Invalid ElevenLabs signature. Possible forged request. Sig received:', signature.substring(0, 40));
+            return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+        }
+        console.log('✅ ElevenLabs signature verified.');
+        // -------------------------------------------------------------------
+
         const payload = JSON.parse(bodyText);
         const allowDebugFallback = process.env.ELEVENLABS_DEBUG_FALLBACK === 'true';
 
