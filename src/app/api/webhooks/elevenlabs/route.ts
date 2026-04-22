@@ -7,13 +7,9 @@ import crypto from 'crypto';
 
 const ELEVENLABS_SIGNATURE_TOLERANCE_SECONDS = 30 * 60;
 
-function timingSafeEqualHex(expectedHex: string, receivedHex: string) {
-    if (!/^[a-f0-9]+$/i.test(expectedHex) || !/^[a-f0-9]+$/i.test(receivedHex)) {
-        return false;
-    }
-
-    const expected = Buffer.from(expectedHex, 'hex');
-    const received = Buffer.from(receivedHex, 'hex');
+function timingSafeEqualString(expectedValue: string, receivedValue: string) {
+    const expected = Buffer.from(expectedValue, 'utf8');
+    const received = Buffer.from(receivedValue, 'utf8');
 
     if (expected.length === 0 || expected.length !== received.length) {
         return false;
@@ -27,17 +23,16 @@ type SignatureVerificationResult =
     | { ok: false; reason: string };
 
 function verifyElevenLabsSignature(bodyText: string, signature: string, secret: string): SignatureVerificationResult {
-    const parts = signature.split(',').reduce((acc: Record<string, string>, part: string) => {
-        const [k, v] = part.split('=', 2);
-        if (k && v) acc[k.trim()] = v.trim();
-        return acc;
-    }, {} as Record<string, string>);
+    const headers = signature.split(',');
+    const timestampPart = headers.find((header) => header.startsWith('t='));
+    const signaturePart = headers.find((header) => header.startsWith('v0='));
+    const timestampRaw = timestampPart?.substring(2);
 
-    if (!parts.t || !parts.v0) {
+    if (!timestampRaw || !signaturePart) {
         return { ok: false, reason: 'Missing timestamp or v0 signature' };
     }
 
-    const timestamp = Number(parts.t);
+    const timestamp = Number(timestampRaw);
     if (!Number.isFinite(timestamp)) {
         return { ok: false, reason: 'Invalid timestamp' };
     }
@@ -47,9 +42,11 @@ function verifyElevenLabsSignature(bodyText: string, signature: string, secret: 
         return { ok: false, reason: 'Timestamp outside tolerance' };
     }
 
-    const signedPayload = `${parts.t}.${bodyText}`;
+    const signedPayload = `${timestampRaw}.${bodyText}`;
     const expectedDigest = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
-    if (!timingSafeEqualHex(expectedDigest, parts.v0)) {
+    const expectedSignature = `v0=${expectedDigest}`;
+
+    if (!timingSafeEqualString(expectedSignature, signaturePart)) {
         return { ok: false, reason: 'Signature mismatch' };
     }
 
@@ -114,7 +111,7 @@ export async function POST(request: Request) {
         const signatureVerification = verifyElevenLabsSignature(bodyText, signature, webhookSecret);
         if (!signatureVerification.ok) {
             console.warn(`Invalid ElevenLabs signature: ${signatureVerification.reason}`);
-            return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid signature', reason: signatureVerification.reason }, { status: 401 });
         }
 
         console.log('ElevenLabs signature verified.');

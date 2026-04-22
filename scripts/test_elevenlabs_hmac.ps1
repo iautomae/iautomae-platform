@@ -55,7 +55,8 @@ Write-Host "Conversation: test_hmac_$timestamp"
 
 $tempFile = New-TemporaryFile
 try {
-    Set-Content -LiteralPath $tempFile -Value $payload -NoNewline -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($tempFile, $payload, $utf8NoBom)
 
     $response = & curl.exe `
         --silent `
