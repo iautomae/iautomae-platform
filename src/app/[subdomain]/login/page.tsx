@@ -2,7 +2,7 @@
 
 import React, { Suspense, use, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { NebulaBackground } from '@/components/NebulaBackground';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -10,6 +10,7 @@ type SecurityFlowState = 'login' | 'verify';
 
 function LoginContent({ subdomain }: { subdomain: string }) {
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
     const isRecovery = searchParams.get('view') === 'recovery';
     const requestedStep = searchParams.get('step') === 'verify' ? 'verify' : 'login';
@@ -74,8 +75,6 @@ function LoginContent({ subdomain }: { subdomain: string }) {
 
     useEffect(() => {
         async function bootstrapVerificationStep() {
-            if (flowState !== 'verify') return;
-
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) return;
 
@@ -86,23 +85,26 @@ function LoginContent({ subdomain }: { subdomain: string }) {
             const json = await res.json().catch(() => ({}));
 
             if (res.ok && json.status === 'verified') {
-                await markTenantActive();
-                router.push('/leads');
+                if (pathname !== `/${subdomain}/login`) { // Evitar bucle si ya estamos en login
+                    await markTenantActive();
+                    router.push('/leads');
+                }
                 return;
             }
 
             if (json.status === 'requires_2fa') {
+                setFlowState('verify');
                 setMaskedEmail(json.maskedEmail || '');
                 setChallengeId(json.challengeId || '');
 
-                if (!json.hasActiveChallenge) {
+                if (!json.hasActiveChallenge && flowState === 'verify') {
                     await startSecurityChallenge(session.access_token);
                 }
             }
         }
 
         bootstrapVerificationStep();
-    }, [flowState, router]);
+    }, [subdomain, router]);
 
     async function startSecurityChallenge(accessToken: string) {
         const res = await fetch('/api/security/login/challenge', {

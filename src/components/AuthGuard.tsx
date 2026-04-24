@@ -73,6 +73,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
                     return;
                 }
 
+                // Si estamos en la página de login, no redirigimos para no causar bucles
+                if (pathname.includes('/login')) {
+                    setSecurityState('blocked');
+                    return;
+                }
+
                 if (json.status === 'blocked_country') {
                     await signOut();
                     setSecurityState('blocked');
@@ -97,7 +103,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
 
         if (!isLoading) {
-            if (!user && pathname !== '/login' && !pathname.endsWith('/set-password')) {
+            const isAuthPage = pathname.includes('/login') || pathname.endsWith('/set-password');
+            
+            if (!user && !isAuthPage) {
                 router.push('/login');
                 return;
             }
