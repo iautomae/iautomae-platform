@@ -46,6 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const signOut = async () => {
+        try {
+            await fetch('/api/security/logout', {
+                method: 'POST',
+            });
+        } catch {
+            // Ignore logout cookie cleanup failures and continue with Supabase sign out.
+        }
         await supabase.auth.signOut();
     };
 

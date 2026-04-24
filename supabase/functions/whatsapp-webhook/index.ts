@@ -8,10 +8,43 @@ const CORS_HEADERS = {
 
 // Obtenemos los secretos desde el entorno
 const VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN");
+const APP_SECRET = Deno.env.get("WHATSAPP_APP_SECRET");
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") || ""; // Tu key de AI Studio
 
 if (!VERIFY_TOKEN) {
     throw new Error("WHATSAPP_VERIFY_TOKEN is missing in environment");
+}
+
+// Función para verificar la firma de Meta (HMAC SHA256)
+async function verifySignature(request: Request, bodyText: string): Promise<boolean> {
+    const signature = request.headers.get("x-hub-signature-256");
+    if (!signature || !APP_SECRET) {
+        console.warn("Signature or APP_SECRET missing. skipping verification (NOT RECOMMENDED FOR PROD)");
+        return true; // Permitir por ahora si no hay secreto configurado, pero avisar
+    }
+
+    const signatureHash = signature.split("sha256=")[1];
+    if (!signatureHash) return false;
+
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(APP_SECRET),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+    );
+
+    const signatureBuffer = await crypto.subtle.sign(
+        "HMAC",
+        key,
+        encoder.encode(bodyText)
+    );
+
+    const hashArray = Array.from(new Uint8Array(signatureBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+    return hashHex === signatureHash;
 }
 
 Deno.serve(async (req) => {
@@ -39,7 +72,16 @@ Deno.serve(async (req) => {
     // 2. RECEPCIÓN DE MENSAJES DE WHATSAPP (POST)
     if (req.method === "POST") {
         try {
-            const body = await req.json();
+            const bodyText = await req.text();
+            
+            // Validar firma de Meta
+            const isValid = await verifySignature(req, bodyText);
+            if (!isValid) {
+                console.warn("Firma de Meta inválida.");
+                return new Response("Invalid signature", { status: 401 });
+            }
+
+            const body = JSON.parse(bodyText);
 
             // Ignorar actualizaciones de estado (entregado, leído)
             if (

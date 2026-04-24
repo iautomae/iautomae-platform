@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { validateSecurityClearance } from '@/lib/security';
 
 export type AppRole = 'admin' | 'tenant_owner' | 'client';
 
@@ -16,6 +17,10 @@ export interface AuthenticatedProfile {
 export interface AuthContext {
     accessToken: string;
     profile: AuthenticatedProfile;
+}
+
+interface RequireAuthOptions {
+    skipSecurityCheck?: boolean;
 }
 
 function getSupabaseAdmin() {
@@ -36,7 +41,8 @@ function extractBearerToken(request: Request): string | null {
 
 export async function requireAuth(
     request: Request,
-    allowedRoles?: AppRole[]
+    allowedRoles?: AppRole[],
+    options: RequireAuthOptions = {}
 ): Promise<{ context: AuthContext | null; response: NextResponse | null }> {
     const accessToken = extractBearerToken(request);
     if (!accessToken) {
@@ -77,6 +83,23 @@ export async function requireAuth(
             context: null,
             response: NextResponse.json({ error: 'No tienes permisos para esta acción.' }, { status: 403 }),
         };
+    }
+
+    if (!options.skipSecurityCheck) {
+        const clearance = await validateSecurityClearance(request, profile.id);
+        if (!clearance.ok) {
+            return {
+                context: null,
+                response: NextResponse.json(
+                    {
+                        error: 'Verificación de seguridad requerida.',
+                        code: 'SECURITY_CLEARANCE_REQUIRED',
+                        reason: clearance.reason,
+                    },
+                    { status: 403 }
+                ),
+            };
+        }
     }
 
     return {

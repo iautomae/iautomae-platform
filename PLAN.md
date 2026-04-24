@@ -6,7 +6,8 @@ Este documento sirve como guía paso a paso para organizar el trabajo, las nueva
 - [ ] Definir los próximos objetivos y funcionalidades a desarrollar.
 
 ## 🚧 En Progreso
-- [ ] (Añadir aquí lo que estemos trabajando en el momento)
+- [ ] Implementación de seguridad privada del panel: acceso solo desde Perú, doble verificación por correo y alertas de acceso sospechoso.
+- [ ] Validación local del nuevo flujo de seguridad apenas `node` y `npm` estén disponibles en terminal.
 
 ## ✅ Tareas Completadas
 - [x] Configuración inicial del entorno en la nueva PC.
@@ -113,3 +114,48 @@ Identificadas en auditoría del 21/04/2026. Implementar tras estabilizar ElevenL
 ### 🟢 Mejoras Recomendadas
 3. **Login con Google (OAuth):** Configurar en Supabase Auth.
 4. **Auditoría de RLS:** Revisar políticas de seguridad por fila en tablas de `agentes` y `leads`.
+5. **Segundo factor por correo (2FA por código):**
+   - Añadir en la tuerca/configuración de cada usuario una sección para registrar y verificar un correo de segundo acceso.
+   - En el login, tras `email + contraseña`, exigir un código temporal enviado a ese segundo correo antes de conceder acceso completo al panel.
+   - Guardar estado de enrolamiento 2FA, correo secundario verificado, fecha del último desafío y opción de recuperación segura.
+   - Estado actual: 🔄 Base backend y flujo de login en implementación.
+6. **Sesiones y accesos sospechosos:**
+   - Registrar IP, país aproximado, user-agent y fecha de acceso por sesión exitosa.
+   - Marcar como “login de riesgo” cuando cambie país/dispositivo/huella y volver a pedir segundo factor.
+   - Añadir opción para cerrar otras sesiones activas y revocar sesiones al cambiar contraseña o correo de seguridad.
+   - Estado actual: 🔄 Registro de eventos y alertas por correo en implementación.
+7. **Migración de autenticación server-side más estricta:**
+   - Migrar protección de sesión en frontend a `@supabase/ssr` para validar cookies/sesión desde middleware y rutas protegidas.
+   - Reducir confianza en estado de sesión solo cliente (`supabase.auth.getSession()` en navegador) para proteger mejor el panel.
+   - Estado actual: ⏳ Pendiente. La versión actual usa autorización adicional propia sobre la sesión existente.
+
+---
+
+## 🧪 Punto Exacto de Retoma
+
+Al reiniciar, continuar desde aquí:
+
+1. **Verificar entorno local**
+   - Confirmar que `node -v` y `npm -v` respondan en terminal.
+   - Si no responden, reiniciar VS Code/terminal para refrescar PATH.
+
+2. **Levantar proyecto con secretos vía Doppler**
+   - Ejecutar instalación de dependencias.
+   - Levantar app local con variables inyectadas desde Doppler.
+   - No hardcodear secretos en código ni en scripts.
+
+3. **Probar flujo nuevo de seguridad**
+   - Login con `email + contraseña`.
+   - Confirmar paso 2FA por correo.
+   - Verificar acceso correcto al panel tras OTP válido.
+   - Verificar comportamiento si el usuario aún no activó 2FA.
+   - Validar bloqueo por país distinto de `PE` si el entorno de prueba lo permite.
+   - Confirmar que logout invalida también la autorización adicional de seguridad.
+
+4. **Corregir errores de compilación o flujo**
+   - Ajustar rutas/API/UI según resultados de prueba real.
+   - Revisar cualquier conflicto entre `AuthGuard`, login y endpoints de seguridad.
+
+5. **Después de validar seguridad**
+   - Retomar endurecimiento de `supabase/functions/whatsapp-webhook/index.ts`.
+   - Revertir CORS permisivo (`*`) y seguir con cierre pendiente de seguridad del webhook.
